@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "API",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon src/index.js --exec babel-node",
     "build": "babel src -d dist",
     "start": "node dist",
     "migation": "node src/migration/migrate.js"
@@ -20,5 +21,13 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.24.8",
+    "@babel/node": "^7.24.8",
+    "@babel/plugin-transform-runtime": "^7.24.7",
+    "@babel/preset-env": "^7.24.8",
+    "nodemon": "^3.1.4"
   }
 }
