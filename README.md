@@ -1,18 +1,24 @@
-# DON KAMPO API
+# 🏷️ **DON KAMPO API**
 
-Aplicación desarrollada por Andres Betancourt
+Aplicación desarrollada por **Andres Betancourt**
 
-## IDE Recomendado
+## 🛠️ IDE Recomendado
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+Utiliza las siguientes herramientas para una mejor experiencia de desarrollo:
 
-## INSTALACIÓN DEL PROYECTO
+- [**Visual Studio Code (VSCode)**](https://code.visualstudio.com/) 🖥️
+- [**ESLint**](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) 📜
+- [**Prettier**](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) 🎨
+
+## 🚀 Instalación del Proyecto
 
 ### Instalación
 
+Para instalar las dependencias del proyecto, ejecuta:
+
 ```bash
-$ npm install
-```
+npm install
+
 
 ### deplegar aplicación en modo desarrollo de escritorio
 
