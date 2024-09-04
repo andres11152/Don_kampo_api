@@ -20,7 +20,7 @@ Para instalar las dependencias del proyecto, ejecuta:
 npm install
 ```
 
-### deplegar aplicación en modo desarrollo de escritorio
+### Deplegar aplicación en modo desarrollo de escritorio
 
 ```bash
 $ npm run dev
