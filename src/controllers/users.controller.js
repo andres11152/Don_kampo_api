@@ -73,10 +73,13 @@ export const getUsersById = async (req, res) => {
         return res.status(500).json({
           msg: 'Error interno del servidor.',
         });
-      }       
+      }    
+  };   
 
-      /** Actualiza un usuario existente en la base de datos. */
-      export const updateUsers = async (req, res) => {
+      /** 
+       * Actualiza un usuario existente en la base de datos.
+        **/
+   export const updateUsers = async (req, res) => {
         const { id } = req.params;
         const { first_name, last_name, email, phone, departament, city, adress, neighborhood, locality, user_status, user_password } = req.body;
       
@@ -100,7 +103,7 @@ export const getUsersById = async (req, res) => {
         return res.status(500).json({
           msg: 'Error interno del servidor.',
         });
-      }}; 
+      }; 
 
   /**
    * Elimina un usuario de la base de datos.
