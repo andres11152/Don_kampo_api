@@ -1,8 +1,29 @@
 -- Crear extensión uuid-ossp si no existe
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create users table
+-- Create table for shipping statuses
+CREATE TABLE shipping_statuses (
+    id SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL
+);
 
+-- Create table for shipping information
+CREATE TABLE shipping_info (
+    id SERIAL PRIMARY KEY,
+    shipping_method VARCHAR(100) NOT NULL,
+    tracking_number VARCHAR(100),
+    estimated_delivery TIMESTAMP,
+    actual_delivery TIMESTAMP,
+    shipping_status_id INTEGER REFERENCES shipping_statuses(id) ON DELETE SET NULL
+);
+
+-- Create table for order statuses
+CREATE TABLE order_statuses (
+    id SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL
+);
+
+-- Create table for users
 CREATE TABLE users (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_name VARCHAR(20) NOT NULL,
@@ -18,21 +39,16 @@ CREATE TABLE users (
     user_status INTEGER,
     user_password VARCHAR(255)
 );
--- Create table for order statuses
-CREATE TABLE order_statuses (
-    id SERIAL PRIMARY KEY,              
-    status_name VARCHAR(50) NOT NULL   
-);
+
 -- Create table for orders
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    customer_id UUID REFERENCES users(id) ON DELETE CASCADE,  -- Foreign key to users table
+    customer_id UUID REFERENCES users(id) ON DELETE CASCADE,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_id INTEGER REFERENCES order_statuses(id) ON DELETE SET NULL,  -- Foreign key to order_statuses table
+    status_id INTEGER REFERENCES order_statuses(id) ON DELETE SET NULL,
     total DECIMAL(10, 2) NOT NULL
 );
 
------- EMPRESA --------
 -- Create table for companies
 CREATE TABLE companies (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -45,27 +61,7 @@ CREATE TABLE companies (
     address TEXT,
     neighborhood VARCHAR(100),
     locality VARCHAR(100),
-    shipping_info_id INTEGER REFERENCES shipping_info(id) ON DELETE SET NULL,  -- Foreign key to shipping_info
+    shipping_info_id INTEGER REFERENCES shipping_info(id) ON DELETE SET NULL,
     company_status INTEGER,
     company_password VARCHAR(255)
 );
-
--- Create table for shipping information
-CREATE TABLE shipping_info (
-    id SERIAL PRIMARY KEY,
-    shipping_method VARCHAR(100) NOT NULL,
-    tracking_number VARCHAR(100),
-    estimated_delivery TIMESTAMP,
-    actual_delivery TIMESTAMP,
-    shipping_status_id INTEGER REFERENCES shipping_statuses(id) ON DELETE SET NULL  -- Foreign key to shipping_statuses
-);
-
--- Create table for shipping statuses
-CREATE TABLE shipping_statuses (
-    id SERIAL PRIMARY KEY,
-    status_name VARCHAR(50) NOT NULL
-);
-
-
-
-

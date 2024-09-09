@@ -1,6 +1,7 @@
-import { Client } from 'pg'; // Importa directamente la clase Client desde el módulo pg
+import pg from 'pg'; // Importa directamente la clase Client desde el módulo pg
 import { dbSettings } from '../config/config.js'; // Importa la configuración de la base de datos
 
+const { Client } = pg;
 /**
  * Establece y devuelve una conexión a la base de datos PostgreSQL.
  * @returns {Promise<Client>} - El cliente de la base de datos conectado

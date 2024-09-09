@@ -51,19 +51,34 @@ export const getUsersById = async (req, res) => {
    * Crea un nuevo usuario en la base de datos.
    */
   export const createUsers = async (req, res) => {  
-    const { user_name, first_name, last_name, email, phone, departament, city, adress, neighborhood, locality,user_status, user_password } = req.body;
+    const { user_name, first_name, last_name, email, phone, department, city, address, neighborhood, locality, user_status, user_password } = req.body;
     
-    if (!user_name || !first_name || !last_name || !email || !phone || !departament || !city || !adress || !neighborhood || !locality || !user_password) {
+    // Validar que todos los campos necesarios estén presentes
+    if (!user_name || !first_name || !last_name || !email || !phone || !department || !city || !address || !neighborhood || !locality || !user_status || !user_password) {
       return res.status(400).json({
-        msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos están completos.',
-        
+        msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos estén completos.'
       });
     }
 
     try {
         const hashedPassword = await bcrypt.hash(user_password, 10); // hash the password
         const client = await getConnection();
-        await client.query(queries.users.createUsers, [user_name, first_name, last_name, email, phone, departament, city, adress, neighborhood, locality, user_status, hashedPassword]);
+        console.log("Query: ", queries.users.createUsers, [
+          user_name, 
+          first_name, 
+          last_name, 
+          email, 
+          phone, 
+          department, 
+          city, 
+          address, 
+          neighborhood, 
+          locality, 
+          user_status, 
+          hashedPassword
+      ]);
+      
+        await client.query(queries.users.createUsers, [user_name, first_name, last_name, email, phone, department, city, address, neighborhood, locality, user_status, hashedPassword]);
         await client.end();
         return res.status(201).json({
           msg: 'Usuario creado exitosamente.',
@@ -71,7 +86,7 @@ export const getUsersById = async (req, res) => {
       } catch (error) {
         console.error('Error al crear usuario:', error);
         return res.status(500).json({
-          msg: 'Error interno del servidor.',
+          msg: 'Error interno del servidor, intente nuevamente.',
         });
       }    
   };   
