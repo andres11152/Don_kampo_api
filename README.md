@@ -1,5 +1,3 @@
-Aquí tienes la versión en inglés del texto que proporcionaste:
-
 # 🏷️ **DON KAMPO API**
 
 Application developed by **Andres Betancourt**
