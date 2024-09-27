@@ -1,32 +1,34 @@
+Aquí tienes la versión en inglés del texto que proporcionaste:
+
 # 🏷️ **DON KAMPO API**
 
-Aplicación desarrollada por **Andres Betancourt**
+Application developed by **Andres Betancourt**
 
-## 🛠️ IDE Recomendado
+## 🛠️ Recommended IDE
 
-Utiliza las siguientes herramientas para una mejor experiencia de desarrollo:
+Use the following tools for a better development experience:
 
 - [**Visual Studio Code (VSCode)**](https://code.visualstudio.com/) 🖥️
 - [**ESLint**](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) 📜
 - [**Prettier**](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) 🎨
 
-## 🚀 Instalación del Proyecto
+## 🚀 Project Installation
 
-### Instalación
+### Installation
 
-Para instalar las dependencias del proyecto, ejecuta:
+To install the project dependencies, run:
 
 ```bash
 npm install
 ```
 
-### Deplegar aplicación en modo desarrollo de escritorio
+### Deploy the application in desktop development mode
 
 ```bash
 $ npm run dev
 ```
 
-### Desplegar el proyecto en modo producción
+### Deploy the project in production mode
 
 ```bash
 # Windows
@@ -38,21 +40,19 @@ $ npm run build:mac
 # Linux
 $ npm run build:linux
 ```
-## Desplegar proyecto en modo desarollo web
 
-### Acceder al directorio
+## Deploy the project in web development mode
+
+### Navigate to the directory
 
 ```bash
 # For windows
 $ cd web
-
 ```
 
-### Iniciar el servidor de desarrollo
+### Start the development server
 
 ```bash
 # For windows
 $ npm run dev
-
 ```
-
