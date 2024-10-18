@@ -63,21 +63,6 @@ export const getUsersById = async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(user_password, 10); // hash the password
         const client = await getConnection();
-        console.log("Query: ", queries.users.createUsers, [
-          user_name, 
-          first_name, 
-          last_name, 
-          email, 
-          phone, 
-          department, 
-          city, 
-          address, 
-          neighborhood, 
-          locality, 
-          user_status, 
-          hashedPassword
-      ]);
-      
         await client.query(queries.users.createUsers, [user_name, first_name, last_name, email, phone, department, city, address, neighborhood, locality, user_status, hashedPassword]);
         await client.end();
         return res.status(201).json({
