@@ -2,26 +2,33 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import { PORT } from "./config/config.js";
-
+import usersRoutes from "./routes/user.routes.js";
+import authRoutes  from "./routes/auth.routes.js"; 
 
 // Configuración del servidor
 const app = express();
 
-//importación de las rutas
-import usersRoutes from "./routes/user.routes.js";
-
-//Middleware
+// Middleware
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cors());
+
+// Configuración de CORS
+const corsOptions = {
+  origin: 'http://localhost:4200', // Cambia a la URL de tu aplicación Angular
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions)); // Aplica las opciones de CORS
 
 app.set('view engine', 'ejs');
 
-//routes
+// Rutas
 app.use(usersRoutes);
+app.use('/api', authRoutes); // Asegúrate de que la ruta esté definida en '/api'
 
-//configuración del servidor  - Ruta principal
+
+// Configuración del servidor - Ruta principal
 app.get("/", (req, res) => {
   res.render(process.cwd() + "/web/index.ejs"); // Renderiza el archivo index.ejs al acceder a la ruta raíz.
 });

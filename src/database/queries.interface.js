@@ -4,8 +4,8 @@ export const queries ={
 
         getUsers: 'SELECT * FROM users',
         getUsersById: 'SELECT * FROM users WHERE id = $1',
-        createUsers: `INSERT INTO users (user_name, first_name, last_name, email, phone, department, city, address, neighborhood, locality, user_status, user_password)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        createUsers: `INSERT INTO users (user_name, lastname, email, phone, user_password, user_type)
+              VALUES ($1, $2, $3, $4, $5, $6)`,
         updateUsers: `UPDATE users
                      SET first_name = $1, last_name = $2, email = $3, phone = $4, department = $5, city = $6, address = $7, neighborhood = $8, locality = $9, user_status = $10, user_password = $11
                      WHERE id = $12`,
