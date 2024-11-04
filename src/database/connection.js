@@ -1,24 +1,15 @@
-import pg from 'pg'; // Importa directamente la clase Client desde el módulo pg
+import pg from 'pg'; // Importa la clase Pool desde el módulo pg
 import { dbSettings } from '../config/config.js'; // Importa la configuración de la base de datos
 
-const { Client } = pg;
-/**
- * Establece y devuelve una conexión a la base de datos PostgreSQL.
- * @returns {Promise<Client>} - El cliente de la base de datos conectado
- * @throws {Error} - Lanza un error si la conexión falla
- */
-export const getConnection = async () => {
-  const client = new Client(dbSettings); // Crea una nueva instancia del cliente con la configuración
+const { Pool } = pg;
+const pool = new Pool(dbSettings); // Crea una instancia del pool con la configuración
 
-  try {
-    await client.connect(); // Intenta conectar el cliente a la base de datos
-    console.log('Conexión a la base de datos establecida');
-    return client; // Devuelve el cliente conectado
-  } catch (error) {
-    console.error('Error conectando a la base de datos:', error.message);
-    await client.end(); // Asegura que la conexión se cierra en caso de error
-    throw error; // Reenvía el error para que pueda ser manejado externamente
-  }
+/**
+ * Devuelve una conexión al pool de la base de datos PostgreSQL.
+ * @returns {Pool} - El pool de conexiones de la base de datos
+ */
+export const getConnection = () => {
+  return pool; // Devuelve el pool para que se pueda usar pool.connect() en otros archivos
 };
 
 /**
@@ -26,9 +17,9 @@ export const getConnection = async () => {
  */
 const testConnection = async () => {
   try {
-    const client = await getConnection(); // Establece la conexión a la base de datos
-    console.log('Conexión exitosa a la base de datos'); 
-    await client.end(); // Cierra la conexión después de verificarla
+    const client = await pool.connect(); // Obtiene un cliente del pool
+    console.log('Conexión exitosa a la base de datos');
+    client.release(); // Libera el cliente de nuevo al pool
   } catch (error) {
     console.error('Error en la conexión:', error.message); // Maneja los errores en la conexión
   }

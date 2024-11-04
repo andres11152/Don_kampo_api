@@ -70,7 +70,10 @@ CREATE TABLE orders_pending (
     total DECIMAL(10, 2) NOT NULL
 );
 */
-
-UPDATE users
-SET user_password = user_type,
-    user_type = user_password;
+CREATE TABLE prices (
+  id SERIAL PRIMARY KEY,
+  product_id INT,
+  customer_type VARCHAR(50), -- 'standard', 'premium', 'vip'
+  price DECIMAL(10, 2),
+  FOREIGN KEY (product_id) REFERENCES products(id)
+);

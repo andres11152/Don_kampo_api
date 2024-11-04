@@ -6,7 +6,7 @@ import { getConnection } from '../database/connection.js';
 const router = express.Router();
 
 // Clave secreta para firmar el token JWT
-const JWT_SECRET = 'tu_clave_secreta';
+const JWT_SECRET = 'Xpto-secret0-key';
 
 // Ruta de inicio de sesión
 router.post('/login', async (req, res) => {
