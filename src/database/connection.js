@@ -6,10 +6,16 @@ const pool = new Pool(dbSettings); // Crea una instancia del pool con la configu
 
 /**
  * Devuelve una conexión al pool de la base de datos PostgreSQL.
- * @returns {Pool} - El pool de conexiones de la base de datos
+ * @returns {Promise<Client>} - Un cliente conectado del pool
  */
-export const getConnection = () => {
-  return pool; // Devuelve el pool para que se pueda usar pool.connect() en otros archivos
+export const getConnection = async () => {
+  try {
+    const client = await pool.connect(); // Obtiene un cliente del pool
+    return client; // Devuelve el cliente para que se use en controladores
+  } catch (error) {
+    console.error('Error al obtener la conexión:', error.message);
+    throw error;
+  }
 };
 
 /**
