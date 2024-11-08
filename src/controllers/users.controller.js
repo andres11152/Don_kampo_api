@@ -47,22 +47,22 @@ export const getUsersById = async (req, res) => {
  * Crea un nuevo usuario en la base de datos.
  */
 export const createUsers = async (req, res) => {
-  const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;
+  const { user_name, lastname, email, phone, city, user_password, user_type } = req.body;
 
   // Validar que todos los campos necesarios estén presentes
-  if (!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
+  if (!user_name || !lastname || !email || !phone || !city || !user_password || !user_type) {
     return res.status(400).json({
       msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
     });
   }
-
+  
   try {
     const hashedPassword = await bcrypt.hash(user_password, 10);
     const client = await getConnection();
-
-    await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
-    client.release(); // Cambiado de client.end() a client.release()
-
+  
+    await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, hashedPassword, user_type]);
+    client.release();
+  
     return res.status(201).json({ msg: 'Usuario creado exitosamente.' });
   } catch (error) {
     console.error('Error al crear usuario:', error);
