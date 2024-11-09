@@ -1,31 +1,16 @@
 import { Router } from 'express';
-import {
-  getOrders,
-  getOrdersById,
-  createOrders,
-  updateOrders,
-  deleteOrders,
-  getOrdersPending,
-  getOrdersPendingById,
-  getOrdersDelivered,
-  getOrdersDeliveredById
-} from '../controllers/orders.controller.js';
+import { placeOrder, getOrders, getOrdersById, createOrders, updateOrders, deleteOrders } from '../controllers/orders.controller.js';
 
 const router = Router();
 
-// Rutas para pedidos generales
-router.get('/api/orders', getOrders);                
-router.get('/api/orders/:id', getOrdersById);       
-router.post('/api/createorders', createOrders);          
-router.put('/api/updateorders', updateOrders);             
-router.delete('/api/deleteorders/:id', deleteOrders);      
+// Ruta para colocar un nuevo pedido
+router.post('/api/orders/placeOrder', placeOrder);
 
-// Rutas para pedidos pendientes
-router.get('/api/orders/pending', getOrdersPending);             
-router.get('/api/orders/pending/:id', getOrdersPendingById);     
-
-// Rutas para pedidos entregados
-router.get('/api/orders/delivered', getOrdersDelivered);               
-router.get('/api/orders/delivered/:id', getOrdersDeliveredById);      
+// Rutas para otros métodos
+router.get('/api/orders', getOrders);
+router.get('/api/orders/:id', getOrdersById);
+router.post('/api/createorders', createOrders);
+router.put('/api/updateorders/:id', updateOrders);
+router.delete('/api/deleteorders/:id', deleteOrders);
 
 export default router;

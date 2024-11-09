@@ -42,21 +42,13 @@ CREATE TABLE orders_pending (
 );
 
 CREATE TABLE products (
-  id SERIAL PRIMARY KEY,
+  product_id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT,
   category VARCHAR(50),
   stock INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE prices (
-  id SERIAL PRIMARY KEY,
-  product_id INT NOT NULL,
-  customer_type VARCHAR(50) NOT NULL, 
-  price NUMERIC(10, 2) NOT NULL,
-  FOREIGN KEY (product_id) REFERENCES products(id)
 );
 
 -- Create table for users
@@ -73,5 +65,18 @@ CREATE TABLE users (
     user_type VARCHAR(50) NOT NULL  
 );
 
+
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL,
+    price DECIMAL(10, 2) NOT NULL
+);
+
 */
-Drop
+INSERT INTO shipping_statuses (id, status_name) VALUES
+(1, 'Preparación'),
+(2, 'En tránsito'),
+(3, 'Entregado'),
+(4, 'Cancelado');
