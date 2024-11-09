@@ -47,15 +47,15 @@ export const getUsersById = async (req, res) => {
  * Crea un nuevo usuario en la base de datos.
  */
 export const createUsers = async (req, res) => {
-  const { user_name, lastname, email, phone, city, user_password, user_type } = req.body;
+  const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;
 
-  // Validar que todos los campos necesarios estén presentes
-  if (!user_name || !lastname || !email || !phone || !city || !user_password || !user_type) {
+  // Validación de campos
+  if (!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
     return res.status(400).json({
       msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
     });
   }
-  
+
   try {
     const client = await getConnection();
 
