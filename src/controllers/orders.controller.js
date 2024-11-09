@@ -17,7 +17,7 @@ export const getOrders = async (req, res) => {
 };  
 
 /**
- * Obtiene un pedido por ID de la base de datos.
+  Obtiene un pedido por ID de la base de datos.
  */
 export const getOrdersById = async (req, res) => {
   const { id } = req.params;
