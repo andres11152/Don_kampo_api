@@ -16,9 +16,9 @@ const router = Router();
 // Rutas para pedidos generales
 router.get('/api/orders', getOrders);                
 router.get('/api/orders/:id', getOrdersById);       
-router.post('/api/orders', createOrders);          
-router.put('/api/orders', updateOrders);             
-router.delete('/api/orders/:id', deleteOrders);      
+router.post('/api/createorders', createOrders);          
+router.put('/api/updateorders', updateOrders);             
+router.delete('/api/deleteorders/:id', deleteOrders);      
 
 // Rutas para pedidos pendientes
 router.get('/api/orders/pending', getOrdersPending);             
