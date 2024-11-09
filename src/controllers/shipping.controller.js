@@ -1,6 +1,6 @@
 // Importar el pool y las queries
-import { getConnection } from "../database/connection";
-import { queries } from "../database/queries.interface";
+import { getConnection } from "../database/connection.js";
+import { queries } from "../database/queries.interface.js";
 
 // Crear nueva información de envío
 export const createShippingInfo = async (req, res) => {

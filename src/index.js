@@ -2,9 +2,12 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import { PORT } from "./config/config.js";
-import usersRoutes from "./routes/user.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import usersRoutes from "./routes/user.routes.js";
 import productsRoutes from './routes/products.routes.js';
+import shippingRoutes from './routes/shipping.routes.js';
+import orderRoutes from './routes/order.routes.js';
+import { or } from "three/webgpu";
 
 // Configuración del servidor
 const app = express();
@@ -27,9 +30,12 @@ app.use(cors(corsOptions)); // Aplica las opciones de CORS
 app.set('view engine', 'ejs');
 
 // Rutas
-app.use(usersRoutes);
+
 app.use('/api', authRoutes); // Ruta de autenticación
+app.use(usersRoutes);
 app.use(productsRoutes); // Ruta para los productos y precios
+app.use(shippingRoutes); // Ruta para los métodos de envío
+app.use(orderRoutes); // Ruta para los pedidos
 
 // Configuración del servidor - Ruta principal
 app.get("/", (req, res) => {
