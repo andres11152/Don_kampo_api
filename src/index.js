@@ -8,7 +8,6 @@ import productsRoutes from './routes/products.routes.js';
 import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
 
-
 // Configuración del servidor
 const app = express();
 
