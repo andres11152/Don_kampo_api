@@ -23,7 +23,6 @@ CREATE TABLE order_statuses (
     status_name VARCHAR(50) NOT NULL
 );
 
-
 -- Create table for orders
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -31,23 +30,6 @@ CREATE TABLE orders (
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status_id INTEGER REFERENCES order_statuses(id) ON DELETE SET NULL,
     total DECIMAL(10, 2) NOT NULL
-);
-
--- Create table for companies
-CREATE TABLE companies (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    company_name VARCHAR(100) NOT NULL,
-    contact_person VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    department VARCHAR(100),
-    city VARCHAR(100),
-    address TEXT,
-    neighborhood VARCHAR(100),
-    locality VARCHAR(100),
-    shipping_info_id INTEGER REFERENCES shipping_info(id) ON DELETE SET NULL,
-    company_status INTEGER,
-    company_password VARCHAR(255)
 );
 
 -- Create table for orders_pending
@@ -91,6 +73,3 @@ CREATE TABLE users (
     user_type VARCHAR(50) NOT NULL  
 );
 */
-DELETE FROM users WHERE id = 'a759e58a-2a31-41a1-90c5-b85f7a0fcc22';
-
-
