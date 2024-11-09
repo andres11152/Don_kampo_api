@@ -12,15 +12,17 @@ const app = express();
 // Middleware
 app.use(morgan("dev"));
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
+const allowedOrigins = ['http://localhost:5173']; // Cambia al puerto del frontend (Vite normalmente usa 3000)
 const corsOptions = {
-  origin: 'http://localhost:4200', // Cambia a la URL de tu aplicación Angular
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // Permite el envío de cookies y encabezados de autenticación
 };
+
 app.use(cors(corsOptions)); // Aplica las opciones de CORS
 
 // Configuración de EJS
