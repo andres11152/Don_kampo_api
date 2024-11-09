@@ -15,19 +15,17 @@ export const queries = {
     },
     orders: {
       createOrder: `
-        INSERT INTO orders (customer_id, order_date, status_id, total)
+        INSERT INTO orders (customer_id, order_date, status_id, total) 
+        VALUES ($1, $2, $3, $4) RETURNING id
+      `,
+      createOrderItem: `
+        INSERT INTO order_items (order_id, product_id, quantity, price) 
         VALUES ($1, $2, $3, $4)
-        RETURNING *
       `,
-      getAllOrders: "SELECT * FROM orders",
-      getOrderById: "SELECT * FROM orders WHERE id = $1",
-      updateOrder: `
-        UPDATE orders
-        SET customer_id = $1, order_date = $2, status_id = $3, total = $4
-        WHERE id = $5
-        RETURNING *
-      `,
-      deleteOrder: "DELETE FROM orders WHERE id = $1",
+      createShippingInfo: `
+        INSERT INTO shipping_info (shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+      `
     },
     order_statuses: {
         getOrderStatuses: "SELECT * FROM order_statuses",
