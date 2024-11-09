@@ -72,4 +72,6 @@ CREATE TABLE users (
     user_password VARCHAR(255) NOT NULL,
     user_type VARCHAR(50) NOT NULL  
 );
+
 */
+Drop
