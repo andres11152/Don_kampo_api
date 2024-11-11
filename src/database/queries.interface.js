@@ -2,6 +2,11 @@ export const queries = {
   users: {
     getUsers: "SELECT * FROM users",
     getUsersById: "SELECT * FROM users WHERE id = $1",
+    getUserOrdersById: `
+      SELECT o.id AS order_id, o.order_date, o.status_id, o.total
+      FROM orders o
+      WHERE o.customer_id = $1
+    `,
     createUsers: `
       INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id

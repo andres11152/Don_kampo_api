@@ -29,14 +29,28 @@ export const getUsersById = async (req, res) => {
 
   try {
     const client = await getConnection();
-    const result = await client.query(queries.users.getUsersById, [id]);
-    client.release(); // Cambiado de client.end() a client.release()
 
-    if (result.rows.length > 0) {
-      return res.status(200).json(result.rows[0]);
-    } else {
+    // Obtener la información del usuario
+    const userResult = await client.query(queries.users.getUsersById, [id]);
+
+    if (userResult.rows.length === 0) {
+      client.release();
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
+
+    const userData = userResult.rows[0];
+
+    // Obtener las órdenes asociadas al usuario
+    const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
+    const userOrders = ordersResult.rows;
+
+    client.release();
+
+    // Responder con la información del usuario y sus órdenes
+    return res.status(200).json({
+      user: userData,
+      orders: userOrders,
+    });
   } catch (error) {
     console.error('Error al obtener usuario:', error);
     return res.status(500).json({ msg: 'Error interno del servidor.' });
