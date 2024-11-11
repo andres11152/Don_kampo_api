@@ -58,6 +58,9 @@ export const placeOrder = async (req, res) => {
   }
 };
 
+
+
+
 /**
  * Obtiene todos los pedidos de la base de datos.
  */
@@ -72,32 +75,66 @@ export const getOrders = async (req, res) => {
     return res.status(500).json({ msg: 'Error al obtener los pedidos' });
   }
 };
-
-/**
- * Obtiene un pedido por ID de la base de datos.
- */
+/** 
+ *  Obtiene un pedido por ID de la base de datos.
+ * **/
 export const getOrdersById = async (req, res) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return res.status(400).json({ msg: 'Por favor proporciona un ID válido.' });
-  }
-
   try {
+    const { orderId } = req.params;
     const client = await getConnection();
-    const result = await client.query(queries.orders.getOrdersById, [id]);
+
+    // Obtener la información básica del pedido
+    const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
+    if (orderResult.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ message: 'Pedido no encontrado' });
+    }
+    const orderData = orderResult.rows[0];
+
+    // Obtener los elementos del pedido
+    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
+    const orderItems = itemsResult.rows;
+
+    // Obtener la información de envío
+    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
+    const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
+
     client.release();
 
-    if (result.rows.length > 0) {
-      return res.status(200).json(result.rows[0]);
-    } else {
-      return res.status(404).json({ msg: 'Pedido no encontrado.' });
-    }
+    // Estructura la respuesta con todos los datos del pedido
+    const response = {
+      order: {
+        id: orderData.id,
+        customer_id: orderData.customer_id,
+        customer_name: orderData.customer_name,
+        customer_email: orderData.customer_email,
+        order_date: orderData.order_date,
+        status_id: orderData.status_id,
+        total: orderData.total,
+      },
+      items: orderItems.map(item => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_description: item.product_description,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      shippingInfo: shippingInfo ? {
+        shipping_method: shippingInfo.shipping_method,
+        tracking_number: shippingInfo.tracking_number,
+        estimated_delivery: shippingInfo.estimated_delivery,
+        actual_delivery: shippingInfo.actual_delivery,
+        shipping_status_id: shippingInfo.shipping_status_id
+      } : null
+    };
+
+    res.status(200).json(response);
   } catch (error) {
-    console.error('Error al obtener pedido:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor.' });
+    console.error('Error al obtener el pedido:', error);
+    res.status(500).json({ message: 'Error al obtener el pedido' });
   }
 };
+
 
 /**
  * Crea un nuevo pedido en la base de datos.
