@@ -1,11 +1,14 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
+import crypto from 'crypto';
 
 /**
  * Coloca un nuevo pedido y sus detalles en la base de datos.
  */
 export const placeOrder = async (req, res) => {
-  const { userId, cartDetails, shippingMethod, estimatedDelivery, actual_delivery, total, shippingCost } = req.body;
+  const { userId, cartDetails, shippingMethod, estimatedDelivery, actual_delivery, total, shippingCost, userData } = req.body;
+  const trackingNumber = crypto.randomBytes(5).toString('hex');
+  const shippingStatusId = 1;
 
   // Validación de datos de entrada
   if (!userId || !cartDetails || !total || !shippingCost) {
@@ -41,13 +44,14 @@ export const placeOrder = async (req, res) => {
       console.log("Consulta createShippingInfo:", queries.shipping_info.createShippingInfo);
       await client.query(queries.shipping_info.createShippingInfo, [
         shippingMethod,
-        null, // Número de seguimiento (puede generarse en otro paso)
+        trackingNumber, // Utiliza una variable que contenga el número de seguimiento adecuado
         estimatedDelivery,
         actual_delivery,
-        null, // Fecha de entrega real (se actualiza cuando el pedido se entregue)
-        1, // Estado de envío inicial (ej. 1 = "preparación")
+        shippingStatusId, // Asegúrate de que este valor sea el correcto
         orderId
       ]);
+      
+      
     }
 
 
