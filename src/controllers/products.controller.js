@@ -21,6 +21,7 @@ export const getProductById = async (req, res) => {
     const { product_id } = req.params; // Asegúrate de que la ruta use ':product_id' como parámetro
     const client = await getConnection();
     const result = await client.query(queries.products.getProductById, [product_id]);
+    console.log("Consulta getProductById:", queries.products.getProductById);
     
     client.release(); // Libera la conexión después de la consulta
 
