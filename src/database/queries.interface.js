@@ -77,13 +77,13 @@ export const queries = {
     getProducts: "SELECT * FROM products",
     getProductById: "SELECT * FROM products WHERE product_id = $1",
     createProduct: `
-      INSERT INTO products (name, description, category, stock, photo) 
-      VALUES ($1, $2, $3, $4, $5) RETURNING product_id
+      INSERT INTO products (name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING product_id
     `,
     updateProduct: `
       UPDATE products
-      SET name = $1, description = $2, category = $3, stock = $4, photo = $5, updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $6
+      SET name = $1, description = $2, category = $3, stock = $4, photo = $5, price_home = $6, price_supermarket = $7, price_restaurant = $8, price_fruver = $9, updated_at = CURRENT_TIMESTAMP
+      WHERE product_id = $10
     `,
     deleteProduct: "DELETE FROM products WHERE product_id = $1",
   },
