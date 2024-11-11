@@ -64,7 +64,7 @@ export const queries = {
     getShippingInfoById: "SELECT * FROM shipping_info WHERE id = $1",
     createShippingInfo: `
       INSERT INTO shipping_info (shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING shipping_info.id
     `,
     updateShippingInfo: `
       UPDATE shipping_info
