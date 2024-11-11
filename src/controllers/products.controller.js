@@ -37,12 +37,16 @@ export const getProductById = async (req, res) => {
 // Crear un nuevo producto
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, category, stock, photo } = req.body; // Incluye `photo` en los datos recibidos
+    // Incluye los nuevos campos de precio en los datos recibidos
+    const { name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver } = req.body;
     const client = await getConnection();
+    
+    // Actualiza la consulta para incluir los nuevos campos de precio
     const result = await client.query(
       queries.products.createProduct,
-      [name, description, category, stock, photo] // Incluye `photo` en la consulta
+      [name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver]
     );
+
     await client.end();
     res.status(201).json({ message: 'Producto creado exitosamente', product_id: result.rows[0].product_id });
   } catch (error) {
@@ -55,12 +59,16 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { product_id } = req.params;
-    const { name, description, category, stock, photo } = req.body; // Incluye `photo` en los datos recibidos
+    // Incluye los nuevos campos de precio en los datos recibidos
+    const { name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver } = req.body;
     const client = await getConnection();
+    
+    // Actualiza la consulta para incluir los nuevos campos de precio
     await client.query(
       queries.products.updateProduct,
-      [name, description, category, stock, photo, product_id] // Incluye `photo` en la consulta
+      [name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver, product_id]
     );
+
     await client.end();
     res.status(200).json({ message: 'Producto actualizado exitosamente' });
   } catch (error) {
@@ -68,6 +76,7 @@ export const updateProduct = async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar el producto' });
   }
 };
+
 
 // Eliminar un producto por product_id
 export const deleteProduct = async (req, res) => {
