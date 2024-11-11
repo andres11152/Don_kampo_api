@@ -44,10 +44,10 @@ export const placeOrder = async (req, res) => {
       console.log("Consulta createShippingInfo:", queries.shipping_info.createShippingInfo);
       await client.query(queries.shipping_info.createShippingInfo, [
         shippingMethod,
-        trackingNumber, // Utiliza una variable que contenga el número de seguimiento adecuado
+        trackingNumber, 
         estimatedDelivery,
         actual_delivery,
-        shippingStatusId, // Asegúrate de que este valor sea el correcto
+        shippingStatusId, // Estado de envío (por ejemplo, 1 = pendiente, 2 = enviado, etc.)
         orderId
       ]);
       
