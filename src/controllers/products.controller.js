@@ -34,15 +34,14 @@ export const getProductById = async (req, res) => {
   }
 };
 
-
 // Crear un nuevo producto
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, category, stock } = req.body;
+    const { name, description, category, stock, photo } = req.body; // Incluye `photo` en los datos recibidos
     const client = await getConnection();
     const result = await client.query(
       queries.products.createProduct,
-      [name, description, category, stock]
+      [name, description, category, stock, photo] // Incluye `photo` en la consulta
     );
     await client.end();
     res.status(201).json({ message: 'Producto creado exitosamente', product_id: result.rows[0].product_id });
@@ -56,11 +55,11 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { product_id } = req.params;
-    const { name, description, category, stock } = req.body;
+    const { name, description, category, stock, photo } = req.body; // Incluye `photo` en los datos recibidos
     const client = await getConnection();
     await client.query(
       queries.products.updateProduct,
-      [name, description, category, stock, product_id]
+      [name, description, category, stock, photo, product_id] // Incluye `photo` en la consulta
     );
     await client.end();
     res.status(200).json({ message: 'Producto actualizado exitosamente' });
