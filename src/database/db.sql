@@ -75,8 +75,5 @@ CREATE TABLE order_items (
 );
 
 */
-INSERT INTO shipping_statuses (id, status_name) VALUES
-(1, 'Preparación'),
-(2, 'En tránsito'),
-(3, 'Entregado'),
-(4, 'Cancelado');
+ALTER TABLE products
+ADD COLUMN photo BYTEA;

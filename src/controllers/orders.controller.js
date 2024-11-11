@@ -15,6 +15,7 @@ export const placeOrder = async (req, res) => {
   try {
     const client = await getConnection();
 
+    console.log("Consulta createOrder:", queries.orders.createOrder);
     // Crear el pedido en la tabla `orders`
     const orderResult = await client.query(queries.orders.createOrder, [
       userId,
@@ -35,9 +36,10 @@ export const placeOrder = async (req, res) => {
       ]);
     }
 
-    // Insertar información de envío si está disponible
+        // Insertar información de envío si está disponible
     if (shippingMethod && estimatedDelivery) {
-      await client.query(queries.orders.createShippingInfo, [
+      console.log("Consulta createShippingInfo:", queries.shipping_info.createShippingInfo);
+      await client.query(queries.shipping_info.createShippingInfo, [
         shippingMethod,
         null, // Número de seguimiento (puede generarse en otro paso)
         estimatedDelivery,
@@ -46,6 +48,7 @@ export const placeOrder = async (req, res) => {
         orderId
       ]);
     }
+
 
     client.release();
     return res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId });

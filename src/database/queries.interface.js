@@ -64,7 +64,7 @@ export const queries = {
     getShippingInfoById: "SELECT * FROM shipping_info WHERE id = $1",
     createShippingInfo: `
       INSERT INTO shipping_info (shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING shipping_info.id
     `,
     updateShippingInfo: `
       UPDATE shipping_info
@@ -74,19 +74,17 @@ export const queries = {
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
   products: {
-      getProducts: "SELECT * FROM products",
-      getProductById: "SELECT * FROM products WHERE product_id = $1",
-      createProduct: `
-        INSERT INTO products (name, description, category, stock) 
-        VALUES ($1, $2, $3, $4) RETURNING product_id
-      `,
-      updateProduct: `
-        UPDATE products
-        SET name = $1, description = $2, category = $3, stock = $4, updated_at = CURRENT_TIMESTAMP
-        WHERE product_id = $5
-      `,
-      deleteProduct: "DELETE FROM products WHERE product_id = $1",
-    },
-    // (otras secciones de queries ya existentes como users, orders, etc.)
-}
-
+    getProducts: "SELECT * FROM products",
+    getProductById: "SELECT * FROM products WHERE product_id = $1",
+    createProduct: `
+      INSERT INTO products (name, description, category, stock, photo) 
+      VALUES ($1, $2, $3, $4, $5) RETURNING product_id
+    `,
+    updateProduct: `
+      UPDATE products
+      SET name = $1, description = $2, category = $3, stock = $4, photo = $5, updated_at = CURRENT_TIMESTAMP
+      WHERE product_id = $6
+    `,
+    deleteProduct: "DELETE FROM products WHERE product_id = $1",
+  },
+};
