@@ -35,26 +35,42 @@ export const getProductById = async (req, res) => {
   }
 };
 
+
 // Crear un nuevo producto
 export const createProduct = async (req, res) => {
   try {
-    // Incluye los nuevos campos de precio en los datos recibidos
-    const { name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver } = req.body;
+    const {
+      name,
+      description,
+      category,
+      stock,
+      price_home,
+      price_supermarket,
+      price_restaurant,
+      price_fruver,
+    } = req.body;
+
+    // `photo` se obtiene como un buffer desde `req.file`
+    const photo = req.file ? req.file.buffer : null;
+
     const client = await getConnection();
-    
-    // Actualiza la consulta para incluir los nuevos campos de precio
+
     const result = await client.query(
       queries.products.createProduct,
       [name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver]
     );
 
     await client.end();
-    res.status(201).json({ message: 'Producto creado exitosamente', product_id: result.rows[0].product_id });
+    res.status(201).json({
+      message: 'Producto creado exitosamente',
+      product_id: result.rows[0].product_id,
+    });
   } catch (error) {
     console.error('Error al crear el producto:', error);
     res.status(500).json({ message: 'Error al crear el producto' });
   }
 };
+
 
 // Actualizar un producto por product_id
 export const updateProduct = async (req, res) => {
