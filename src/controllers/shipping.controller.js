@@ -27,6 +27,7 @@ export const createShippingInfo = async (req, res) => {
       estimated_delivery,
       actual_delivery,
       shipping_status_id,
+      order_id
     ]);
 
     client.release();
