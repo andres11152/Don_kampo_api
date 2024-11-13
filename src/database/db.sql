@@ -62,7 +62,8 @@ CREATE TABLE users (
     address VARCHAR(255),  -- Nuevo campo para la dirección
     neighborhood VARCHAR(100),  -- Nuevo campo para el vecindario
     user_password VARCHAR(255) NOT NULL,
-    user_type VARCHAR(50) NOT NULL  
+    user_type VARCHAR(50) NOT NULL
+      
 );
 
 

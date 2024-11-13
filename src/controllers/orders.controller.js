@@ -64,8 +64,6 @@ export const placeOrder = async (req, res) => {
 };
 
 
-
-
 /**
  * Obtiene todos los pedidos de la base de datos.
  */

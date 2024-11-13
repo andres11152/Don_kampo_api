@@ -16,6 +16,11 @@ export const queries = {
       SET user_name = $1, lastname = $2, email = $3, phone = $4, city = $5, address = $6, neighborhood = $7, user_password = $8, user_type = $9
       WHERE id = $10
     `,
+    updateUserStatus: `
+      UPDATE users
+      SET status_id = $2
+      WHERE id = $1;
+    `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
   },
   orders: {

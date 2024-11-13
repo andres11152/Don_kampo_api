@@ -84,6 +84,7 @@ export const createUsers = async (req, res) => {
     const hashedPassword = await bcrypt.hash(user_password, 10);
     await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
 
+
     client.release();
     return res.status(201).json({ msg: 'Usuario creado exitosamente.' });
   } catch (error) {
@@ -181,3 +182,28 @@ export const deleteUsers = async (req, res) => {
     return res.status(500).json({ msg: 'Error interno del servidor.' });
   }
 };
+
+export const updateUserStatus = async (req, res) => {
+  const { id, status_id } = req.params;
+
+  // Validación de los datos de entrada
+  if (!id || !status_id) {
+    return res.status(400).json({
+      msg: 'Por favor proporciona un ID de usuario y un nuevo estado válido.'
+    });
+  }
+
+  try {
+    const client = await getConnection();
+    // Ejecuta la consulta para actualizar solo el estado
+    await client.query(queries.users.updateUserStatus, [ id, status_id ]);
+    client.release();
+    return res.status(200).json({ msg: 'Estado del usuario actualizado exitosamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el estado del usuario:', error);
+    return res.status(500).json({ msg: 'Error interno del servidor.' });
+  }
+};
+
+
+

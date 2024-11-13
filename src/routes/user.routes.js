@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, getUsersById, createUsers, updateUsers, deleteUsers } from '../controllers/users.controller.js';
+import { getUsers, getUsersById, createUsers, updateUsers, updateUserStatus, deleteUsers,  } from '../controllers/users.controller.js';
 import { getUserProfile } from '../controllers/profile.controller.js'; // Asegúrate de tener un controlador para obtener el perfil
 import { verifyToken } from '../middlewares/auth.middleware.js'; // Importa el middleware
 
@@ -11,7 +11,11 @@ router.post('/api/createusers', createUsers); // Nuevo endpoint para crear un us
 router.put('/api/updateusers/:id', updateUsers); // Nuevo endpoint para actualizar un usuario
 router.delete('/api/deleteusers/:id', deleteUsers); // Nuevo endpoint para eliminar un usuario
 
-// Nuevo endpoint para obtener el perfil del usuario
+// Rutas para el perfil del usuario
 router.get('/api/profile', verifyToken, getUserProfile);
+
+// Rutas para el estado del usuario
+router.put('/api/userstatus/:id/:status_id', updateUserStatus);
+
 
 export default router;
