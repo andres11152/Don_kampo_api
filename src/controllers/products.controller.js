@@ -2,12 +2,16 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 
-// Obtener todos los productos
+// Obtener todos los productos de la base de datos (10 productos por página)
+
 export const getProducts = async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
+
   try {
     const client = await getConnection();
-    const result = await client.query(queries.products.getProducts);
-    await client.end();
+    const result = await client.query(queries.products.getProducts, [limit, offset]);
+    client.release();
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error al obtener los productos:', error);
@@ -34,7 +38,6 @@ export const getProductById = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener el producto' });
   }
 };
-
 
 // Crear un nuevo producto
 export const createProduct = async (req, res) => {
@@ -71,7 +74,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-
 // Actualizar un producto por product_id
 export const updateProduct = async (req, res) => {
   try {
@@ -93,7 +95,6 @@ export const updateProduct = async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar el producto' });
   }
 };
-
 
 // Eliminar un producto por product_id
 export const deleteProduct = async (req, res) => {

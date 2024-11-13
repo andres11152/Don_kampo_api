@@ -103,7 +103,7 @@ export const queries = {
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
   products: {
-    getProducts: "SELECT * FROM products",
+    getProducts: "SELECT * FROM products LIMIT $1 OFFSET $2",
     getProductById: "SELECT * FROM products WHERE product_id = $1",
     createProduct: `
       INSERT INTO products (name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver) 

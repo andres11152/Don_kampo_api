@@ -7,7 +7,6 @@ import usersRoutes from "./routes/user.routes.js";
 import productsRoutes from './routes/products.routes.js';
 import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
-import loginRoutes from './routes/auth.routes.js'; // Importa las rutas de inicio de sesión
 
 // Configuración del servidor
 const app = express();
@@ -30,6 +29,15 @@ app.use(cors(corsOptions)); // Aplica las opciones de CORS
 
 // Configuración de EJS
 app.set('view engine', 'ejs');
+
+// Configuración de Timeout para las solicitudes
+app.use((req, res, next) => {
+  res.setTimeout(5000, () => { // Timeout de 5 segundos
+    console.log('La solicitud ha superado el tiempo de espera.');
+    res.status(408).send('Request timed out');
+  });
+  next();
+});
 
 // Rutas
 app.use(authRoutes); // Ruta para el inicio de sesión
