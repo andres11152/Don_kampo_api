@@ -49,6 +49,11 @@ export const queries = {
       SET customer_id = $1, order_date = $2, status_id = $3, total = $4
       WHERE id = $5
     `,
+    updateOrderStatus: `
+      UPDATE orders
+      SET status_id = $1
+      WHERE id = $2
+    `,
     deleteOrders: "DELETE FROM orders WHERE id = $1",
     createOrderItem: `
       INSERT INTO order_items (order_id, product_id, quantity, price) 

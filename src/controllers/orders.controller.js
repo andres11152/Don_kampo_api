@@ -168,9 +168,10 @@ export const createOrders = async (req, res) => {
  * Actualiza un pedido en la base de datos.
  */
 export const updateOrders = async (req, res) => {
-  const { id, order_date, status_id, total } = req.body;
+  const { id, customer_id, order_date, status_id, total } = req.body;
 
-  if (!id || !order_date || !status_id || !total) {
+  // Validación de los datos de entrada
+  if (!id || !customer_id || !order_date || !status_id || !total) {
     return res.status(400).json({
       msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
     });
@@ -178,7 +179,8 @@ export const updateOrders = async (req, res) => {
 
   try {
     const client = await getConnection();
-    await client.query(queries.orders.updateOrders, [id, order_date, status_id, total]);
+    // Asegúrate de enviar todos los parámetros en el orden correcto
+    await client.query(queries.orders.updateOrders, [customer_id, order_date, status_id, total, id]);
     client.release();
     return res.status(200).json({ msg: 'Pedido actualizado exitosamente.' });
   } catch (error) {
@@ -188,22 +190,61 @@ export const updateOrders = async (req, res) => {
 };
 
 /**
+ * Actualiza el estado del pedido en la base de datos.
+ **/
+
+export const updateOrderStatus = async (req, res) => {
+  const { id, status_id } = req.params;
+
+  // Validación de los datos de entrada
+  if (!id || !status_id) {
+    return res.status(400).json({
+      msg: 'Por favor proporciona un ID de pedido y un nuevo estado válido.'
+    });
+  }
+
+  try {
+    const client = await getConnection();
+    // Ejecuta la consulta para actualizar solo el estado
+    await client.query(queries.orders.updateOrderStatus, [status_id, id]);
+    client.release();
+    return res.status(200).json({ msg: 'Estado del pedido actualizado exitosamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el estado del pedido:', error);
+    return res.status(500).json({ msg: 'Error interno del servidor.' });
+  }
+};
+
+
+
+/**
  * Elimina un pedido de la base de datos.
  */
 export const deleteOrders = async (req, res) => {
-  const { id } = req.params;
+  const { orderId } = req.params;
 
-  if (!id) {
+  console.log('ID recibido:', orderId); // Agrega este log para verificar el ID recibido
+
+  if (!orderId) {
     return res.status(400).json({ msg: 'Por favor proporciona un ID válido.' });
   }
 
   try {
     const client = await getConnection();
-    await client.query(queries.orders.deleteOrders, [id]);
+    
+    // Verificar si el pedido existe
+    const orderCheck = await client.query('SELECT id FROM orders WHERE id = $1', [orderId]);
+    if (orderCheck.rowCount === 0) {
+      client.release();
+      return res.status(404).json({ msg: 'Pedido no encontrado.' });
+    }
+    
+    // Eliminar el pedido
+    await client.query(queries.orders.deleteOrders, [orderId]);
     client.release();
     return res.status(200).json({ msg: 'Pedido eliminado exitosamente.' });
   } catch (error) {
-    console.error('Error al eliminar el pedido:', error);
+    console.error('Error al eliminar el pedido:', error.stack);
     return res.status(500).json({ msg: 'Error interno del servidor.' });
   }
 };
