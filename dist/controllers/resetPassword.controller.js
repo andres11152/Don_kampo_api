@@ -1,45 +1,15 @@
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
-import { createTransporter } from '../utils/mailer.js';
+import { sendEmail } from '../utils/mailer.js'; // Importar la función para enviar el correo
+import bcrypt from 'bcrypt';
 
-// Configuración general para proveedores de correo
-const emailConfig = {
-  gmail: {
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    user: 'tu_email@gmail.com',
-    pass: 'tu_contraseña'
-  },
-  outlook: {
-    host: 'smtp.office365.com',
-    port: 587,
-    secure: false,
-    user: 'tu_email@outlook.com',
-    pass: 'tu_contraseña'
-  },
-  yahoo: {
-    host: 'smtp.mail.yahoo.com',
-    port: 587,
-    secure: false,
-    user: 'tu_email@yahoo.com',
-    pass: 'tu_contraseña'
-  },
-  custom: (user, pass) => ({
-    host: 'smtp.ejemplo.com',
-    port: 587,
-    secure: false,
-    user,
-    pass
-  })
-};
+// Paso 1: Ruta para solicitar el código de restablecimiento de contraseña
 export const requestPasswordReset = async (req, res) => {
   const {
     email,
     provider = 'gmail'
-  } = req.body;
+  } = req.body; // El proveedor de correo por defecto es 'gmail'
+
   try {
     const client = await getConnection();
 
@@ -59,20 +29,22 @@ export const requestPasswordReset = async (req, res) => {
     // Calcula la fecha de expiración (10 minutos en el futuro)
     const expirationDate = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
+    // Convertir la fecha de expiración de milisegundos a segundos (PostgreSQL lo espera en segundos)
+    const expirationDateInSeconds = Math.floor(expirationDate.getTime() / 1000); // Convertir a segundos
+
     // Guarda el código y la fecha de expiración en la base de datos
-    await client.query(queries.users.updateUserResetToken, [verificationCode, expirationDate, userId]);
+    await client.query(queries.users.updateUserResetToken, [verificationCode, expirationDateInSeconds, userId] // Usamos la fecha en segundos
+    );
 
-    // Configura el transportador basado en el proveedor de correo
-    const transporter = createTransporter(emailConfig[provider]);
-
-    // Enviar el correo con el código de verificación
-    const mailOptions = {
-      from: emailConfig[provider].user,
-      to: email,
-      subject: 'Password Reset Code',
-      text: `Your password reset code is: ${verificationCode}`
-    };
-    await transporter.sendMail(mailOptions);
+    // Enviar el código por correo usando la función sendEmail
+    await sendEmail(email,
+    // Correo del destinatario
+    'Password Reset Code',
+    // Asunto
+    `Your password reset code is: ${verificationCode}`,
+    // Cuerpo del correo
+    provider // Proveedor de correo (puedes cambiar entre gmail, outlook, yahoo, etc.)
+    );
     client.release();
     res.status(200).json({
       msg: 'Verification code sent to email'
@@ -84,6 +56,8 @@ export const requestPasswordReset = async (req, res) => {
     });
   }
 };
+
+// Paso 2: Ruta para verificar el código y restablecer la contraseña
 export const verifyCodeAndResetPassword = async (req, res) => {
   const {
     email,
@@ -93,8 +67,12 @@ export const verifyCodeAndResetPassword = async (req, res) => {
   try {
     const client = await getConnection();
 
+    // Convertir Date.now() de milisegundos a segundos
+    const currentTimeInSeconds = Math.floor(Date.now() / 1000); // Fecha actual en segundos
+
     // Verifica si el código de verificación es válido y no ha expirado
-    const result = await client.query(queries.users.verifyUserResetCode, [email, code, Date.now()]);
+    const result = await client.query(queries.users.verifyUserResetCode, [email, code, currentTimeInSeconds] // Pasamos la fecha en segundos
+    );
     if (result.rows.length === 0) {
       client.release();
       return res.status(400).json({
@@ -111,7 +89,7 @@ export const verifyCodeAndResetPassword = async (req, res) => {
       msg: 'Password successfully reset'
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error:', error);
     res.status(500).json({
       msg: 'Server error'
     });

@@ -50,7 +50,6 @@ export const requestPasswordReset = async (req, res) => {
   }
 };
 
-// Paso 2: Ruta para verificar el código y restablecer la contraseña
 export const verifyCodeAndResetPassword = async (req, res) => {
   const { email, code, newPassword } = req.body;
 
@@ -62,7 +61,7 @@ export const verifyCodeAndResetPassword = async (req, res) => {
 
     // Verifica si el código de verificación es válido y no ha expirado
     const result = await client.query(
-      queries.users.verifyUserResetCode,
+      queries.users.verifyUserResetCode, 
       [email, code, currentTimeInSeconds] // Pasamos la fecha en segundos
     );
 
