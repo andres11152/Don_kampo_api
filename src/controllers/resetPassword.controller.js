@@ -1,10 +1,11 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 import { sendEmail } from '../utils/mailer.js';  // Importar la función para enviar el correo
+import bcrypt from 'bcrypt';
 
 // Paso 1: Ruta para solicitar el código de restablecimiento de contraseña
 export const requestPasswordReset = async (req, res) => {
-  const { email, provider = 'gmail' } = req.body;
+  const { email, provider = 'gmail' } = req.body; // El proveedor de correo por defecto es 'gmail'
 
   try {
     const client = await getConnection();
@@ -24,10 +25,13 @@ export const requestPasswordReset = async (req, res) => {
     // Calcula la fecha de expiración (10 minutos en el futuro)
     const expirationDate = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
+    // Convertir la fecha de expiración de milisegundos a segundos (PostgreSQL lo espera en segundos)
+    const expirationDateInSeconds = Math.floor(expirationDate.getTime() / 1000); // Convertir a segundos
+
     // Guarda el código y la fecha de expiración en la base de datos
     await client.query(
       queries.users.updateUserResetToken,
-      [verificationCode, expirationDate, userId]
+      [verificationCode, expirationDateInSeconds, userId] // Usamos la fecha en segundos
     );
 
     // Enviar el código por correo usando la función sendEmail
@@ -53,10 +57,13 @@ export const verifyCodeAndResetPassword = async (req, res) => {
   try {
     const client = await getConnection();
 
+    // Convertir Date.now() de milisegundos a segundos
+    const currentTimeInSeconds = Math.floor(Date.now() / 1000); // Fecha actual en segundos
+
     // Verifica si el código de verificación es válido y no ha expirado
     const result = await client.query(
       queries.users.verifyUserResetCode,
-      [email, code, Date.now()]
+      [email, code, currentTimeInSeconds] // Pasamos la fecha en segundos
     );
 
     if (result.rows.length === 0) {
@@ -76,7 +83,7 @@ export const verifyCodeAndResetPassword = async (req, res) => {
     client.release();
     res.status(200).json({ msg: 'Password successfully reset' });
   } catch (error) {
-    console.error(error);
+    console.error('Error:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 };

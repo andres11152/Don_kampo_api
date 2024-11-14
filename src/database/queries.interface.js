@@ -25,23 +25,23 @@ export const queries = {
       // Consulta para obtener el ID del usuario por correo electrónico
     getUserByEmail: 'SELECT id FROM users WHERE email = $1',
 
-    // Consulta para actualizar el token de restablecimiento de contraseña y su expiración
     updateUserResetToken: `
-      UPDATE users 
-      SET reset_password_token = $1, reset_password_expires = $2 
-      WHERE id = $3
-    `,
-
+    UPDATE users 
+    SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
+    WHERE id = $3
+  `,
     // Consulta para verificar el código de restablecimiento de contraseña
     verifyUserResetCode: `
-      SELECT id FROM users 
-      WHERE email = $1 AND reset_password_token = $2 AND reset_password_expires > $3
-    `,
-
+    SELECT id 
+    FROM users 
+    WHERE email = $1 
+    AND reset_password_token = $2 
+    AND reset_password_expires > to_timestamp($3)
+`,
     // Consulta para actualizar la contraseña del usuario y eliminar el código de restablecimiento
     updateUserPassword: `
       UPDATE users 
-      SET password = $1, reset_password_token = NULL, reset_password_expires = NULL 
+      SET user_password = $1, reset_password_token = NULL, reset_password_expires = NULL 
       WHERE id = $2
     `,
   },
