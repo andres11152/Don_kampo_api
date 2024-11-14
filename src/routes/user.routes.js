@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getUsers, getUsersById, createUsers, updateUsers, updateUserStatus, deleteUsers,  } from '../controllers/users.controller.js';
 import { getUserProfile } from '../controllers/profile.controller.js'; // Asegúrate de tener un controlador para obtener el perfil
 import { verifyToken } from '../middlewares/auth.middleware.js'; // Importa el middleware
+import { requestPasswordReset, verifyCodeAndResetPassword } from '../controllers/resetPassword.controller.js'; // Importa los controladores para la funcionalidad de restablecimiento de contraseña
 
 const router = Router();
 
@@ -17,5 +18,10 @@ router.get('/api/profile', verifyToken, getUserProfile);
 // Rutas para el estado del usuario
 router.put('/api/userstatus/:id/:status_id', updateUserStatus);
 
+// Ruta para solicitar el código de restablecimiento
+router.post('/api/request-password-reset', requestPasswordReset);
+
+// Ruta para verificar el código y restablecer la contraseña
+router.post('/api/verify-code-and-reset-password', verifyCodeAndResetPassword);
 
 export default router;
