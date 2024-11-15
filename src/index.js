@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:5173']; // Cambia al puerto del frontend (Vite normalmente usa 3000)
+const allowedOrigins = ['http://localhost:3000', 'https://front-don-kampo.onrender.com']; // Añadido el frontend de producción
 const corsOptions = {
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
