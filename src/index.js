@@ -17,12 +17,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:3000', 'https://front-don-kampo.onrender.com']; // Añadido el frontend de producción
+const allowedOrigins = ['http://localhost:3000', 'https://front-don-kampo.onrender.com', 'https://don-kampo-akm4.vercel.app']; // Añadido el frontend de producción
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true); // Permitir el acceso
+    } else {
+      callback(new Error('No permitido por CORS')); // Bloquear el acceso
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true, // Permite el envío de cookies y encabezados de autenticación
+  credentials: true, // Permitir envío de cookies y credenciales
 };
 
 app.use(cors(corsOptions)); // Aplica las opciones de CORS
