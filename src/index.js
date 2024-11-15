@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import https from "https"; // Importa el módulo https
+import fs from "fs"; // Para leer los archivos del certificado
 import { PORT } from "./config/config.js";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/user.routes.js";
@@ -17,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:3000', 'https://front-don-kampo.onrender.com']; // Añadido el frontend de producción
+const allowedOrigins = ['https://front-don-kampo.onrender.com','http://192.168.1.5:3000']; // Añadido el frontend de producción
 const corsOptions = {
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -57,9 +59,16 @@ app.use((err, req, res, next) => {
   res.status(500).send("Error interno del servidor"); // Responde con un mensaje de error 500.
 });
 
-// Inicialización del servidor
-const server = app.listen(PORT, () => {
-  const host = `http://localhost:${PORT}`;
+// Configuración de HTTPS
+const options = { 
+  key: fs.readFileSync('C:/Users/Andres Betancourt/Desktop/Desarrollos/Don Kampo/api-donkampo/src/ssl/private-key.pem'),    // Ruta a tu clave privada
+  cert: fs.readFileSync('C:/Users/Andres Betancourt/Desktop/Desarrollos/Don Kampo/api-donkampo/src/ssl/certificate.pem'),  // Ruta a tu certificado
+};
+
+// Inicialización del servidor con HTTPS
+const server = https.createServer(options, app); // Usamos https.createServer() en lugar de app.listen()
+server.listen(PORT, () => {
+  const host = `https://localhost:${PORT}`;
   console.log(`Servidor corriendo en: ${host}`); // Muestra en consola que el servidor está corriendo y en qué URL.
 });
 

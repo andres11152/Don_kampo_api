@@ -1,4 +1,4 @@
-
+/*
 CREATE TABLE users (
    id   uuid   NOT NULL   PRIMARY KEY,
    user_name   character varying(100)   NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE shipping_statuses (
    status_name   character varying(50)   NOT NULL
 )
 
-CREATE TABLE    products (
+CREATE TABLE   products (
    product_id   integer   NOT NULL   PRIMARY KEY,
    name   character varying(100)   NOT NULL,
    description   text,
@@ -45,10 +45,6 @@ CREATE TABLE    products (
    created_at   timestamp without time zone,
    updated_at   timestamp without time zone,
    photo   bytea,
-   price_home   numeric(10,2)   NOT NULL,
-   price_supermarket   numeric(10,2)   NOT NULL,
-   price_restaurant   numeric(10,2)   NOT NULL,
-   price_fruver   numeric(10,2)   NOT NULL
 )
 
 CREATE TABLE orders (
@@ -72,3 +68,29 @@ CREATE TABLE order_items (
    price   numeric(10,2)   NOT NULL
 )
 
+CREATE TABLE product_variations (
+    variation_id SERIAL PRIMARY KEY,
+    product_id INTEGER REFERENCES products(product_id) ON DELETE CASCADE,
+    quality VARCHAR(50),  -- Puedes agregar varias calidades como 'Primera', 'Segunda', 'Tercera', etc.
+    quantity VARCHAR(50),  -- Variaciones de cantidad como '1kg', '2kg', etc.
+    price_home NUMERIC(10,2),
+    price_supermarket NUMERIC(10,2),
+    price_restaurant NUMERIC(10,2),
+    price_fruver NUMERIC(10,2),
+    UNIQUE(product_id, quality, quantity)  -- Esto asegura que no haya duplicados por combinación de producto, calidad y cantidad
+);
+
+
+CREATE TABLE   products (
+   product_id   integer   NOT NULL   PRIMARY KEY,
+   name   character varying(100)   NOT NULL,
+   description   text,
+   category   character varying(50),
+   stock   integer,
+   created_at   timestamp without time zone,
+   updated_at   timestamp without time zone,
+   photo   bytea,
+)
+*/
+
+DELETE FROM products;
