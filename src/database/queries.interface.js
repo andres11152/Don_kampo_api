@@ -132,12 +132,13 @@ export const queries = {
   products: {
     // Obtener todos los productos con sus variaciones
     getProducts: `
-      SELECT p.product_id, p.name, p.description, p.category, p.stock, 
-             pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
-             pv.price_restaurant, pv.price_fruver
-      FROM products p
-      LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-      LIMIT $1 OFFSET $2
+     SELECT p.product_id, p.name, p.description, p.category, p.stock,
+       pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
+       pv.price_restaurant, pv.price_fruver
+        FROM products p
+        LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+        ORDER BY p.product_id
+        LIMIT $1 OFFSET $2;
     `,
 
     // Obtener un solo producto con sus variaciones
@@ -162,9 +163,11 @@ export const queries = {
       SET name = $1, description = $2, category = $3, stock = $4, photo = $5, updated_at = CURRENT_TIMESTAMP
       WHERE product_id = $6;
     `,
-    product_variations: `
-    SET quality = $7, quantity = $8, price_home = $9, price_supermarket = $10, price_restaurant = $11, price_fruver = $12
-    WHERE product_id = $6 AND quality = $7 AND quantity = $8;
+    getProductVariationsByProductIds: `
+       SELECT pv.product_id, pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
+       pv.price_restaurant, pv.price_fruver
+       FROM product_variations pv
+       WHERE pv.product_id = ANY($1)
     `,
     deleteProduct: "DELETE FROM products WHERE product_id = $1",
     deleteProductVariation: `

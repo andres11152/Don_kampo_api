@@ -1,23 +1,41 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 
-// Obtener todos los productos de la base de datos con sus variaciones
 export const getProducts = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 90 } = req.query;
   const offset = (page - 1) * limit;
 
   try {
     const client = await getConnection();
+    
+    // Obtener productos con paginación y sus variaciones
     const result = await client.query(queries.products.getProducts, [limit, offset]);
     
-    // Obtenemos las variaciones de cada producto
-    const productsWithVariations = await Promise.all(result.rows.map(async (product) => {
-      const variationsResult = await client.query(queries.products.getProductVariations, [product.product_id]);
-      product.variations = variationsResult.rows;  // Añadimos las variaciones a cada producto
-      return product;
-    }));
+    // Crear un mapa para manejar duplicados
+    const productsMap = {};
+
+    // Guardar productos en el mapa
+    for (const product of result.rows) {
+      if (!productsMap[product.product_id]) {
+        // Si no existe en el mapa, agregar el producto
+        productsMap[product.product_id] = {
+          ...product,
+          variations: [] // Inicializar las variaciones
+        };
+      }
+    }
+
+    // Obtener todas las variaciones de productos únicos
+    for (const productId in productsMap) {
+      const variationsResult = await client.query(queries.products.getProductVariations, [productId]);
+      productsMap[productId].variations = variationsResult.rows; // Asignar las variaciones
+    }
 
     client.release();
+
+    // Convertir el mapa en un array para responder
+    const productsWithVariations = Object.values(productsMap);
+
     res.status(200).json(productsWithVariations);
   } catch (error) {
     console.error('Error al obtener los productos:', error);

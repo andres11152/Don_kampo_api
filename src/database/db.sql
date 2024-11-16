@@ -93,4 +93,5 @@ CREATE TABLE   products (
 )
 */
 
-DELETE FROM products;
+SELECT COUNT(*) FROM products;
+

@@ -1,8 +1,6 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import https from "https"; // Importa el módulo https
-import fs from "fs"; // Para leer los archivos del certificado
 import { PORT } from "./config/config.js";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/user.routes.js";
@@ -19,11 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Configuración de CORS
-<<<<<<< HEAD
-const allowedOrigins = ['https://front-don-kampo.onrender.com','http://192.168.1.5:3000']; // Añadido el frontend de producción
-=======
-const allowedOrigins = ['http://localhost:3000', 'https://front-don-kampo.onrender.com', 'https://don-kampo-akm4.vercel.app']; // Añadido el frontend de producción
->>>>>>> c4b655964015fb8e2152cf14b901d18840a1064a
+const allowedOrigins = ['http://localhost:3000', 'http://192.168.1.8:3000','https://don-kampo-akm4.vercel.app']; // Añadido el frontend de producción
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -69,23 +63,14 @@ app.use((err, req, res, next) => {
   res.status(500).send("Error interno del servidor"); // Responde con un mensaje de error 500.
 });
 
-// Configuración de HTTPS
-const options = { 
-  key: fs.readFileSync('C:/Users/Andres Betancourt/Desktop/Desarrollos/Don Kampo/api-donkampo/src/ssl/private-key.pem'),    // Ruta a tu clave privada
-  cert: fs.readFileSync('C:/Users/Andres Betancourt/Desktop/Desarrollos/Don Kampo/api-donkampo/src/ssl/certificate.pem'),  // Ruta a tu certificado
-};
-
-// Inicialización del servidor con HTTPS
-const server = https.createServer(options, app); // Usamos https.createServer() en lugar de app.listen()
-server.listen(PORT, () => {
-  const host = `https://localhost:${PORT}`;
+// Inicialización del servidor con HTTP
+app.listen(PORT, () => {
+  const host = `http://localhost:${PORT}`;
   console.log(`Servidor corriendo en: ${host}`); // Muestra en consola que el servidor está corriendo y en qué URL.
 });
 
 // Manejo de señal de terminación (SIGINT)
 process.on("SIGINT", () => {
-  server.close(() => {
-    console.log("Servidor cerrado correctamente"); // Muestra en consola que el servidor se ha cerrado correctamente.
-    process.exit(0); // Termina el proceso de Node.js.
-  });
+  console.log("Servidor cerrado correctamente"); // Muestra en consola que el servidor se ha cerrado correctamente.
+  process.exit(0); // Termina el proceso de Node.js.
 });
