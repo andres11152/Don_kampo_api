@@ -71,15 +71,14 @@ CREATE TABLE order_items (
 CREATE TABLE product_variations (
     variation_id SERIAL PRIMARY KEY,
     product_id INTEGER REFERENCES products(product_id) ON DELETE CASCADE,
-    quality VARCHAR(50),  -- Puedes agregar varias calidades como 'Primera', 'Segunda', 'Tercera', etc.
-    quantity VARCHAR(50),  -- Variaciones de cantidad como '1kg', '2kg', etc.
+    quality VARCHAR(50),  
+    quantity VARCHAR(50),  
     price_home NUMERIC(10,2),
     price_supermarket NUMERIC(10,2),
     price_restaurant NUMERIC(10,2),
     price_fruver NUMERIC(10,2),
-    UNIQUE(product_id, quality, quantity)  -- Esto asegura que no haya duplicados por combinación de producto, calidad y cantidad
+    UNIQUE(product_id, quality, quantity)  
 );
-
 
 CREATE TABLE   products (
    product_id   integer   NOT NULL   PRIMARY KEY,
@@ -89,9 +88,8 @@ CREATE TABLE   products (
    stock   integer,
    created_at   timestamp without time zone,
    updated_at   timestamp without time zone,
-   photo   bytea,
+   photo  bytea,
 )
 */
 
-SELECT COUNT(*) FROM products;
 

@@ -130,18 +130,25 @@ export const queries = {
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
   products: {
-    // Obtener todos los productos con sus variaciones
     getProducts: `
-     SELECT p.product_id, p.name, p.description, p.category, p.stock,
-       pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
-       pv.price_restaurant, pv.price_fruver
-        FROM products p
-        LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-        ORDER BY p.product_id
-        LIMIT $1 OFFSET $2;
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo, -- Campo de la foto en la tabla de productos
+        pv.quality, 
+        pv.quantity, 
+        pv.price_home, 
+        pv.price_supermarket, 
+        pv.price_restaurant, 
+        pv.price_fruver
+      FROM products p
+      LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+      ORDER BY p.product_id
+      LIMIT $1 OFFSET $2;
     `,
-
-    // Obtener un solo producto con sus variaciones
     getProductById: `
       SELECT p.product_id, p.name, p.description, p.category, p.stock, 
              pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 

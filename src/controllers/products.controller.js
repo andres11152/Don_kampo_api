@@ -7,41 +7,62 @@ export const getProducts = async (req, res) => {
 
   try {
     const client = await getConnection();
-    
-    // Obtener productos con paginación y sus variaciones
+
+    // Ejecutar la consulta principal
     const result = await client.query(queries.products.getProducts, [limit, offset]);
-    
-    // Crear un mapa para manejar duplicados
+
+    if (!result.rows.length) {
+      // Responder con un array vacío si no hay productos
+      return res.status(200).json([]);
+    }
+
+    // Crear un mapa para manejar productos únicos y sus variaciones
     const productsMap = {};
 
-    // Guardar productos en el mapa
-    for (const product of result.rows) {
-      if (!productsMap[product.product_id]) {
-        // Si no existe en el mapa, agregar el producto
-        productsMap[product.product_id] = {
-          ...product,
+    for (const row of result.rows) {
+      // Convertir el campo BYTEA (si aplica) a Base64 para `p.photo`
+      const productPhotoBase64 = row.photo
+        ? `data:image/jpeg;base64,${row.photo.toString('base64')}`
+        : null;
+
+      // Si el producto no existe en el mapa, inicializarlo
+      if (!productsMap[row.product_id]) {
+        productsMap[row.product_id] = {
+          product_id: row.product_id,
+          name: row.name,
+          description: row.description,
+          category: row.category,
+          stock: row.stock,
+          photo: productPhotoBase64,
           variations: [] // Inicializar las variaciones
         };
       }
-    }
 
-    // Obtener todas las variaciones de productos únicos
-    for (const productId in productsMap) {
-      const variationsResult = await client.query(queries.products.getProductVariations, [productId]);
-      productsMap[productId].variations = variationsResult.rows; // Asignar las variaciones
+      // Agregar la variación si existe
+      if (row.quality || row.quantity || row.price_home || row.price_supermarket || row.price_restaurant || row.price_fruver) {
+        productsMap[row.product_id].variations.push({
+          quality: row.quality,
+          quantity: row.quantity,
+          price_home: row.price_home,
+          price_supermarket: row.price_supermarket,
+          price_restaurant: row.price_restaurant,
+          price_fruver: row.price_fruver
+        });
+      }
     }
 
     client.release();
 
-    // Convertir el mapa en un array para responder
+    // Convertir el mapa a un array para la respuesta
     const productsWithVariations = Object.values(productsMap);
-
     res.status(200).json(productsWithVariations);
+
   } catch (error) {
     console.error('Error al obtener los productos:', error);
     res.status(500).json({ message: 'Error al obtener los productos' });
   }
 };
+
 
 // Obtener un producto por product_id con sus variaciones
 export const getProductById = async (req, res) => {
