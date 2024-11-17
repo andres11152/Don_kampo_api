@@ -7,31 +7,65 @@ export const getProducts = async (req, res) => {
 
   try {
     const client = await getConnection();
+
+    // Consulta principal
     const result = await client.query(queries.products.getProducts, [limit, offset]);
 
+    // Mapeo de productos
     const productsMap = {};
     for (const product of result.rows) {
       if (!productsMap[product.product_id]) {
         productsMap[product.product_id] = {
-          ...product,
+          product_id: product.product_id,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          stock: product.stock,
+          photo: product.photo ? `data:image/jpeg;base64,${product.photo.toString('base64')}` : null,
           variations: [],
         };
       }
     }
 
-    for (const productId in productsMap) {
-      const variationsResult = await client.query(queries.products.getProductVariations, [productId]);
-      productsMap[productId].variations = variationsResult.rows;
+    // Obtener variaciones asociadas
+    const productIds = Object.keys(productsMap).map(Number);
+    if (productIds.length > 0) {
+      const variationsResult = await client.query(queries.products.getProductVariationsByProductIds, [productIds]);
+
+      for (const variation of variationsResult.rows) {
+        if (productsMap[variation.product_id]) {
+          productsMap[variation.product_id].variations.push({
+            quality: variation.quality,
+            quantity: variation.quantity,
+            price_home: parseFloat(variation.price_home),
+            price_supermarket: parseFloat(variation.price_supermarket),
+            price_restaurant: parseFloat(variation.price_restaurant),
+            price_fruver: parseFloat(variation.price_fruver),
+          });
+        }
+      }
     }
 
     client.release();
+
+    // Enviar la respuesta
     const productsWithVariations = Object.values(productsMap);
     res.status(200).json(productsWithVariations);
   } catch (error) {
     console.error('Error al obtener los productos:', error);
-    res.status(500).json({ message: 'Error al obtener los productos' });
+
+    // Asegurarse de liberar el cliente si ocurre un error
+    if (error.client) {
+      error.client.release();
+    }
+
+    // Enviar solo una respuesta de error
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Error al obtener los productos' });
+    }
   }
 };
+
 
 export const getProductById = async (req, res) => {
   try {
@@ -61,44 +95,78 @@ export const getProductById = async (req, res) => {
   }
 };
 
-
 export const createProduct = async (req, res) => {
+  let client;
+
   try {
-    const { name, description, category, stock, variations } = req.body;
+    const { name, description, category, stock, variations, photo } = req.body;
 
-    // Verificar si variations no está presente o es null
-    const hasVariations = Array.isArray(variations) && variations.length > 0;
+    // Validar stock (convertir vacío a null)
+    const validatedStock = stock && stock !== "" ? parseInt(stock, 10) : null;
 
-    const photo = req.file ? req.file.buffer : null;
-    const client = await getConnection();
+    let photoBuffer = null;
 
+    // Manejar el campo photo
+    if (photo) {
+      if (typeof photo === 'string') {
+        try {
+          photoBuffer = Buffer.from(photo, 'base64'); // Convertir Base64 a binario
+        } catch (err) {
+          return res.status(400).json({ message: 'Formato de foto inválido. Debe ser una cadena Base64 válida.' });
+        }
+      } else if (Buffer.isBuffer(photo)) {
+        photoBuffer = photo; // Si ya es un binario
+      } else {
+        return res.status(400).json({ message: 'El campo photo debe ser una cadena Base64 o un binario válido.' });
+      }
+    }
+
+    // Conexión a la base de datos
+    client = await getConnection();
+
+    // Insertar el producto
     const result = await client.query(
       queries.products.createProduct,
-      [name, description, category, stock, photo]
+      [name, description, category, validatedStock, photoBuffer]
     );
 
     const productId = result.rows[0].product_id;
 
-    // Si hay variaciones, se procesan
-    if (hasVariations) {
+    // Insertar variaciones, si existen
+    if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
+        const validatedPriceHome = variation.price_home && variation.price_home !== "" ? parseFloat(variation.price_home) : null;
+        const validatedPriceSupermarket = variation.price_supermarket && variation.price_supermarket !== "" ? parseFloat(variation.price_supermarket) : null;
+        const validatedPriceRestaurant = variation.price_restaurant && variation.price_restaurant !== "" ? parseFloat(variation.price_restaurant) : null;
+        const validatedPriceFruver = variation.price_fruver && variation.price_fruver !== "" ? parseFloat(variation.price_fruver) : null;
+
         await client.query(queries.products.createProductVariation, [
           productId,
           variation.quality,
           variation.quantity,
-          variation.price_home,
-          variation.price_supermarket,
-          variation.price_restaurant,
-          variation.price_fruver,
+          validatedPriceHome,
+          validatedPriceSupermarket,
+          validatedPriceRestaurant,
+          validatedPriceFruver,
         ]);
       }
     }
 
+    // Liberar la conexión y enviar respuesta
     client.release();
     res.status(201).json({ message: 'Producto creado exitosamente', product_id: productId });
   } catch (error) {
     console.error('Error al crear el producto:', error);
-    res.status(500).json({ message: 'Error al crear el producto' });
+
+    // Liberar la conexión en caso de error
+    if (client) {
+      client.release();
+    }
+
+    // Asegurarse de no enviar múltiples respuestas
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Error al crear el producto' });
+    }
   }
 };
 
