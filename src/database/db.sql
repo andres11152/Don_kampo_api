@@ -91,5 +91,4 @@ CREATE TABLE   products (
    photo  bytea,
 )
 */
-
-
+ALTER TABLE order_items ADD COLUMN variation_id INT;

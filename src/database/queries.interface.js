@@ -137,25 +137,21 @@ export const queries = {
         p.description, 
         p.category, 
         p.stock, 
-        p.photo, -- Campo de la foto en la tabla de productos
-        pv.quality, 
-        pv.quantity, 
-        pv.price_home, 
-        pv.price_supermarket, 
-        pv.price_restaurant, 
-        pv.price_fruver
+        p.photo
       FROM products p
-      LEFT JOIN product_variations pv ON p.product_id = pv.product_id
       ORDER BY p.product_id
       LIMIT $1 OFFSET $2;
     `,
     getProductById: `
-      SELECT p.product_id, p.name, p.description, p.category, p.stock, 
-             pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
-             pv.price_restaurant, pv.price_fruver
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo
       FROM products p
-      LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-      WHERE p.product_id = $1
+      WHERE p.product_id = $1;
     `,
     createProduct: `
       INSERT INTO products (name, description, category, stock, photo)
@@ -171,17 +167,33 @@ export const queries = {
       WHERE product_id = $6;
     `,
     getProductVariationsByProductIds: `
-       SELECT pv.product_id, pv.quality, pv.quantity, pv.price_home, pv.price_supermarket, 
-       pv.price_restaurant, pv.price_fruver
-       FROM product_variations pv
-       WHERE pv.product_id = ANY($1)
+      SELECT 
+        pv.product_id, 
+        pv.quality, 
+        pv.quantity, 
+        pv.price_home, 
+        pv.price_supermarket, 
+        pv.price_restaurant, 
+        pv.price_fruver
+      FROM product_variations pv
+      WHERE pv.product_id = ANY($1);
     `,
-    deleteProduct: "DELETE FROM products WHERE product_id = $1",
+    deleteProduct: `
+      DELETE FROM products WHERE product_id = $1;
+    `,
     deleteProductVariation: `
-      DELETE FROM product_variations WHERE variation_id = $1
+      DELETE FROM product_variations WHERE variation_id = $1;
     `,
     getProductVariations: `
-      SELECT * FROM product_variations WHERE product_id = $1
+      SELECT 
+        quality, 
+        quantity, 
+        price_home, 
+        price_supermarket, 
+        price_restaurant, 
+        price_fruver
+      FROM product_variations
+      WHERE product_id = $1;
     `
-  },
+}
 };
