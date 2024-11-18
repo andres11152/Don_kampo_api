@@ -38,7 +38,7 @@ app.set('view engine', 'ejs');
 
 // Configuración de Timeout para las solicitudes
 app.use((req, res, next) => {
-  res.setTimeout(5000, () => { // Timeout de 5 segundos
+  res.setTimeout(10000, () => { // Timeout de 5 segundos
     console.log('La solicitud ha superado el tiempo de espera.');
     res.status(408).send('Request timed out');
   });
