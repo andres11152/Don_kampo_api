@@ -129,6 +129,7 @@ export const queries = {
     `,
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
+  
   products: {
     getProducts: `
       SELECT 
@@ -137,7 +138,7 @@ export const queries = {
         p.description, 
         p.category, 
         p.stock, 
-        p.photo
+        p.photo -- Campo en binario (BYTEA)
       FROM products p
       ORDER BY p.product_id
       LIMIT $1 OFFSET $2;
@@ -149,7 +150,7 @@ export const queries = {
         p.description, 
         p.category, 
         p.stock, 
-        p.photo
+        p.photo -- Campo en binario (BYTEA)
       FROM products p
       WHERE p.product_id = $1;
     `,
@@ -163,7 +164,13 @@ export const queries = {
     `,
     updateProduct: `
       UPDATE products
-      SET name = $1, description = $2, category = $3, stock = $4, photo = $5, updated_at = CURRENT_TIMESTAMP
+      SET 
+        name = $1, 
+        description = $2, 
+        category = $3, 
+        stock = $4, 
+        photo = $5, -- Actualizar campo binario (BYTEA)
+        updated_at = CURRENT_TIMESTAMP
       WHERE product_id = $6;
     `,
     getProductVariationsByProductIds: `
@@ -195,5 +202,5 @@ export const queries = {
       FROM product_variations
       WHERE product_id = $1;
     `
-}
+  }  
 };

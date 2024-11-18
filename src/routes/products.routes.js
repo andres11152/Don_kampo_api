@@ -1,17 +1,19 @@
 import express from 'express';
 import { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/products.controller.js';
-import multer from 'multer';
+import { handleMulterError } from '../middlewares/validateData.js';
 
 const router = express.Router();
 
-// Configurar almacenamiento con multer
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
+// Rutas
 router.get('/api/products', getProducts);
 router.get('/api/getproduct/:product_id', getProductById);
-router.post('/api/createproduct', upload.single('photo'), createProduct);
-router.put('/api/updateproduct/:product_id', updateProduct);
+
+// Ruta para crear productos con middleware de manejo de archivos
+router.post('/api/createproduct', handleMulterError, createProduct);
+
+// Ruta para actualizar productos con middleware de manejo de archivos
+router.put('/api/updateproduct/:product_id', handleMulterError, updateProduct);
+
 router.delete('/api/deleteproduct/:product_id', deleteProduct);
 
 export default router;
