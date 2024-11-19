@@ -1,8 +1,6 @@
-// Importar el pool y las queries
 import { getConnection } from "../database/connection.js";
 import { queries } from "../database/queries.interface.js";
 
-// Crear nueva información de envío
 export const createShippingInfo = async (req, res) => {
   const {
     shipping_method,
@@ -12,7 +10,6 @@ export const createShippingInfo = async (req, res) => {
     shipping_status_id,
   } = req.body;
 
-  // Validación de campos obligatorios
   if (!shipping_method || !shipping_status_id) {
     return res.status(400).json({
       msg: "Faltan campos obligatorios: shipping_method o shipping_status_id.",
@@ -36,14 +33,13 @@ export const createShippingInfo = async (req, res) => {
       msg: "Información de envío creada con éxito",
     });
   } catch (error) {
-    console.error("Error al crear la información de envío:", error); // Log del error
+    console.error("Error al crear la información de envío:", error);
     return res.status(500).json({
       msg: "Error al crear la información de envío",
     });
   }
 };
 
-// Obtener toda la información de envíos
 export const getShippingInfo = async (req, res) => {
   try {
     const client = await getConnection();
@@ -60,7 +56,6 @@ export const getShippingInfo = async (req, res) => {
   }
 };
 
-// Obtener información de envío por ID
 export const getShippingInfoById = async (req, res) => {
   const { id } = req.params;
 
@@ -85,7 +80,6 @@ export const getShippingInfoById = async (req, res) => {
   }
 };
 
-// Actualizar información de envío
 export const updateShippingInfo = async (req, res) => {
   const { id } = req.params;
   const {
@@ -96,7 +90,6 @@ export const updateShippingInfo = async (req, res) => {
     shipping_status_id,
   } = req.body;
 
-  // Validación de campos obligatorios
   if (!shipping_method || !shipping_status_id) {
     return res.status(400).json({
       msg: "Faltan campos obligatorios: shipping_method o shipping_status_id.",
@@ -131,7 +124,6 @@ export const updateShippingInfo = async (req, res) => {
   }
 };
 
-// Eliminar información de envío
 export const deleteShippingInfo = async (req, res) => {
   const { id } = req.params;
 

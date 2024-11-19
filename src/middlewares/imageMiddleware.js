@@ -2,7 +2,7 @@ import sharp from 'sharp';
 
 export const optimizeImage = (req, res, next) => {
   if (req.file) {
-    // Usamos sharp para optimizar la imagen
+    
     sharp(req.file.buffer)
       .resize(800, 800, { fit: 'inside' })  
       .jpeg({ quality: 80 })  

@@ -3,12 +3,8 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getConnection } from '../database/connection.js';
 
-// Clave secreta para firmar el token JWT
 const JWT_SECRET = 'Xpto-secret0-key';
 
-/**
- * Controlador para el inicio de sesión
- */
 export const loginController = async (req, res) => {
   const { email, user_password } = req.body;
 
@@ -17,7 +13,7 @@ export const loginController = async (req, res) => {
   }
 
   try {
-    const client = await getConnection(); // Obtiene la conexión a la base de datos
+    const client = await getConnection();
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
 
     if (result.rows.length === 0) {

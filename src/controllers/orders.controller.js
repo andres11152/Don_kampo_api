@@ -2,9 +2,7 @@ import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 import crypto from 'crypto';
 
-/**
- * Coloca un nuevo pedido y sus detalles en la base de datos.
- */
+
 export const placeOrder = async (req, res) => {
   const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, shippingCost, userData, needsElectronicInvoice, companyName, companyNit } = req.body;
   const trackingNumber = crypto.randomBytes(5).toString('hex');
@@ -17,7 +15,6 @@ export const placeOrder = async (req, res) => {
   try {
     const client = await getConnection();
 
-    // Verifica si los productos existen
     const productIds = cartDetails.map((item) => item.productId);
     const productCheckResult = await client.query(
       `SELECT product_id FROM products WHERE product_id = ANY($1)`,
@@ -25,8 +22,6 @@ export const placeOrder = async (req, res) => {
     );
 
     const existingProductIds = productCheckResult.rows.map((row) => row.product_id);
-
-    // Encuentra productos inexistentes
     const invalidProducts = productIds.filter((id) => !existingProductIds.includes(id));
 
     if (invalidProducts.length > 0) {
@@ -37,19 +32,17 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    // Crear el pedido
     const orderResult = await client.query(queries.orders.createOrder, [
       userId,
       new Date(),
-      1, // status_id (1 = pendiente)
+      1, 
       total,
-      needsElectronicInvoice || false, // Por defecto, false
-      companyName || null, // Por defecto, null
-      companyNit || null, // Por defecto, null
+      needsElectronicInvoice || false,
+      companyName || null,
+      companyNit || null,
     ]);
     const orderId = orderResult.rows[0].id;
 
-    // Insertar productos en `order_items`
     for (const item of cartDetails) {
       await client.query(queries.orders.createOrderItem, [
         orderId,
@@ -59,7 +52,6 @@ export const placeOrder = async (req, res) => {
       ]);
     }
 
-    // Insertar información de envío
     if (shippingMethod && estimatedDelivery && actualDelivery) {
       await client.query(queries.shipping_info.createShippingInfo, [
         shippingMethod,
@@ -79,10 +71,6 @@ export const placeOrder = async (req, res) => {
   }
 };
 
-
-/**
- * Obtiene todos los pedidos.
- */
 export const getOrders = async (req, res) => {
   try {
     const client = await getConnection();
@@ -95,15 +83,11 @@ export const getOrders = async (req, res) => {
   }
 };
 
-/**
- * Obtiene un pedido por su ID.
- */
 export const getOrdersById = async (req, res) => {
   try {
     const { orderId } = req.params;
     const client = await getConnection();
 
-    // Información básica del pedido
     const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
     if (orderResult.rows.length === 0) {
       client.release();
@@ -111,17 +95,14 @@ export const getOrdersById = async (req, res) => {
     }
     const orderData = orderResult.rows[0];
 
-    // Productos del pedido
     const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
     const orderItems = itemsResult.rows;
 
-    // Información de envío
     const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
     const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
 
     client.release();
 
-    // Respuesta estructurada
     res.status(200).json({
       order: orderData,
       items: orderItems,
@@ -133,9 +114,6 @@ export const getOrdersById = async (req, res) => {
   }
 };
 
-/**
- * Crea un nuevo pedido.
- */
 export const createOrders = async (req, res) => {
   const { customer_id, order_date, status_id, total } = req.body;
 
@@ -154,9 +132,6 @@ export const createOrders = async (req, res) => {
   }
 };
 
-/**
- * Actualiza un pedido existente.
- */
 export const updateOrders = async (req, res) => {
   const { id, customer_id, order_date, status_id, total } = req.body;
 
@@ -175,9 +150,6 @@ export const updateOrders = async (req, res) => {
   }
 };
 
-/**
- * Actualiza el estado de un pedido.
- */
 export const updateOrderStatus = async (req, res) => {
   const { id, status_id } = req.params;
 
@@ -196,9 +168,6 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-/**
- * Elimina un pedido.
- */
 export const deleteOrders = async (req, res) => {
   const { orderId } = req.params;
 

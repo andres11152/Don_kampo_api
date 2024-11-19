@@ -91,8 +91,4 @@ CREATE TABLE   products (
    photo  bytea,
 )
 */
-ALTER TABLE orders
-ADD COLUMN requires_electronic_billing BOOLEAN DEFAULT FALSE,
-ADD COLUMN nit VARCHAR(20),
-ADD COLUMN company_name VARCHAR(255);
 
