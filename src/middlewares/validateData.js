@@ -1,32 +1,16 @@
 import multer from 'multer';
 
-const validateProductData = (req, res, next) => {
-    const { name, description, category, stock } = req.body;
-  
-    if (!name || !description || !category) {
-      return res.status(400).json({ message: 'Campos obligatorios: name, description, category' });
-    }
-  
-    if (stock && isNaN(stock)) {
-      return res.status(400).json({ message: 'El stock debe ser un número válido' });
-    }
-  
-    next();
-  };
+// Configuración de Multer
+const storage = multer.memoryStorage();
+const upload = multer({ storage }).single('photo');  // 'photo' es el nombre del campo del archivo
 
-  // Configuración de multer para manejar archivos en memoria
-  const storage = multer.memoryStorage();
-  const upload = multer({ storage });
-  
-  // Middleware para manejar errores de multer
-  export const handleMulterError = (req, res, next) => {
-    upload.single('photo')(req, res, (err) => {
-      if (err instanceof multer.MulterError) {
-        return res.status(400).json({ message: 'Error al procesar el archivo' });
-      } else if (err) {
-        return res.status(500).json({ message: 'Error interno al procesar la solicitud' });
-      }
-      next();
-    });
-  };
-  
+// Middleware para manejar errores de Multer
+export const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ message: `Error en la carga del archivo: ${err.message}` });
+  }
+  if (err) {
+    return res.status(500).json({ message: 'Error interno del servidor' });
+  }
+  next();
+};

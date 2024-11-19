@@ -13,7 +13,16 @@ export const queries = {
     `,
     updateUsers: `
       UPDATE users
-      SET user_name = $1, lastname = $2, email = $3, phone = $4, city = $5, address = $6, neighborhood = $7, user_password = $8, user_type = $9
+      SET 
+        user_name = $1, 
+        lastname = $2, 
+        email = $3, 
+        phone = $4, 
+        city = $5, 
+        address = $6, 
+        neighborhood = $7, 
+        user_password = $8, 
+        user_type = $9
       WHERE id = $10
     `,
     updateUserStatus: `
@@ -22,29 +31,26 @@ export const queries = {
       WHERE id = $1;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
-      // Consulta para obtener el ID del usuario por correo electrónico
     getUserByEmail: 'SELECT id FROM users WHERE email = $1',
-
     updateUserResetToken: `
-    UPDATE users 
-    SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
-    WHERE id = $3
-  `,
-    // Consulta para verificar el código de restablecimiento de contraseña
+      UPDATE users 
+      SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
+      WHERE id = $3
+    `,
     verifyUserResetCode: `
-    SELECT id 
-    FROM users 
-    WHERE email = $1 
-    AND reset_password_token = $2 
-    AND reset_password_expires > to_timestamp($3)
-`,
-    // Consulta para actualizar la contraseña del usuario y eliminar el código de restablecimiento
+      SELECT id 
+      FROM users 
+      WHERE email = $1 
+      AND reset_password_token = $2 
+      AND reset_password_expires > to_timestamp($3)
+    `,
     updateUserPassword: `
       UPDATE users 
       SET user_password = $1, reset_password_token = NULL, reset_password_expires = NULL 
       WHERE id = $2
     `,
   },
+
   orders: {
     getOrders: `
       SELECT 
@@ -140,6 +146,7 @@ export const queries = {
       VALUES ($1, $2, $3, $4)
     `  
   },
+
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
     getOrderStatusesById: "SELECT * FROM order_statuses WHERE id = $1",
@@ -154,6 +161,7 @@ export const queries = {
     `,
     deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1",
   },
+
   shipping_statuses: {
     getShippingStatuses: "SELECT * FROM shipping_statuses",
     getShippingStatusesById: "SELECT * FROM shipping_statuses WHERE id = $1",
@@ -168,6 +176,7 @@ export const queries = {
     `,
     deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1",
   },
+
   shipping_info: {
     getShippingInfo: "SELECT * FROM shipping_info",
     getShippingInfoById: "SELECT * FROM shipping_info WHERE id = $1",
@@ -177,83 +186,89 @@ export const queries = {
     `,
     updateShippingInfo: `
       UPDATE shipping_info
-      SET shipping_method = $1, tracking_number = $2, estimated_delivery = $3, actual_delivery = $4, shipping_status_id = $5
+      SET 
+        shipping_method = $1, 
+        tracking_number = $2, 
+        estimated_delivery = $3, 
+        actual_delivery = $4, 
+        shipping_status_id = $5
       WHERE id = $6
     `,
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
-  
-  products: {
-    getProducts: `
-      SELECT 
-        p.product_id, 
-        p.name, 
-        p.description, 
-        p.category, 
-        p.stock, 
-        p.photo -- Campo en binario (BYTEA)
-      FROM products p
-      ORDER BY p.product_id
-      LIMIT $1 OFFSET $2;
-    `,
-    getProductById: `
-      SELECT 
-        p.product_id, 
-        p.name, 
-        p.description, 
-        p.category, 
-        p.stock, 
-        p.photo -- Campo en binario (BYTEA)
-      FROM products p
-      WHERE p.product_id = $1;
-    `,
-    createProduct: `
-      INSERT INTO products (name, description, category, stock, photo)
-      VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
-    `,
-    createProductVariation: `
-      INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
-      VALUES ($1, $2, $3, $4, $5, $6, $7);
-    `,
-    updateProduct: `
-      UPDATE products
-      SET 
-        name = $1, 
-        description = $2, 
-        category = $3, 
-        stock = $4, 
-        photo = $5, -- Actualizar campo binario (BYTEA)
-        updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $6;
-    `,
-    getProductVariationsByProductIds: `
-      SELECT 
-        pv.product_id, 
-        pv.quality, 
-        pv.quantity, 
-        pv.price_home, 
-        pv.price_supermarket, 
-        pv.price_restaurant, 
-        pv.price_fruver
-      FROM product_variations pv
-      WHERE pv.product_id = ANY($1);
-    `,
-    deleteProduct: `
-      DELETE FROM products WHERE product_id = $1;
-    `,
-    deleteProductVariation: `
-      DELETE FROM product_variations WHERE variation_id = $1;
-    `,
-    getProductVariations: `
-      SELECT 
-        quality, 
-        quantity, 
-        price_home, 
-        price_supermarket, 
-        price_restaurant, 
-        price_fruver
-      FROM product_variations
-      WHERE product_id = $1;
-    `
-  }  
+    products: {
+      getProducts: `
+        SELECT 
+          p.product_id, 
+          p.name, 
+          p.description, 
+          p.category, 
+          p.stock, 
+          p.photo_url
+        FROM products p
+        WHERE p.product_id > $1
+        ORDER BY p.created_at DESC  -- Ordenar por la fecha de creación
+        LIMIT $2;
+      `,
+      getProductById: `
+        SELECT 
+          p.product_id, 
+          p.name, 
+          p.description, 
+          p.category, 
+          p.stock, 
+          p.photo_url 
+        FROM products p
+        WHERE p.product_id = $1;
+      `,
+      createProduct: `
+        INSERT INTO products (name, description, category, stock, photo_url)
+        VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
+      `,
+      createProductVariation: `
+        INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
+        VALUES ($1, $2, $3, $4, $5, $6, $7);
+      `,
+      updateProduct: `
+        UPDATE products
+        SET 
+          name = $1, 
+          description = $2, 
+          category = $3, 
+          stock = $4, 
+          photo_url = COALESCE($5, photo_url),  -- Solo actualiza la foto si se pasa una nueva URL
+          updated_at = CURRENT_TIMESTAMP
+        WHERE product_id = $6
+        RETURNING product_id;  -- Retorna el product_id actualizado
+      `,
+      getProductVariationsByProductIds: `
+        SELECT
+          pv.product_id, 
+          pv.quality, 
+          pv.quantity, 
+          pv.price_home, 
+          pv.price_supermarket, 
+          pv.price_restaurant, 
+          pv.price_fruver
+        FROM product_variations pv
+        WHERE pv.product_id = ANY($1);
+      `,
+      deleteProduct: `
+        DELETE FROM products WHERE product_id = $1;
+      `,
+      deleteProductVariation: `
+        DELETE FROM product_variations WHERE variation_id = $1;
+      `,
+      getProductVariations: `
+        SELECT 
+          quality, 
+          quantity, 
+          price_home, 
+          price_supermarket, 
+          price_restaurant, 
+          price_fruver
+        FROM product_variations
+        WHERE product_id = $1;
+      `
+    }  
 };

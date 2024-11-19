@@ -1,76 +1,85 @@
-import express from "express";
-import cors from "cors";
-import morgan from "morgan";
-import { PORT } from "./config/config.js";
-import authRoutes from "./routes/auth.routes.js";
-import usersRoutes from "./routes/user.routes.js";
+import express from 'express';
+import morgan from 'morgan'; // Agregamos la importación de morgan
+import { PORT } from './config/config.js';
+import authRoutes from './routes/auth.routes.js';
+import usersRoutes from './routes/user.routes.js';
 import productsRoutes from './routes/products.routes.js';
 import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import multer from 'multer'; // Para manejar las cargas de archivos
+import { optimizeImage } from './middlewares/imageMiddleware.js'; // Importamos el middleware para optimizar imágenes
+import cors from 'cors'; // No olvides importar cors si aún no lo has hecho
 
 // Configuración del servidor
 const app = express();
 
-// Middleware
-app.use(morgan("dev"));
+// Middleware de morgan para logging
+app.use(morgan("dev")); // Usamos morgan para registrar las solicitudes HTTP
+
+// Middleware para procesar JSON y URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configuración de CORS
-const allowedOrigins = ['http://localhost:3000', 'http://192.168.1.8:3000','https://don-kampo-akm4.vercel.app']; // Añadido el frontend de producción
+// Configuración de Multer para la carga de imágenes
+const storage = multer.memoryStorage(); // Almacenamos las imágenes en memoria
+const upload = multer({ storage: storage }).single('photo'); // `photo` es el campo que contiene la imagen
+
+// Middleware de CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://don-kampo-akm4.vercel.app'
+]; 
+
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true); // Permitir el acceso
+      callback(null, true);  
     } else {
-      callback(new Error('No permitido por CORS')); // Bloquear el acceso
+      callback(new Error('No permitido por CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true, // Permitir envío de cookies y credenciales
+  credentials: true,
 };
 
-app.use(cors(corsOptions)); // Aplica las opciones de CORS
+app.use(cors(corsOptions));
 
-// Configuración de EJS
+// Configuración de EJS como motor de plantillas (si usas vistas)
 app.set('view engine', 'ejs');
 
 // Configuración de Timeout para las solicitudes
 app.use((req, res, next) => {
-  res.setTimeout(10000, () => { // Timeout de 5 segundos
+  res.setTimeout(5000, () => {  
     console.log('La solicitud ha superado el tiempo de espera.');
-    res.status(408).send('Request timed out');
+    res.status(408).send('Request timed out');  
   });
   next();
 });
 
-// Rutas
-app.use(authRoutes); // Ruta para el inicio de sesión
-app.use(usersRoutes);  // Ruta para los usuarios
-app.use(productsRoutes); // Ruta para los productos y precios
-app.use(shippingRoutes); // Ruta para los métodos de envío
-app.use(orderRoutes); // Ruta para los pedidos
+// Rutas de la API
+app.use(authRoutes);
+app.use(usersRoutes);
+app.use(productsRoutes);
+app.use(shippingRoutes);
+app.use(orderRoutes);
 
-// Configuración del servidor - Ruta principal
-app.get("/", (req, res) => {
-  res.render(process.cwd() + "/web/index.ejs"); // Renderiza el archivo index.ejs al acceder a la ruta raíz.
+// Rutas de productos con Multer y optimización de imágenes
+// Aseguramos que la imagen se cargue antes de crear el producto
+app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
+  console.log('Imagen subida:', req.file);
+  // El resto de la lógica para crear el producto aquí
+  res.status(201).json({ message: 'Producto creado exitosamente' });
 });
 
-// Manejo de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Muestra el stack trace del error en la consola.
-  res.status(500).send("Error interno del servidor"); // Responde con un mensaje de error 500.
-});
-
-// Inicialización del servidor con HTTP
+// Inicialización del servidor y manejo de conexiones
 app.listen(PORT, () => {
   const host = `http://localhost:${PORT}`;
-  console.log(`Servidor corriendo en: ${host}`); // Muestra en consola que el servidor está corriendo y en qué URL.
+  console.log(`Servidor corriendo en: ${host}`);
 });
 
-// Manejo de señal de terminación (SIGINT)
+// Manejo de señales de terminación (SIGINT) para cerrar correctamente el servidor
 process.on("SIGINT", () => {
-  console.log("Servidor cerrado correctamente"); // Muestra en consola que el servidor se ha cerrado correctamente.
-  process.exit(0); // Termina el proceso de Node.js.
+  console.log("Servidor cerrado correctamente");
+  process.exit(0);
 });
