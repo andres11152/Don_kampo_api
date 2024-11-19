@@ -1,7 +1,3 @@
-Sure! Here's the full updated `README.md` for your project:
-
----
-
 # 🏷️ **DON KAMPO API**
 
 Application developed by **Andres Betancourt**
