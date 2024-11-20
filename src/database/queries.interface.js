@@ -8,7 +8,7 @@ export const queries = {
       WHERE o.customer_id = $1
     `,
     createUsers: `
-      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type)
+      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password, customer_type_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
     `,
     updateUsers: `
@@ -22,7 +22,7 @@ export const queries = {
         address = $6, 
         neighborhood = $7, 
         user_password = $8, 
-        user_type = $9
+        customer_type_id = $9
       WHERE id = $10
     `,
     updateUserStatus: `
@@ -50,7 +50,21 @@ export const queries = {
       WHERE id = $2
     `,
   },
-
+  customerTypes: {
+    getAllCustomerTypes: 'SELECT * FROM customer_types;',
+    getCustomerTypeById: 'SELECT * FROM customer_types WHERE id = $1;',
+    updateShippingCost: 'UPDATE customer_types SET shipping_cost = $1 WHERE id = $2;',
+    updateAllShippingCosts: `
+      UPDATE customer_types 
+      SET shipping_cost = CASE 
+        WHEN type_name = 'hogar' THEN CAST($1 AS numeric)
+        WHEN type_name = 'fruver' THEN CAST($2 AS numeric)
+        WHEN type_name = 'supermercado' THEN CAST($3 AS numeric)
+        WHEN type_name = 'restaurante' THEN CAST($4 AS numeric)
+      END
+    `  
+  },
+  
   orders: {
     getOrders: `
       SELECT 
@@ -196,79 +210,70 @@ export const queries = {
     `,
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
-    products: {
-      getProducts: `
-        SELECT 
-          p.product_id, 
-          p.name, 
-          p.description, 
-          p.category, 
-          p.stock, 
-          p.photo_url
-        FROM products p
-        WHERE p.product_id > $1
-        ORDER BY p.created_at DESC  -- Ordenar por la fecha de creación
-        LIMIT $2;
-      `,
-      getProductById: `
-        SELECT 
-          p.product_id, 
-          p.name, 
-          p.description, 
-          p.category, 
-          p.stock, 
-          p.photo_url 
-        FROM products p
-        WHERE p.product_id = $1;
-      `,
-      createProduct: `
-        INSERT INTO products (name, description, category, stock, photo_url)
-        VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
-      `,
-      createProductVariation: `
-        INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
-        VALUES ($1, $2, $3, $4, $5, $6, $7);
-      `,
-      updateProduct: `
-        UPDATE products
-        SET 
-          name = $1, 
-          description = $2, 
-          category = $3, 
-          stock = $4, 
-          photo_url = COALESCE($5, photo_url),  -- Solo actualiza la foto si se pasa una nueva URL
-          updated_at = CURRENT_TIMESTAMP
-        WHERE product_id = $6
-        RETURNING product_id;  -- Retorna el product_id actualizado
-      `,
-      getProductVariationsByProductIds: `
-        SELECT
-          pv.product_id, 
-          pv.quality, 
-          pv.quantity, 
-          pv.price_home, 
-          pv.price_supermarket, 
-          pv.price_restaurant, 
-          pv.price_fruver
-        FROM product_variations pv
-        WHERE pv.product_id = ANY($1);
-      `,
-      deleteProduct: `
-        DELETE FROM products WHERE product_id = $1;
-      `,
-      deleteProductVariation: `
-        DELETE FROM product_variations WHERE variation_id = $1;
-      `,
-      getProductVariations: `
-        SELECT 
-          quality, 
-          quantity, 
-          price_home, 
-          price_supermarket, 
-          price_restaurant, 
-          price_fruver
-        FROM product_variations
-        WHERE product_id = $1;
-      `
-    }  
+  
+  products: {
+    getProducts: `
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo_url
+      FROM products p
+      WHERE p.product_id > $1
+      ORDER BY p.created_at DESC  -- Ordenar por la fecha de creación
+      LIMIT $2;
+    `,
+    getProductById: `
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo_url 
+      FROM products p
+      WHERE p.product_id = $1;
+    `,
+    createProduct: `
+      INSERT INTO products (name, description, category, stock, photo_url)
+      VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
+    `,
+    createProductVariation: `
+      INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
+      VALUES ($1, $2, $3, $4, $5, $6, $7);
+    `,
+    updateProduct: `
+      UPDATE products
+      SET 
+        name = $1, 
+        description = $2, 
+        category = $3, 
+        stock = $4, 
+        photo_url = COALESCE($5, photo_url),  -- Solo actualiza la foto si se pasa una nueva URL
+        updated_at = CURRENT_TIMESTAMP
+      WHERE product_id = $6
+      RETURNING product_id;  -- Retorna el product_id actualizado
+    `,
+    getProductVariationsByProductIds: `
+      SELECT
+        pv.product_id, 
+        pv.quality, 
+        pv.quantity, 
+        pv.price_home, 
+        pv.price_supermarket, 
+        pv.price_restaurant, 
+        pv.price_fruver
+      FROM product_variations pv
+      WHERE pv.product_id = ANY($1);
+    `,
+    deleteProduct: `
+      DELETE FROM products WHERE product_id = $1;
+    `,
+    deleteProductVariation: `
+      DELETE FROM product_variations WHERE product_id = $1;
+    `,
+  },
 };
+
