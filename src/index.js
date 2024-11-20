@@ -6,6 +6,7 @@ import usersRoutes from './routes/user.routes.js';
 import productsRoutes from './routes/products.routes.js';
 import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import customerTypesRoutes from './routes/customerTypes.routes.js';
 import multer from 'multer';
 import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
@@ -49,12 +50,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Rutas de tu aplicación
 app.use(authRoutes);
 app.use(usersRoutes);
 app.use(productsRoutes);
 app.use(shippingRoutes);
 app.use(orderRoutes);
+app.use(customerTypesRoutes); // Añadir las rutas de customerTypes
 
+// Ruta para crear un producto, con carga de imagen
 app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   console.log('Imagen subida:', req.file);
   res.status(201).json({ message: 'Producto creado exitosamente' });

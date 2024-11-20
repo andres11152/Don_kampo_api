@@ -1,7 +1,7 @@
 import multer from 'multer';
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage }).single('photo'); 
+const upload = multer({ storage }).single('photo_url'); 
 
 export const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
