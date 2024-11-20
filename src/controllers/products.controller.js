@@ -4,11 +4,11 @@ import { queries } from '../database/queries.interface.js';
 
 export const getProducts = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
-  const offset = (page - 1) * limit;  
+  const offset = (page - 1) * limit;
 
   let client;
   try {
-    client = await getConnection();  
+    client = await getConnection();
 
     const productsResult = await client.query(queries.products.getProducts, [offset, limit]);
 
@@ -16,25 +16,58 @@ export const getProducts = async (req, res) => {
       return res.status(404).json({ message: 'No hay productos disponibles' });
     }
 
-    const productIds = productsResult.rows.map(product => product.product_id);
-    const variationsResult = await client.query(queries.products.getProductVariationsByProductIds, [productIds]);
-    const productsWithVariations = productsResult.rows.map(product => {
-      const variations = variationsResult.rows.filter(variation => variation.product_id === product.product_id);
-      return {
-        ...product,
-        variations: variations
-      };
+    const productsWithVariations = [];
+
+    productsResult.rows.forEach((row) => {
+      const existingProduct = productsWithVariations.find((product) => product.product_id === row.product_id);
+
+      if (existingProduct) {
+        // Si ya existe el producto, agregamos la variación
+        existingProduct.variations.push({
+          variation_id: row.variation_id,
+          quality: row.quality,
+          quantity: row.quantity,
+          price_home: row.price_home,
+          price_supermarket: row.price_supermarket,
+          price_restaurant: row.price_restaurant,
+          price_fruver: row.price_fruver,
+        });
+      } else {
+        // Si el producto es nuevo, lo agregamos con su variación
+        productsWithVariations.push({
+          product_id: row.product_id,
+          name: row.name,
+          description: row.description,
+          category: row.category,
+          stock: row.stock,
+          photo_url: row.photo_url,
+          variations: row.variation_id
+            ? [
+                {
+                  variation_id: row.variation_id,
+                  quality: row.quality,
+                  quantity: row.quantity,
+                  price_home: row.price_home,
+                  price_supermarket: row.price_supermarket,
+                  price_restaurant: row.price_restaurant,
+                  price_fruver: row.price_fruver,
+                },
+              ]
+            : [],
+        });
+      }
     });
 
+    // Enviamos la respuesta con los productos y sus variaciones
     res.status(200).json(productsWithVariations);
+
   } catch (error) {
-    console.error('Error al obtener productos:', error);
-    res.status(500).json({ message: 'Error al obtener productos' });
+    console.error('Error al obtener los productos:', error);
+    res.status(500).json({ message: 'Error al obtener los productos' });
   } finally {
-    if (client) client.release();  
+    if (client) client.release();
   }
 };
-
 
 export const getProductById = async (req, res) => {
   const { id } = req.params;  

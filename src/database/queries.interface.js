@@ -209,70 +209,80 @@ export const queries = {
     `,
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
-  
   products: {
     getProducts: `
-      SELECT 
-        p.product_id, 
-        p.name, 
-        p.description, 
-        p.category, 
-        p.stock, 
-        p.photo_url
-      FROM products p
-      WHERE p.product_id > $1
-      ORDER BY p.created_at DESC  -- Ordenar por la fecha de creación
-      LIMIT $2;
-    `,
-    getProductById: `
-      SELECT 
-        p.product_id, 
-        p.name, 
-        p.description, 
-        p.category, 
-        p.stock, 
-        p.photo_url 
-      FROM products p
-      WHERE p.product_id = $1;
-    `,
-    createProduct: `
-      INSERT INTO products (name, description, category, stock, photo_url)
-      VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
-    `,
-    createProductVariation: `
-      INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
-      VALUES ($1, $2, $3, $4, $5, $6, $7);
-    `,
-    updateProduct: `
-      UPDATE products
-      SET 
-        name = $1, 
-        description = $2, 
-        category = $3, 
-        stock = $4, 
-        photo_url = COALESCE($5, photo_url),  -- Solo actualiza la foto si se pasa una nueva URL
-        updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $6
-      RETURNING product_id;  -- Retorna el product_id actualizado
-    `,
-    getProductVariations: `
-      SELECT 
-          v.variation_id, 
-          v.quality, 
-          v.quantity, 
-          v.price_home, 
-          v.price_supermarket, 
-          v.price_restaurant, 
-          v.price_fruver
-        FROM product_variations v
-        WHERE v.product_id = $1;
- `,
-    deleteProduct: `
-      DELETE FROM products WHERE product_id = $1;
-    `,
-    deleteProductVariation: `
-      DELETE FROM product_variations WHERE product_id = $1;
-    `,
-  },
+    SELECT 
+      p.product_id, 
+      p.name, 
+      p.description, 
+      p.category, 
+      p.stock, 
+      p.photo_url,
+      v.variation_id,
+      v.quality,
+      v.quantity,
+      v.price_home,
+      v.price_supermarket,
+      v.price_restaurant,
+      v.price_fruver
+    FROM products p
+    LEFT JOIN product_variations v ON p.product_id = v.product_id
+    ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+  getProductById: `
+    SELECT 
+      p.product_id, 
+      p.name, 
+      p.description, 
+      p.category, 
+      p.stock, 
+      p.photo_url
+    FROM products p
+    WHERE p.product_id = $1;
+  `,
+
+  createProduct: `
+    INSERT INTO products (name, description, category, stock, photo_url)
+    VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
+  `,
+
+  createProductVariation: `
+    INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
+    VALUES ($1, $2, $3, $4, $5, $6, $7);
+  `,
+
+  updateProduct: `
+    UPDATE products
+    SET 
+      name = $1, 
+      description = $2, 
+      category = $3, 
+      stock = $4, 
+      photo_url = COALESCE($5, photo_url), 
+      updated_at = CURRENT_TIMESTAMP
+    WHERE product_id = $6
+    RETURNING product_id;
+  `,
+
+  getProductVariations: `
+    SELECT 
+      v.variation_id, 
+      v.quality, 
+      v.quantity, 
+      v.price_home, 
+      v.price_supermarket, 
+      v.price_restaurant, 
+      v.price_fruver
+    FROM product_variations v
+    WHERE v.product_id = $1;
+  `,
+  deleteProduct: `
+    DELETE FROM products WHERE product_id = $1;
+  `,
+  deleteProductVariation: `
+    DELETE FROM product_variations WHERE product_id = $1;
+  `
+}
 };
 
