@@ -51,18 +51,18 @@ export const queries = {
     `,
   },
   customerTypes: {
-    getAllCustomerTypes: 'SELECT * FROM customer_types;',
-    getCustomerTypeById: 'SELECT * FROM customer_types WHERE id = $1;',
-    updateShippingCost: 'UPDATE customer_types SET shipping_cost = $1 WHERE id = $2;',
-    updateAllShippingCosts: `
-      UPDATE customer_types 
-      SET shipping_cost = CASE 
-        WHEN type_name = 'hogar' THEN CAST($1 AS numeric)
-        WHEN type_name = 'fruver' THEN CAST($2 AS numeric)
-        WHEN type_name = 'supermercado' THEN CAST($3 AS numeric)
-        WHEN type_name = 'restaurante' THEN CAST($4 AS numeric)
-      END
-    `  
+    getAllCustomerTypes: `
+    SELECT * FROM customer_types;
+  `,
+  updateAllShippingCosts: `
+   UPDATE customer_types
+    SET shipping_cost = CASE 
+      WHEN type_name = 'Hogar' THEN $1::numeric
+      WHEN type_name = 'Fruver' THEN $2::numeric
+      WHEN type_name = 'Supermercado' THEN $3::numeric
+      WHEN type_name = 'Restaurante' THEN $4::numeric
+  END;
+  `,
   }, 
   orders: {
     getOrders: `

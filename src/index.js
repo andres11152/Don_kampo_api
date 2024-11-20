@@ -50,15 +50,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rutas de tu aplicación
 app.use(authRoutes);
 app.use(usersRoutes);
 app.use(productsRoutes);
 app.use(shippingRoutes);
 app.use(orderRoutes);
-app.use(customerTypesRoutes); // Añadir las rutas de customerTypes
+app.use(customerTypesRoutes);
 
-// Ruta para crear un producto, con carga de imagen
 app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   console.log('Imagen subida:', req.file);
   res.status(201).json({ message: 'Producto creado exitosamente' });
