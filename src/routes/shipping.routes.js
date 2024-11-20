@@ -4,10 +4,10 @@ from '../controllers/shipping.controller.js';
 
 const router = express.Router();
 
-router.post('/api/createshipping', createShippingInfo);// Ruta para crear nueva información de envío
-router.get('/api/shipping', getShippingInfo);// Ruta para obtener toda la información de envíos
-router.get('/api/getshipping/:id', getShippingInfoById);// Ruta para obtener información de envío por ID
-router.put('/api/updateshipping/:id', updateShippingInfo);// Ruta para actualizar información de envío
-router.delete('/api/deleteshipping/:id', deleteShippingInfo); // Ruta para eliminar información de envío
+router.post('/api/createshipping', createShippingInfo);
+router.get('/api/shipping', getShippingInfo);
+router.get('/api/getshipping/:id', getShippingInfoById);
+router.put('/api/updateshipping/:id', updateShippingInfo);
+router.delete('/api/deleteshipping/:id', deleteShippingInfo); 
 
 export default router;
