@@ -8,7 +8,7 @@ export const queries = {
       WHERE o.customer_id = $1
     `,
     createUsers: `
-      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password, customer_type_id)
+      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password , user_type)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
     `,
     updateUsers: `
@@ -22,7 +22,7 @@ export const queries = {
         address = $6, 
         neighborhood = $7, 
         user_password = $8, 
-        customer_type_id = $9
+        user_type = $9
       WHERE id = $10
     `,
     updateUserStatus: `
@@ -63,8 +63,7 @@ export const queries = {
         WHEN type_name = 'restaurante' THEN CAST($4 AS numeric)
       END
     `  
-  },
-  
+  }, 
   orders: {
     getOrders: `
       SELECT 
@@ -256,18 +255,18 @@ export const queries = {
       WHERE product_id = $6
       RETURNING product_id;  -- Retorna el product_id actualizado
     `,
-    getProductVariationsByProductIds: `
-      SELECT
-        pv.product_id, 
-        pv.quality, 
-        pv.quantity, 
-        pv.price_home, 
-        pv.price_supermarket, 
-        pv.price_restaurant, 
-        pv.price_fruver
-      FROM product_variations pv
-      WHERE pv.product_id = ANY($1);
-    `,
+    getProductVariations: `
+      SELECT 
+          v.variation_id, 
+          v.quality, 
+          v.quantity, 
+          v.price_home, 
+          v.price_supermarket, 
+          v.price_restaurant, 
+          v.price_fruver
+        FROM product_variations v
+        WHERE v.product_id = $1;
+ `,
     deleteProduct: `
       DELETE FROM products WHERE product_id = $1;
     `,
