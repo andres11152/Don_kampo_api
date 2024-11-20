@@ -2,7 +2,6 @@ import { getConnection } from '../database/connection.js';
 import { uploadImage } from '../helpers/uploadImage.js'; 
 import { queries } from '../database/queries.interface.js';
 
-
 export const getProducts = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const offset = (page - 1) * limit;  
@@ -36,8 +35,9 @@ export const getProducts = async (req, res) => {
   }
 };
 
+
 export const getProductById = async (req, res) => {
-  const { id } = req.params;  // Obtener el ID del producto desde los parámetros de la URL
+  const { id } = req.params;  
 
   let client;
   try {
@@ -54,7 +54,7 @@ export const getProductById = async (req, res) => {
     // Obtener las variaciones del producto
     const variationsResult = await client.query(queries.products.getProductVariations, [id]);
 
-    // Agregar las variaciones al producto
+    // Combinar el producto y sus variaciones
     const productWithVariations = {
       ...productResult.rows[0],  // Producto encontrado
       variations: variationsResult.rows  // Variaciones asociadas al producto

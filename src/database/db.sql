@@ -92,5 +92,4 @@ CREATE TABLE   products (
 )
 */
 
-ALTER TABLE users
-ALTER COLUMN user_type TYPE VARCHAR(50);
+
