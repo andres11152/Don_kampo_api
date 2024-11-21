@@ -74,69 +74,72 @@ export const getProductById = async (req, res) => {
 
   let client;
   try {
-    client = await getConnection();  // Obtener conexión a la base de datos
+    client = await getConnection();  
 
-    // Obtener el producto por su ID
     const productResult = await client.query(queries.products.getProductById, [id]);
 
-    // Si el producto no existe, retornar un error 404
+
     if (productResult.rows.length === 0) {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
-    // Obtener las variaciones del producto
     const variationsResult = await client.query(queries.products.getProductVariations, [id]);
-
-    // Combinar el producto y sus variaciones
+  
     const productWithVariations = {
-      ...productResult.rows[0],  // Producto encontrado
-      variations: variationsResult.rows  // Variaciones asociadas al producto
+      ...productResult.rows[0], 
+      variations: variationsResult.rows  
     };
 
-    // Retornar el producto con sus variaciones
+   
     res.status(200).json(productWithVariations);
   } catch (error) {
     console.error('Error al obtener el producto por ID:', error);
     res.status(500).json({ message: 'Error al obtener el producto' });
   } finally {
-    if (client) client.release();  // Liberar la conexión después de la consulta
+    if (client) client.release();  
   }
 };
 
 export const createProduct = async (req, res) => {
   let client;
   const { name, description, category, stock, variations } = req.body;
+
   const photoBuffer = req.file?.buffer || null;
-
   const defaultPhotoUrl = 'https://example.com/default-image.jpg';
-
   let photoUrl = null;
 
+  console.log('Photo Buffer:', photoBuffer);
   if (photoBuffer) {
     try {
+     
       photoUrl = await uploadImage(photoBuffer, req.file.originalname);
     } catch (error) {
       console.error('Error al subir la imagen a S3:', error);
       return res.status(500).json({ message: 'Error al subir la imagen a S3' });
     }
   } else {
+  
     photoUrl = defaultPhotoUrl;
   }
+
 
   const validatedStock = stock ? parseInt(stock, 10) : 0;
 
   try {
+ 
     client = await getConnection();
+
     const result = await client.query(queries.products.createProduct, [
       name,
       description,
       category,
       validatedStock,
-      photoUrl,
+      photoUrl, 
     ]);
 
     const productId = result.rows[0].product_id;
 
+    // Si hay variaciones, se insertan
     if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
         const { quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver } = variation;
@@ -158,6 +161,7 @@ export const createProduct = async (req, res) => {
       }
     }
 
+    // Responde con éxito
     res.status(201).json({
       message: 'Producto creado exitosamente',
       product_id: productId,
@@ -169,7 +173,7 @@ export const createProduct = async (req, res) => {
       error: error.message,
     });
   } finally {
-    if (client) client.release();
+    if (client) client.release(); 
   }
 };
 
