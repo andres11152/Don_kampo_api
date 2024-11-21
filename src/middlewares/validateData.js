@@ -1,7 +1,7 @@
 import multer from 'multer';
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage }).single('photo_url'); 
+export const upload = multer({ storage }).single('photo_url');
 
 export const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -11,4 +11,16 @@ export const handleMulterError = (err, req, res, next) => {
     return res.status(500).json({ message: 'Error interno del servidor' });
   }
   next();
+};
+
+export const parseMultipartData = (req, res, next) => {
+  try {
+    // Asegúrate de que los campos JSON se analicen correctamente
+    if (req.body.variations) {
+      req.body.variations = JSON.parse(req.body.variations);
+    }
+    next();
+  } catch (error) {
+    return res.status(400).json({ message: 'Error al procesar los datos de variaciones' });
+  }
 };
