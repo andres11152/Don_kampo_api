@@ -15,9 +15,9 @@
     try {
         const client = await getConnection();
 
-        // Obtener el tipo de usuario
+        // Verificar si el usuario existe
         const userResult = await client.query(
-            `SELECT customer_type_id FROM users WHERE id = $1`,
+            `SELECT id FROM users WHERE id = $1`,
             [userId]
         );
 
@@ -26,22 +26,6 @@
             return res.status(404).json({ msg: 'Usuario no encontrado.' });
         }
 
-        const customerTypeId = userResult.rows[0].customer_type_id;
-
-        // Obtener el costo de envío relacionado con el tipo de usuario
-        const shippingCostResult = await client.query(
-            `SELECT shipping_cost FROM customer_types WHERE id = $1`,
-            [customerTypeId]
-        );
-
-        if (shippingCostResult.rows.length === 0) {
-            client.release();
-            return res.status(404).json({ msg: 'Tipo de cliente no encontrado.' });
-        }
-
-        const shippingCost = shippingCostResult.rows[0].shipping_cost;
-
-        // Verificar los productos en el carrito
         const productIds = cartDetails.map((item) => item.productId);
         const productCheckResult = await client.query(
             `SELECT product_id FROM products WHERE product_id = ANY($1)`,
@@ -59,11 +43,10 @@
             });
         }
 
-        // Crear el pedido
         const orderResult = await client.query(queries.orders.createOrder, [
             userId,
             new Date(),
-            1, // Estado inicial del pedido
+            1, 
             total,
             needsElectronicInvoice || false,
             companyName || null,
@@ -71,7 +54,6 @@
         ]);
         const orderId = orderResult.rows[0].id;
 
-        // Insertar los productos del carrito en el pedido
         for (const item of cartDetails) {
             await client.query(queries.orders.createOrderItem, [
                 orderId,
@@ -81,7 +63,6 @@
             ]);
         }
 
-        // Insertar la información de envío si está disponible
         if (shippingMethod && estimatedDelivery && actualDelivery) {
             await client.query(queries.shipping_info.createShippingInfo, [
                 shippingMethod,
@@ -92,12 +73,6 @@
                 orderId,
             ]);
         }
-
-        // Asignar el costo de envío al pedido
-        await client.query(queries.orders.updateOrderShippingCost, [
-            shippingCost,
-            orderId,
-        ]);
 
         client.release();
         res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId });
