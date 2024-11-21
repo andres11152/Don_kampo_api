@@ -15,7 +15,6 @@ export const handleMulterError = (err, req, res, next) => {
 
 export const parseMultipartData = (req, res, next) => {
   try {
-    // Asegúrate de que los campos JSON se analicen correctamente
     if (req.body.variations) {
       req.body.variations = JSON.parse(req.body.variations);
     }
