@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/products.controller.js';
 import { handleMulterError, parseMultipartData } from '../middlewares/validateData.js';
+import { optimizeImage } from '../middlewares/imageMiddleware.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -11,7 +12,7 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/api/createproduct', upload.single('photo_url'), handleMulterError, parseMultipartData, createProduct);
+router.post('/api/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, parseMultipartData, createProduct);
 router.get('/api/products', getProducts); 
 router.get('/api/getproduct/:id', getProductById);  
 router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
