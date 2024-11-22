@@ -22,7 +22,7 @@ const upload = multer({ storage: storage }).single('photo');
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://don-kampo-akm4.vercel.app'
+  'https://don-kampo-akm4.vercel.app','https://app-4e3ca83d-1758-4989-a888-369bfae706bf.cleverapps.io/'
 ]; 
 
 const corsOptions = {
