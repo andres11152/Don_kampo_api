@@ -15,7 +15,6 @@
     try {
         const client = await getConnection();
 
-        // Verificar si el usuario existe
         const userResult = await client.query(
             `SELECT id FROM users WHERE id = $1`,
             [userId]
@@ -107,18 +106,13 @@
         return res.status(404).json({ msg: 'Pedido no encontrado.' });
       }
       const orderData = orderResult.rows[0];
-
-      // Productos del pedido
       const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
       const orderItems = itemsResult.rows;
-
-      // Información de envío
       const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
       const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
 
       client.release();
 
-      // Respuesta estructurada
       res.status(200).json({
         order: orderData,
         items: orderItems,
