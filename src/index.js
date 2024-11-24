@@ -77,7 +77,7 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
 });
 
 // Escuchar en el puerto especificado
-app.listen(PORT, '0.0.0.0', () => {  // Cambié 'localhost' por '0.0.0.0'
+app.listen(PORT, '3.139.75.208', () => {  // Cambié 'localhost' por '0.0.0.0'
   const host = `http://localhost:${PORT}`;
   console.log(`Servidor corriendo en: ${host}`);
 });
