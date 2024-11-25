@@ -8,12 +8,21 @@ export const queries = {
       WHERE o.customer_id = $1
     `,
     createUsers: `
-      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type)
+      INSERT INTO users (user_name, lastname, email, phone, city, address, neighborhood, user_password , user_type)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
     `,
     updateUsers: `
       UPDATE users
-      SET user_name = $1, lastname = $2, email = $3, phone = $4, city = $5, address = $6, neighborhood = $7, user_password = $8, user_type = $9
+      SET 
+        user_name = $1, 
+        lastname = $2, 
+        email = $3, 
+        phone = $4, 
+        city = $5, 
+        address = $6, 
+        neighborhood = $7, 
+        user_password = $8, 
+        user_type = $9
       WHERE id = $10
     `,
     updateUserStatus: `
@@ -22,67 +31,131 @@ export const queries = {
       WHERE id = $1;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
-    // Consulta para obtener el ID del usuario por correo electrónico
     getUserByEmail: 'SELECT id FROM users WHERE email = $1',
     updateUserResetToken: `
-    UPDATE users 
-    SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
-    WHERE id = $3
-  `,
-    // Consulta para verificar el código de restablecimiento de contraseña
+      UPDATE users 
+      SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
+      WHERE id = $3
+    `,
     verifyUserResetCode: `
-    SELECT id 
-    FROM users 
-    WHERE email = $1 
-    AND reset_password_token = $2 
-    AND reset_password_expires > to_timestamp($3)
-`,
-    // Consulta para actualizar la contraseña del usuario y eliminar el código de restablecimiento
+      SELECT id 
+      FROM users 
+      WHERE email = $1 
+      AND reset_password_token = $2 
+      AND reset_password_expires > to_timestamp($3)
+    `,
     updateUserPassword: `
       UPDATE users 
       SET user_password = $1, reset_password_token = NULL, reset_password_expires = NULL 
       WHERE id = $2
     `
   },
+  customerTypes: {
+    getAllCustomerTypes: `
+    SELECT * FROM customer_types;
+  `,
+    updateAllShippingCosts: `
+   UPDATE customer_types
+    SET shipping_cost = CASE 
+      WHEN type_name = 'Hogar' THEN $1::numeric
+      WHEN type_name = 'Fruver' THEN $2::numeric
+      WHEN type_name = 'Supermercado' THEN $3::numeric
+      WHEN type_name = 'Restaurante' THEN $4::numeric
+  END;
+  `
+  },
   orders: {
-    getOrders: "SELECT * FROM orders",
+    getOrders: `
+      SELECT 
+        o.id, 
+        o.customer_id, 
+        o.order_date, 
+        o.status_id, 
+        o.total, 
+        o.requires_electronic_billing, 
+        o.company_name, 
+        o.nit 
+      FROM orders o
+    `,
     getOrdersById: `
-      SELECT o.id, o.customer_id, o.order_date, o.status_id, o.total,
-             u.user_name AS customer_name, u.email AS customer_email
+      SELECT 
+        o.id, 
+        o.customer_id, 
+        o.order_date, 
+        o.status_id, 
+        o.total, 
+        o.requires_electronic_billing, 
+        o.company_name, 
+        o.nit,
+        u.user_name AS customer_name, 
+        u.email AS customer_email
       FROM orders o
       LEFT JOIN users u ON o.customer_id = u.id
       WHERE o.id = $1
     `,
     getOrderItemsByOrderId: `
-      SELECT oi.order_id, oi.product_id, oi.quantity, oi.price,
-             p.name AS product_name, p.description AS product_description
+      SELECT 
+        oi.order_id, 
+        oi.product_id, 
+        oi.quantity, 
+        oi.price,
+        p.name AS product_name, 
+        p.description AS product_description
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.product_id
       WHERE oi.order_id = $1
     `,
     getShippingInfoByOrderId: `
-      SELECT si.shipping_method, si.tracking_number, si.estimated_delivery,
-             si.actual_delivery, si.shipping_status_id
+      SELECT 
+        si.shipping_method, 
+        si.tracking_number, 
+        si.estimated_delivery,
+        si.actual_delivery, 
+        si.shipping_status_id
       FROM shipping_info si
       WHERE si.order_id = $1
     `,
     createOrder: `
-      INSERT INTO orders (customer_id, order_date, status_id, total) 
-      VALUES ($1, $2, $3, $4) RETURNING id
+      INSERT INTO orders (
+        customer_id, 
+        order_date, 
+        status_id, 
+        total, 
+        requires_electronic_billing, 
+        company_name, 
+        nit
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      RETURNING id
     `,
     updateOrders: `
       UPDATE orders
-      SET customer_id = $1, order_date = $2, status_id = $3, total = $4
-      WHERE id = $5
+      SET 
+        customer_id = $1, 
+        order_date = $2, 
+        status_id = $3, 
+        total = $4, 
+        needs_electronic_invoice = $5, 
+        company_name = $6, 
+        nit = $7
+      WHERE id = $8
     `,
     updateOrderStatus: `
       UPDATE orders
       SET status_id = $1
       WHERE id = $2
     `,
-    deleteOrders: "DELETE FROM orders WHERE id = $1",
+    deleteOrders: `
+      DELETE FROM orders 
+      WHERE id = $1
+    `,
     createOrderItem: `
-      INSERT INTO order_items (order_id, product_id, quantity, price) 
+      INSERT INTO order_items (
+        order_id, 
+        product_id, 
+        quantity, 
+        price
+      ) 
       VALUES ($1, $2, $3, $4)
     `
   },
@@ -123,23 +196,85 @@ export const queries = {
     `,
     updateShippingInfo: `
       UPDATE shipping_info
-      SET shipping_method = $1, tracking_number = $2, estimated_delivery = $3, actual_delivery = $4, shipping_status_id = $5
+      SET 
+        shipping_method = $1, 
+        tracking_number = $2, 
+        estimated_delivery = $3, 
+        actual_delivery = $4, 
+        shipping_status_id = $5
       WHERE id = $6
     `,
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1"
   },
   products: {
-    getProducts: "SELECT * FROM products LIMIT $1 OFFSET $2",
-    getProductById: "SELECT * FROM products WHERE product_id = $1",
+    getProducts: `
+    SELECT 
+      p.product_id, 
+      p.name, 
+      p.description, 
+      p.category, 
+      p.stock, 
+      p.photo_url,
+      v.variation_id,
+      v.quality,
+      v.quantity,
+      v.price_home,
+      v.price_supermarket,
+      v.price_restaurant,
+      v.price_fruver
+    FROM products p
+    LEFT JOIN product_variations v ON p.product_id = v.product_id
+    ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $1;
+  `,
+    getProductById: `
+    SELECT 
+      p.product_id, 
+      p.name, 
+      p.description, 
+      p.category, 
+      p.stock, 
+      p.photo_url
+    FROM products p
+    WHERE p.product_id = $1;
+  `,
     createProduct: `
-      INSERT INTO products (name, description, category, stock, photo, price_home, price_supermarket, price_restaurant, price_fruver) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING product_id
-    `,
+    INSERT INTO products (name, description, category, stock, photo_url)
+    VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
+  `,
+    createProductVariation: `
+    INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
+    VALUES ($1, $2, $3, $4, $5, $6, $7);
+  `,
     updateProduct: `
-      UPDATE products
-      SET name = $1, description = $2, category = $3, stock = $4, photo = $5, price_home = $6, price_supermarket = $7, price_restaurant = $8, price_fruver = $9, updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $10
-    `,
-    deleteProduct: "DELETE FROM products WHERE product_id = $1"
+    UPDATE products
+    SET 
+      name = $1, 
+      description = $2, 
+      category = $3, 
+      stock = $4, 
+      photo_url = COALESCE($5, photo_url), 
+      updated_at = CURRENT_TIMESTAMP
+    WHERE product_id = $6
+    RETURNING product_id;
+  `,
+    getProductVariations: `
+    SELECT 
+      v.variation_id, 
+      v.quality, 
+      v.quantity, 
+      v.price_home, 
+      v.price_supermarket, 
+      v.price_restaurant, 
+      v.price_fruver
+    FROM product_variations v
+    WHERE v.product_id = $1;
+  `,
+    deleteProduct: `
+    DELETE FROM products WHERE product_id = $1;
+  `,
+    deleteProductVariation: `
+    DELETE FROM product_variations WHERE product_id = $1;
+  `
   }
 };

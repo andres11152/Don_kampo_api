@@ -1,17 +1,11 @@
 import nodemailer from 'nodemailer';
-
-// Configuración de correo de Gmail
 const emailConfig = {
   host: 'smtp.gmail.com',
   port: 587,
   secure: false,
-  // Usamos false para el puerto 587
   user: 'donkampo76@gmail.com',
-  // Tu correo de Gmail
-  pass: 'rvoe qmdk eblb tvly' // Usa la contraseña de aplicación generada
+  pass: 'rvoe qmdk eblb tvly'
 };
-
-// Crea el transporter usando la configuración
 const transporter = nodemailer.createTransport({
   host: emailConfig.host,
   port: emailConfig.port,
@@ -21,8 +15,6 @@ const transporter = nodemailer.createTransport({
     pass: emailConfig.pass
   }
 });
-
-// Función para enviar el correo
 export const sendEmail = (to, subject, text) => {
   const mailOptions = {
     from: emailConfig.user,
