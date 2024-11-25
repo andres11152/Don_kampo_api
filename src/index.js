@@ -1,6 +1,5 @@
 import express from 'express';
 import morgan from 'morgan';
-import { PORT } from './config/config.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/user.routes.js';
 import productsRoutes from './routes/products.routes.js';
@@ -18,7 +17,7 @@ dotenv.config();
 const app = express();
 
 // Middleware de logging con morgan
-app.use(morgan('combined')); // Cambié 'dev' por 'combined' para producción
+app.use(morgan('combined')); // 'combined' para un registro más detallado en producción
 
 // Middleware de parseo de JSON
 app.use(express.json());
@@ -30,9 +29,10 @@ const upload = multer({ storage: storage }).single('photo');
 
 // Configuración de CORS para producción
 const allowedOrigins = [
-  'https://donkampo.com', // dominio de producción
-  'http://localhost:3001', // entorno de desarrollo
-  'http://localhost:3000'  // entorno de desarrollo
+  'https://donkampo.com', // Dominio de producción
+  'http://ec2-3-22-98-109.us-east-2.compute.amazonaws.com', // DNS público de la instancia EC2
+  'http://localhost:3000', // Desarrollo local
+  'http://localhost:3001'  // Desarrollo local
 ];
 
 const corsOptions = {
@@ -76,10 +76,9 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   res.status(201).json({ message: 'Producto creado exitosamente' });
 });
 
-// Escuchar en el puerto especificado
-app.listen(PORT, '0.0.0.0', () => {  
-  const host = `http://localhost:${PORT}`;
-  console.log(`Servidor corriendo en: ${host}`);
+// Escuchar en el puerto 80 (recomendado para producción)
+app.listen(80, '0.0.0.0', () => {  
+  console.log(`Servidor corriendo en: http://ec2-3-22-98-109.us-east-2.compute.amazonaws.com`);
 });
 
 // Manejo de señales de interrupción
