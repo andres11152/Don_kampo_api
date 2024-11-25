@@ -1,5 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
+import fs from 'fs';
+import https from 'https';  // Requiere el módulo https de Node.js
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/user.routes.js';
 import productsRoutes from './routes/products.routes.js';
@@ -30,7 +32,6 @@ const upload = multer({ storage: storage }).single('photo');
 // Configuración de CORS para producción
 const allowedOrigins = [
   'https://donkampo.com', // Dominio de producción
-  'http://ec2-3-22-98-109.us-east-2.compute.amazonaws.com', // DNS público de la instancia EC2
   'http://localhost:3000', // Desarrollo local
   'http://localhost:3001'  // Desarrollo local
 ];
@@ -76,9 +77,18 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   res.status(201).json({ message: 'Producto creado exitosamente' });
 });
 
-// Escuchar en el puerto 80 (recomendado para producción)
-app.listen(80, '0.0.0.0', () => {  
-  console.log(`Servidor corriendo en: http://ec2-3-22-98-109.us-east-2.compute.amazonaws.com`);
+// Redirigir tráfico HTTP a HTTPS
+app.use((req, res, next) => {
+  if (req.protocol === 'http') {
+    res.redirect(301, 'https://' + req.headers.host + req.url);
+  } else {
+    next();
+  }
+});
+
+// Crear servidor HTTP (IIS manejará el HTTPS)
+app.listen(80, () => {
+  console.log('Servidor HTTP corriendo en el puerto 80');
 });
 
 // Manejo de señales de interrupción
