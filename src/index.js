@@ -70,12 +70,7 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
 
 app.options('*', cors(corsOptions)); 
 
-// Configuración de vistas
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-app.use(express.static(path.join(__dirname, 'public')));
-
-
-
+git 
 // Configuración del servidor
 const port = process.env.PORT || 8080;
 
