@@ -1,17 +1,10 @@
-"use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _express = _interopRequireDefault(require("express"));
-var _shippingController = require("../controllers/shipping.controller.js");
-const router = _express.default.Router();
-router.post('/api/createshipping', _shippingController.createShippingInfo);
-router.get('/api/shipping', _shippingController.getShippingInfo);
-router.get('/api/getshipping/:id', _shippingController.getShippingInfoById);
-router.put('/api/updateshipping/:id', _shippingController.updateShippingInfo);
-router.delete('/api/deleteshipping/:id', _shippingController.deleteShippingInfo);
-var _default = exports.default = router;
+import express from 'express';
+import { createShippingInfo, getShippingInfo, getShippingInfoById, updateShippingInfo, deleteShippingInfo } from '../controllers/shipping.controller.js';
+const router = express.Router();
+router.post('/api/createshipping', createShippingInfo);
+router.get('/api/shipping', getShippingInfo);
+router.get('/api/getshipping/:id', getShippingInfoById);
+router.put('/api/updateshipping/:id', updateShippingInfo);
+router.delete('/api/deleteshipping/:id', deleteShippingInfo);
+export default router;
 //# sourceMappingURL=shipping.routes.js.map

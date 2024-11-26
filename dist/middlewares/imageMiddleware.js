@@ -1,14 +1,7 @@
-"use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.optimizeImage = void 0;
-var _sharp = _interopRequireDefault(require("sharp"));
-const optimizeImage = (req, res, next) => {
+import sharp from 'sharp';
+export const optimizeImage = (req, res, next) => {
   if (req.file) {
-    (0, _sharp.default)(req.file.buffer).resize(800, 800, {
+    sharp(req.file.buffer).resize(800, 800, {
       fit: 'inside'
     }).jpeg({
       quality: 80
@@ -23,5 +16,4 @@ const optimizeImage = (req, res, next) => {
     next();
   }
 };
-exports.optimizeImage = optimizeImage;
 //# sourceMappingURL=imageMiddleware.js.map

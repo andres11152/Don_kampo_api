@@ -1,12 +1,9 @@
-"use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-var _fs = _interopRequireDefault(require("fs"));
-var _connection = require("../database/connection.js");
+import fs from "fs";
+import { getConnection } from "../database/connection.js";
 const runMigration = async () => {
-  const client = await (0, _connection.getConnection)();
+  const client = await getConnection();
   try {
-    const sql = _fs.default.readFileSync("src/database/db.sql", "utf-8");
+    const sql = fs.readFileSync("src/database/db.sql", "utf-8");
     await client.query(sql);
   } catch (error) {
     console.log(error);

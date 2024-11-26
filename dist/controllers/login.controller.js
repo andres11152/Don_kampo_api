@@ -1,17 +1,9 @@
-"use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.loginController = void 0;
-var _bcrypt = _interopRequireDefault(require("bcrypt"));
-var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
-var _connection = require("../database/connection.js");
 // login.controller.js
-
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { getConnection } from '../database/connection.js';
 const JWT_SECRET = 'Xpto-secret0-key';
-const loginController = async (req, res) => {
+export const loginController = async (req, res) => {
   const {
     email,
     user_password
@@ -22,7 +14,7 @@ const loginController = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
+    const client = await getConnection();
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
       return res.status(401).json({
@@ -30,13 +22,13 @@ const loginController = async (req, res) => {
       });
     }
     const user = result.rows[0];
-    const isMatch = await _bcrypt.default.compare(user_password, user.user_password);
+    const isMatch = await bcrypt.compare(user_password, user.user_password);
     if (!isMatch) {
       return res.status(401).json({
         message: 'Email o contraseña incorrectos'
       });
     }
-    const token = _jsonwebtoken.default.sign({
+    const token = jwt.sign({
       id: user.id,
       email: user.email,
       user_type: user.user_type
@@ -63,5 +55,4 @@ const loginController = async (req, res) => {
     }
   }
 };
-exports.loginController = loginController;
 //# sourceMappingURL=login.controller.js.map

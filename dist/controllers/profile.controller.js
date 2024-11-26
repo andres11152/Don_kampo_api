@@ -1,15 +1,9 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.getUserProfile = void 0;
-var _connection = require("../database/connection.js");
-const getUserProfile = async (req, res) => {
+import { getConnection } from '../database/connection.js';
+export const getUserProfile = async (req, res) => {
   let client;
   try {
     const userId = req.user.id;
-    client = await (0, _connection.getConnection)();
+    client = await getConnection();
     const result = await client.query('SELECT id, user_name, phone, lastname, email, user_type FROM users WHERE id = $1', [userId]);
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -29,5 +23,4 @@ const getUserProfile = async (req, res) => {
     }
   }
 };
-exports.getUserProfile = getUserProfile;
 //# sourceMappingURL=profile.controller.js.map

@@ -1,27 +1,20 @@
-"use strict";
-
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _express = _interopRequireDefault(require("express"));
-var _multer = _interopRequireDefault(require("multer"));
-var _productsController = require("../controllers/products.controller.js");
-var _validateData = require("../middlewares/validateData.js");
-var _imageMiddleware = require("../middlewares/imageMiddleware.js");
-const storage = _multer.default.memoryStorage();
-const upload = (0, _multer.default)({
+import express from 'express';
+import multer from 'multer';
+import { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/products.controller.js';
+import { handleMulterError, parseMultipartData } from '../middlewares/validateData.js';
+import { optimizeImage } from '../middlewares/imageMiddleware.js';
+const storage = multer.memoryStorage();
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024
   }
 });
-const router = _express.default.Router();
-router.post('/api/createproduct', upload.single('photo_url'), _validateData.handleMulterError, _imageMiddleware.optimizeImage, _validateData.parseMultipartData, _productsController.createProduct);
-router.get('/api/products', _productsController.getProducts);
-router.get('/api/getproduct/:id', _productsController.getProductById);
-router.put('/api/updateproduct/:id', _validateData.handleMulterError, _productsController.updateProduct);
-router.delete('/api/deleteproduct/:id', _productsController.deleteProduct);
-var _default = exports.default = router;
+const router = express.Router();
+router.post('/api/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, parseMultipartData, createProduct);
+router.get('/api/products', getProducts);
+router.get('/api/getproduct/:id', getProductById);
+router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
+router.delete('/api/deleteproduct/:id', deleteProduct);
+export default router;
 //# sourceMappingURL=products.routes.js.map
