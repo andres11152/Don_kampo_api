@@ -4,7 +4,7 @@ export default {
       '@babel/preset-env',
       {
         targets: { node: '20' },
-        modules: false, // Asegura que Babel no transforme los módulos
+        modules: true, // Asegura que Babel no transforme los módulos
       },
     ],
   ],
