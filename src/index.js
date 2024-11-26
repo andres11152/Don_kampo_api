@@ -33,6 +33,7 @@ app.use((req, res, next) => {
 // Middleware de logging con morgan
 if (process.env.NODE_ENV === 'production') {
   // En producción, logueamos en un archivo de log
+  const __dirname = path.dirname(new URL(import.meta.url).pathname);  // Obtener __dirname en módulos ES
   const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
   app.use(morgan('combined', { stream: logStream })); // 'combined' para un registro más detallado
 } else {

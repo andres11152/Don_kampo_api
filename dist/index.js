@@ -10,13 +10,38 @@ import multer from 'multer';
 import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 
 // Cargar variables de entorno desde el archivo .env
 dotenv.config();
 const app = express();
 
+// Middleware de seguridad (protección de cabeceras HTTP)
+app.use(helmet());
+
+// Middleware para redirigir a HTTPS en producción
+app.use((req, res, next) => {
+  if (req.protocol !== 'https' && req.get('X-Forwarded-Proto') !== 'https') {
+    return res.redirect(301, 'https://' + req.headers.host + req.url);
+  }
+  next();
+});
+
 // Middleware de logging con morgan
-app.use(morgan('combined')); // 'combined' para un registro más detallado en producción
+if (process.env.NODE_ENV === 'production') {
+  // En producción, logueamos en un archivo de log
+  const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), {
+    flags: 'a'
+  });
+  app.use(morgan('combined', {
+    stream: logStream
+  })); // 'combined' para un registro más detallado
+} else {
+  // En desarrollo, usamos el registro en consola
+  app.use(morgan('dev'));
+}
 
 // Middleware de parseo de JSON
 app.use(express.json());
@@ -79,9 +104,12 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   });
 });
 
-// Escuchar en el puerto 80 (recomendado para producción)
-app.listen(80, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en: http://ec2-18-222-204-187.us-east-2.compute.amazonaws.com`);
+// Configuración del puerto (producción y desarrollo)
+const port = process.env.PORT || 8080;
+
+// Escuchar en el puerto 80 para entornos de producción (Render se encarga de HTTPS)
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Servidor corriendo en http://localhost:${port}`);
 });
 
 // Manejo de señales de interrupción
