@@ -100,34 +100,37 @@ export const getProductById = /*#__PURE__*/function () {
 }();
 export const createProduct = /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(function* (req, res) {
-    var _req$file;
     let client;
-    const {
-      name,
-      description,
-      category,
-      stock,
-      variations
-    } = req.body;
-    const photoBuffer = ((_req$file = req.file) === null || _req$file === void 0 ? void 0 : _req$file.buffer) || null;
-    const defaultPhotoUrl = 'https://example.com/default-image.jpg';
-    let photoUrl = null;
-    if (photoBuffer) {
-      try {
-        photoUrl = yield uploadImage(photoBuffer, req.file.originalname);
-      } catch (error) {
-        return res.status(500).json({
-          message: 'Error al subir la imagen a S3'
-        });
-      }
-    } else {
-      photoUrl = defaultPhotoUrl;
-    }
-    const validatedStock = stock ? parseInt(stock, 10) : 0;
     try {
+      const {
+        name,
+        description,
+        category,
+        stock,
+        variations
+      } = req.body;
+
+      // Manejo de imágenes: validación explícita
+      const defaultPhotoUrl = 'https://example.com/default-image.jpg';
+      let photoUrl = defaultPhotoUrl;
+      if (req.file && req.file.buffer) {
+        try {
+          photoUrl = yield uploadImage(req.file.buffer, req.file.originalname);
+        } catch (error) {
+          console.error('Error al subir la imagen:', error.message);
+          return res.status(500).json({
+            message: 'Error al subir la imagen a S3'
+          });
+        }
+      }
+      const validatedStock = stock ? parseInt(stock, 10) : 0;
+
+      // Conexión a la base de datos
       client = yield getConnection();
       const result = yield client.query(queries.products.createProduct, [name, description, category, validatedStock, photoUrl]);
       const productId = result.rows[0].product_id;
+
+      // Manejo de variaciones
       if (Array.isArray(variations) && variations.length > 0) {
         for (const variation of variations) {
           const {
@@ -147,6 +150,7 @@ export const createProduct = /*#__PURE__*/function () {
         product_id: productId
       });
     } catch (error) {
+      console.error('Error en createProduct:', error.message);
       res.status(500).json({
         message: 'Error al crear el producto',
         error: error.message

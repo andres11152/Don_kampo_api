@@ -19,19 +19,6 @@ const app = express();
 // Seguridad con Helmet
 app.use(helmet());
 
-// Configuración de logging
-if (process.env.NODE_ENV === 'production') {
-  const __dirname = path.dirname(new URL(import.meta.url).pathname);
-  const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), {
-    flags: 'a'
-  });
-  app.use(morgan('combined', {
-    stream: logStream
-  }));
-} else {
-  app.use(morgan('dev'));
-}
-
 // Middleware para analizar JSON y formularios
 app.use(express.json());
 app.use(express.urlencoded({
@@ -84,10 +71,6 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   });
 });
 app.options('*', cors(corsOptions));
-
-// Configuración de vistas
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Configuración del servidor
 const port = process.env.PORT || 8080;

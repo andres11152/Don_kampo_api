@@ -70,7 +70,6 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
 
 app.options('*', cors(corsOptions)); 
 
-git 
 // Configuración del servidor
 const port = process.env.PORT || 8080;
 
