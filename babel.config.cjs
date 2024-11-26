@@ -1,14 +1,14 @@
 module.exports = {
   presets: [
     [
-      "@babel/preset-env",
+      '@babel/preset-env', 
       {
-        targets: "> 0.25%, not dead", // Esto asegura que Babel transpile el código para los navegadores más comunes
-        useBuiltIns: "entry",
-        corejs: 3,
-        modules: false // Importante: evita convertir los módulos ES en CommonJS
+        targets: 'node 20', // Esto asegura que se transpile para Node.js 20.x
       }
     ]
   ],
-  plugins: ["@babel/plugin-proposal-optional-chaining"]
+  plugins: [
+    '@babel/plugin-proposal-optional-chaining', // Plugin para opcional chaining
+    '@babel/plugin-transform-runtime' // Para optimizar el código generado por Babel
+  ],
 };
