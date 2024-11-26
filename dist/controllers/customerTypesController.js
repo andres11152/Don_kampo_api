@@ -1,20 +1,14 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.updateAllShippingCosts = exports.getCustomerTypes = void 0;
-var _connection = require("../database/connection.js");
-var _queriesInterface = require("../database/queries.interface.js");
-const getCustomerTypes = async (req, res) => {
+import { getConnection } from '../database/connection.js';
+import { queries } from '../database/queries.interface.js';
+export const getCustomerTypes = async (req, res) => {
   try {
-    const client = await (0, _connection.getConnection)(); // Establecemos la conexión
+    const client = await getConnection(); // Establecemos la conexión
     if (!client) {
       throw new Error('No se pudo establecer la conexión con la base de datos.');
     }
 
     // Ejecutamos la consulta para obtener todos los tipos de cliente
-    const result = await client.query(_queriesInterface.queries.customerTypes.getAllCustomerTypes);
+    const result = await client.query(queries.customerTypes.getAllCustomerTypes);
     client.release(); // Liberamos el cliente una vez que la consulta esté completada
 
     if (result.rows.length === 0) {
@@ -33,8 +27,7 @@ const getCustomerTypes = async (req, res) => {
     });
   }
 };
-exports.getCustomerTypes = getCustomerTypes;
-const updateAllShippingCosts = async (req, res) => {
+export const updateAllShippingCosts = async (req, res) => {
   let {
     hogar,
     fruver,
@@ -52,8 +45,8 @@ const updateAllShippingCosts = async (req, res) => {
   }
   console.log('Hogar:', hogar, 'Fruver:', fruver, 'Supermercado:', supermercado, 'Restaurante:', restaurante);
   try {
-    const client = await (0, _connection.getConnection)();
-    await client.query(_queriesInterface.queries.customerTypes.updateAllShippingCosts, [hogar, fruver, supermercado, restaurante]);
+    const client = await getConnection();
+    await client.query(queries.customerTypes.updateAllShippingCosts, [hogar, fruver, supermercado, restaurante]);
     client.release();
     return res.status(200).json({
       msg: 'Costos de envío actualizados exitosamente.'
@@ -66,4 +59,3 @@ const updateAllShippingCosts = async (req, res) => {
     });
   }
 };
-exports.updateAllShippingCosts = updateAllShippingCosts;

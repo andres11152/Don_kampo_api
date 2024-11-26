@@ -1,10 +1,4 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.queries = void 0;
-const queries = exports.queries = {
+export const queries = {
   users: {
     getUsers: "SELECT * FROM users",
     getUsersById: "SELECT * FROM users WHERE id = $1",

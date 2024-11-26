@@ -1,18 +1,12 @@
-"use strict";
+import bcrypt from 'bcrypt';
+import { getConnection } from '../database/connection.js';
+import { queries } from '../database/queries.interface.js';
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.updateUsers = exports.updateUserStatus = exports.getUsersById = exports.getUsers = exports.deleteUsers = exports.createUsers = void 0;
-var _bcrypt = _interopRequireDefault(require("bcrypt"));
-var _connection = require("../database/connection.js");
-var _queriesInterface = require("../database/queries.interface.js");
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 // Obtener todos los usuarios
-const getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.users.getUsers);
+    const client = await getConnection();
+    const result = await client.query(queries.users.getUsers);
     client.release();
     return res.status(200).json(result.rows);
   } catch (error) {
@@ -24,8 +18,7 @@ const getUsers = async (req, res) => {
 };
 
 // Obtener un usuario por ID
-exports.getUsers = getUsers;
-const getUsersById = async (req, res) => {
+export const getUsersById = async (req, res) => {
   const {
     id
   } = req.params;
@@ -35,8 +28,8 @@ const getUsersById = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
-    const userResult = await client.query(_queriesInterface.queries.users.getUsersById, [id]);
+    const client = await getConnection();
+    const userResult = await client.query(queries.users.getUsersById, [id]);
     if (userResult.rows.length === 0) {
       client.release();
       return res.status(404).json({
@@ -44,7 +37,7 @@ const getUsersById = async (req, res) => {
       });
     }
     const userData = userResult.rows[0];
-    const ordersResult = await client.query(_queriesInterface.queries.users.getUserOrdersById, [id]);
+    const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
     const userOrders = ordersResult.rows;
     client.release();
     return res.status(200).json({
@@ -60,8 +53,7 @@ const getUsersById = async (req, res) => {
 };
 
 // Crear un nuevo usuario
-exports.getUsersById = getUsersById;
-const createUsers = async (req, res) => {
+export const createUsers = async (req, res) => {
   const {
     user_name,
     lastname,
@@ -79,7 +71,7 @@ const createUsers = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
+    const client = await getConnection();
     const emailCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     if (emailCheck.rowCount > 0) {
       client.release();
@@ -87,8 +79,8 @@ const createUsers = async (req, res) => {
         msg: 'El correo electrónico ya está registrado.'
       });
     }
-    const hashedPassword = await _bcrypt.default.hash(user_password, 10);
-    await client.query(_queriesInterface.queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
+    const hashedPassword = await bcrypt.hash(user_password, 10);
+    await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
     client.release();
     return res.status(201).json({
       msg: 'Usuario creado exitosamente.'
@@ -102,8 +94,7 @@ const createUsers = async (req, res) => {
 };
 
 // Actualizar la información de un usuario
-exports.createUsers = createUsers;
-const updateUsers = async (req, res) => {
+export const updateUsers = async (req, res) => {
   const {
     id
   } = req.params;
@@ -124,7 +115,7 @@ const updateUsers = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
+    const client = await getConnection();
     const updates = [];
     const values = [];
     let paramIndex = 1;
@@ -157,7 +148,7 @@ const updateUsers = async (req, res) => {
       values.push(neighborhood);
     }
     if (user_password) {
-      const hashedPassword = await _bcrypt.default.hash(user_password, 10);
+      const hashedPassword = await bcrypt.hash(user_password, 10);
       updates.push(`user_password = $${paramIndex++}`);
       values.push(hashedPassword);
     }
@@ -191,8 +182,7 @@ const updateUsers = async (req, res) => {
 };
 
 // Eliminar un usuario
-exports.updateUsers = updateUsers;
-const deleteUsers = async (req, res) => {
+export const deleteUsers = async (req, res) => {
   const {
     id
   } = req.params;
@@ -202,8 +192,8 @@ const deleteUsers = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.users.deleteUsers, [id]);
+    const client = await getConnection();
+    const result = await client.query(queries.users.deleteUsers, [id]);
     client.release();
     if (result.rowCount === 0) {
       return res.status(404).json({
@@ -222,8 +212,7 @@ const deleteUsers = async (req, res) => {
 };
 
 // Actualizar el estado de un usuario
-exports.deleteUsers = deleteUsers;
-const updateUserStatus = async (req, res) => {
+export const updateUserStatus = async (req, res) => {
   const {
     id,
     status_id
@@ -234,8 +223,8 @@ const updateUserStatus = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
-    await client.query(_queriesInterface.queries.users.updateUserStatus, [id, status_id]);
+    const client = await getConnection();
+    await client.query(queries.users.updateUserStatus, [id, status_id]);
     client.release();
     return res.status(200).json({
       msg: 'Estado del usuario actualizado exitosamente.'
@@ -247,4 +236,3 @@ const updateUserStatus = async (req, res) => {
     });
   }
 };
-exports.updateUserStatus = updateUserStatus;

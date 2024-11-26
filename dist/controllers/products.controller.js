@@ -1,13 +1,7 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.updateProduct = exports.getProducts = exports.getProductById = exports.deleteProduct = exports.createProduct = void 0;
-var _connection = require("../database/connection.js");
-var _uploadImage = require("../helpers/uploadImage.js");
-var _queriesInterface = require("../database/queries.interface.js");
-const getProducts = async (req, res) => {
+import { getConnection } from '../database/connection.js';
+import { uploadImage } from '../helpers/uploadImage.js';
+import { queries } from '../database/queries.interface.js';
+export const getProducts = async (req, res) => {
   const {
     page = 1,
     limit = 9
@@ -15,8 +9,8 @@ const getProducts = async (req, res) => {
   const offset = (page - 1) * limit;
   let client;
   try {
-    client = await (0, _connection.getConnection)();
-    const productsResult = await client.query(_queriesInterface.queries.products.getProducts, [offset, limit]);
+    client = await getConnection();
+    const productsResult = await client.query(queries.products.getProducts, [offset, limit]);
     if (productsResult.rows.length === 0) {
       return res.status(404).json({
         message: 'No hay productos disponibles'
@@ -65,21 +59,20 @@ const getProducts = async (req, res) => {
     if (client) client.release();
   }
 };
-exports.getProducts = getProducts;
-const getProductById = async (req, res) => {
+export const getProductById = async (req, res) => {
   const {
     id
   } = req.params;
   let client;
   try {
-    client = await (0, _connection.getConnection)();
-    const productResult = await client.query(_queriesInterface.queries.products.getProductById, [id]);
+    client = await getConnection();
+    const productResult = await client.query(queries.products.getProductById, [id]);
     if (productResult.rows.length === 0) {
       return res.status(404).json({
         message: 'Producto no encontrado'
       });
     }
-    const variationsResult = await client.query(_queriesInterface.queries.products.getProductVariations, [id]);
+    const variationsResult = await client.query(queries.products.getProductVariations, [id]);
     const productWithVariations = {
       ...productResult.rows[0],
       variations: variationsResult.rows
@@ -94,8 +87,7 @@ const getProductById = async (req, res) => {
     if (client) client.release();
   }
 };
-exports.getProductById = getProductById;
-const createProduct = async (req, res) => {
+export const createProduct = async (req, res) => {
   var _req$file;
   let client;
   const {
@@ -110,7 +102,7 @@ const createProduct = async (req, res) => {
   let photoUrl = null;
   if (photoBuffer) {
     try {
-      photoUrl = await (0, _uploadImage.uploadImage)(photoBuffer, req.file.originalname);
+      photoUrl = await uploadImage(photoBuffer, req.file.originalname);
     } catch (error) {
       return res.status(500).json({
         message: 'Error al subir la imagen a S3'
@@ -121,8 +113,8 @@ const createProduct = async (req, res) => {
   }
   const validatedStock = stock ? parseInt(stock, 10) : 0;
   try {
-    client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.products.createProduct, [name, description, category, validatedStock, photoUrl]);
+    client = await getConnection();
+    const result = await client.query(queries.products.createProduct, [name, description, category, validatedStock, photoUrl]);
     const productId = result.rows[0].product_id;
     if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
@@ -135,7 +127,7 @@ const createProduct = async (req, res) => {
           price_fruver
         } = variation;
         if (!quality || !quantity) continue;
-        await client.query(_queriesInterface.queries.products.createProductVariation, [productId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0)]);
+        await client.query(queries.products.createProductVariation, [productId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0)]);
       }
     }
     res.status(201).json({
@@ -151,16 +143,15 @@ const createProduct = async (req, res) => {
     if (client) client.release();
   }
 };
-exports.createProduct = createProduct;
 const uploadImageSafe = async (buffer, filename) => {
   try {
-    return await (0, _uploadImage.uploadImage)(buffer, filename);
+    return await uploadImage(buffer, filename);
   } catch (error) {
     console.error('Error al subir la imagen:', error);
     return null;
   }
 };
-const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res) => {
   let client;
   const {
     id
@@ -180,23 +171,23 @@ const updateProduct = async (req, res) => {
     });
   }
   try {
-    client = await (0, _connection.getConnection)();
+    client = await getConnection();
     const updatedPhotoUrl = photo_url || null;
-    if (!_queriesInterface.queries.products.updateProduct) {
+    if (!queries.products.updateProduct) {
       return res.status(500).json({
         message: 'Error en la consulta SQL'
       });
     }
-    const result = await client.query(_queriesInterface.queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, parsedProductId]);
+    const result = await client.query(queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, parsedProductId]);
     if (result.rowCount === 0) {
       return res.status(404).json({
         message: 'Producto no encontrado'
       });
     }
     if (Array.isArray(variations) && variations.length > 0) {
-      await client.query(_queriesInterface.queries.products.deleteProductVariation, [parsedProductId]);
+      await client.query(queries.products.deleteProductVariation, [parsedProductId]);
       for (const variation of variations) {
-        await client.query(_queriesInterface.queries.products.createProductVariation, [parsedProductId, variation.quality, variation.quantity, parseFloat(variation.price_home || 0), parseFloat(variation.price_supermarket || 0), parseFloat(variation.price_restaurant || 0), parseFloat(variation.price_fruver || 0)]);
+        await client.query(queries.products.createProductVariation, [parsedProductId, variation.quality, variation.quantity, parseFloat(variation.price_home || 0), parseFloat(variation.price_supermarket || 0), parseFloat(variation.price_restaurant || 0), parseFloat(variation.price_fruver || 0)]);
       }
     }
     res.status(200).json({
@@ -211,8 +202,7 @@ const updateProduct = async (req, res) => {
     if (client) client.release();
   }
 };
-exports.updateProduct = updateProduct;
-const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res) => {
   const {
     id
   } = req.params;
@@ -223,8 +213,8 @@ const deleteProduct = async (req, res) => {
     });
   }
   try {
-    client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.products.deleteProduct, [id]);
+    client = await getConnection();
+    const result = await client.query(queries.products.deleteProduct, [id]);
     if (result.rowCount === 0) {
       return res.status(404).json({
         message: 'Producto no encontrado o ya eliminado'
@@ -242,4 +232,3 @@ const deleteProduct = async (req, res) => {
     if (client) client.release();
   }
 };
-exports.deleteProduct = deleteProduct;

@@ -1,15 +1,9 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.updateShippingInfo = exports.getShippingInfoById = exports.getShippingInfo = exports.deleteShippingInfo = exports.createShippingInfo = void 0;
-var _connection = require("../database/connection.js");
-var _queriesInterface = require("../database/queries.interface.js");
 // Importar el pool y las queries
+import { getConnection } from "../database/connection.js";
+import { queries } from "../database/queries.interface.js";
 
 // Crear nueva información de envío
-const createShippingInfo = async (req, res) => {
+export const createShippingInfo = async (req, res) => {
   const {
     shipping_method,
     tracking_number,
@@ -25,8 +19,8 @@ const createShippingInfo = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
-    await client.query(_queriesInterface.queries.shipping_info.createShippingInfo, [shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id]);
+    const client = await getConnection();
+    await client.query(queries.shipping_info.createShippingInfo, [shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id]);
     client.release();
     return res.status(201).json({
       msg: "Información de envío creada con éxito"
@@ -40,11 +34,10 @@ const createShippingInfo = async (req, res) => {
 };
 
 // Obtener toda la información de envíos
-exports.createShippingInfo = createShippingInfo;
-const getShippingInfo = async (req, res) => {
+export const getShippingInfo = async (req, res) => {
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.shipping_info.getShippingInfo);
+    const client = await getConnection();
+    const result = await client.query(queries.shipping_info.getShippingInfo);
     client.release();
     return res.status(200).json(result.rows);
   } catch (error) {
@@ -56,14 +49,13 @@ const getShippingInfo = async (req, res) => {
 };
 
 // Obtener información de envío por ID
-exports.getShippingInfo = getShippingInfo;
-const getShippingInfoById = async (req, res) => {
+export const getShippingInfoById = async (req, res) => {
   const {
     id
   } = req.params;
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.shipping_info.getShippingInfoById, [id]);
+    const client = await getConnection();
+    const result = await client.query(queries.shipping_info.getShippingInfoById, [id]);
     client.release();
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -80,8 +72,7 @@ const getShippingInfoById = async (req, res) => {
 };
 
 // Actualizar información de envío
-exports.getShippingInfoById = getShippingInfoById;
-const updateShippingInfo = async (req, res) => {
+export const updateShippingInfo = async (req, res) => {
   const {
     id
   } = req.params;
@@ -100,8 +91,8 @@ const updateShippingInfo = async (req, res) => {
     });
   }
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.shipping_info.updateShippingInfo, [shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, id]);
+    const client = await getConnection();
+    const result = await client.query(queries.shipping_info.updateShippingInfo, [shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, id]);
     client.release();
     if (result.rowCount === 0) {
       return res.status(404).json({
@@ -120,14 +111,13 @@ const updateShippingInfo = async (req, res) => {
 };
 
 // Eliminar información de envío
-exports.updateShippingInfo = updateShippingInfo;
-const deleteShippingInfo = async (req, res) => {
+export const deleteShippingInfo = async (req, res) => {
   const {
     id
   } = req.params;
   try {
-    const client = await (0, _connection.getConnection)();
-    const result = await client.query(_queriesInterface.queries.shipping_info.deleteShippingInfo, [id]);
+    const client = await getConnection();
+    const result = await client.query(queries.shipping_info.deleteShippingInfo, [id]);
     client.release();
     if (result.rowCount === 0) {
       return res.status(404).json({
@@ -144,4 +134,3 @@ const deleteShippingInfo = async (req, res) => {
     });
   }
 };
-exports.deleteShippingInfo = deleteShippingInfo;

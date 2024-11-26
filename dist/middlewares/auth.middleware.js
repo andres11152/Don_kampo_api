@@ -1,13 +1,6 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.verifyToken = void 0;
-var _jsonwebtoken = _interopRequireDefault(require("jsonwebtoken"));
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+import jwt from 'jsonwebtoken';
 const JWT_SECRET = 'Xpto-secret0-key';
-const verifyToken = (req, res, next) => {
+export const verifyToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,7 +14,7 @@ const verifyToken = (req, res, next) => {
         message: 'Token de autenticación no encontrado.'
       });
     }
-    const decoded = _jsonwebtoken.default.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     if (!decoded.id) {
       console.warn('Token decodificado pero sin ID de usuario:', decoded);
       return res.status(401).json({
@@ -48,4 +41,3 @@ const verifyToken = (req, res, next) => {
     }
   }
 };
-exports.verifyToken = verifyToken;

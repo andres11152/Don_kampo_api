@@ -1,17 +1,10 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.getConnection = void 0;
-var _pg = _interopRequireDefault(require("pg"));
-var _config = require("../config/config.js");
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+import pg from 'pg';
+import { dbSettings } from '../config/config.js';
 const {
   Pool
-} = _pg.default;
-const pool = new Pool(_config.dbSettings);
-const getConnection = async () => {
+} = pg;
+const pool = new Pool(dbSettings);
+export const getConnection = async () => {
   try {
     const client = await pool.connect();
     return client;
@@ -20,7 +13,6 @@ const getConnection = async () => {
     throw error;
   }
 };
-exports.getConnection = getConnection;
 const testConnection = async () => {
   try {
     const client = await pool.connect();
