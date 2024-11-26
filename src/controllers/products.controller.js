@@ -98,25 +98,25 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   let client;
 
-  const { name, description, category, stock, variations } = req.body;
-
-  const photoBuffer = req.file?.buffer || null;
-  const defaultPhotoUrl = 'https://example.com/default-image.jpg';
-  let photoUrl = null;
-
-  if (photoBuffer) {
-    try {
-      photoUrl = await uploadImage(photoBuffer, req.file.originalname);
-    } catch (error) {
-      return res.status(500).json({ message: 'Error al subir la imagen a S3' });
-    }
-  } else {
-    photoUrl = defaultPhotoUrl;
-  }
-
-  const validatedStock = stock ? parseInt(stock, 10) : 0;
-
   try {
+    const { name, description, category, stock, variations } = req.body;
+
+    // Manejo de imágenes: validación explícita
+    const defaultPhotoUrl = 'https://example.com/default-image.jpg';
+    let photoUrl = defaultPhotoUrl;
+
+    if (req.file && req.file.buffer) {
+      try {
+        photoUrl = await uploadImage(req.file.buffer, req.file.originalname);
+      } catch (error) {
+        console.error('Error al subir la imagen:', error.message);
+        return res.status(500).json({ message: 'Error al subir la imagen a S3' });
+      }
+    }
+
+    const validatedStock = stock ? parseInt(stock, 10) : 0;
+
+    // Conexión a la base de datos
     client = await getConnection();
 
     const result = await client.query(queries.products.createProduct, [
@@ -129,9 +129,17 @@ export const createProduct = async (req, res) => {
 
     const productId = result.rows[0].product_id;
 
+    // Manejo de variaciones
     if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
-        const { quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver } = variation;
+        const {
+          quality,
+          quantity,
+          price_home,
+          price_supermarket,
+          price_restaurant,
+          price_fruver,
+        } = variation;
 
         if (!quality || !quantity) continue;
 
@@ -152,11 +160,13 @@ export const createProduct = async (req, res) => {
       product_id: productId,
     });
   } catch (error) {
+    console.error('Error en createProduct:', error.message);
     res.status(500).json({ message: 'Error al crear el producto', error: error.message });
   } finally {
     if (client) client.release();
   }
 };
+
 
 const uploadImageSafe = async (buffer, filename) => {
   try {
