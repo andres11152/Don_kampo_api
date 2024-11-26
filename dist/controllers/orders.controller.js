@@ -1,7 +1,14 @@
-import { getConnection } from '../database/connection.js';
-import { queries } from '../database/queries.interface.js';
-import crypto from 'crypto';
-export const placeOrder = async (req, res) => {
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.updateOrders = exports.updateOrderStatus = exports.placeOrder = exports.getOrdersById = exports.getOrders = exports.deleteOrders = exports.createOrders = void 0;
+var _connection = require("../database/connection.js");
+var _queriesInterface = require("../database/queries.interface.js");
+var _crypto = _interopRequireDefault(require("crypto"));
+const placeOrder = async (req, res) => {
   const {
     userId,
     cartDetails,
@@ -14,7 +21,7 @@ export const placeOrder = async (req, res) => {
     companyName,
     companyNit
   } = req.body;
-  const trackingNumber = crypto.randomBytes(5).toString('hex');
+  const trackingNumber = _crypto.default.randomBytes(5).toString('hex');
   const shippingStatusId = 1;
   if (!userId || !cartDetails || !total) {
     return res.status(400).json({
@@ -22,7 +29,7 @@ export const placeOrder = async (req, res) => {
     });
   }
   try {
-    const client = await getConnection();
+    const client = await (0, _connection.getConnection)();
     const userResult = await client.query(`SELECT id FROM users WHERE id = $1`, [userId]);
     if (userResult.rows.length === 0) {
       client.release();
@@ -41,13 +48,13 @@ export const placeOrder = async (req, res) => {
         invalidProducts
       });
     }
-    const orderResult = await client.query(queries.orders.createOrder, [userId, new Date(), 1, total, needsElectronicInvoice || false, companyName || null, companyNit || null]);
+    const orderResult = await client.query(_queriesInterface.queries.orders.createOrder, [userId, new Date(), 1, total, needsElectronicInvoice || false, companyName || null, companyNit || null]);
     const orderId = orderResult.rows[0].id;
     for (const item of cartDetails) {
-      await client.query(queries.orders.createOrderItem, [orderId, item.productId, item.quantity, item.price]);
+      await client.query(_queriesInterface.queries.orders.createOrderItem, [orderId, item.productId, item.quantity, item.price]);
     }
     if (shippingMethod && estimatedDelivery && actualDelivery) {
-      await client.query(queries.shipping_info.createShippingInfo, [shippingMethod, trackingNumber, estimatedDelivery, actualDelivery, shippingStatusId, orderId]);
+      await client.query(_queriesInterface.queries.shipping_info.createShippingInfo, [shippingMethod, trackingNumber, estimatedDelivery, actualDelivery, shippingStatusId, orderId]);
     }
     client.release();
     res.status(201).json({
@@ -61,10 +68,11 @@ export const placeOrder = async (req, res) => {
     });
   }
 };
-export const getOrders = async (req, res) => {
+exports.placeOrder = placeOrder;
+const getOrders = async (req, res) => {
   try {
-    const client = await getConnection();
-    const result = await client.query(queries.orders.getOrders);
+    const client = await (0, _connection.getConnection)();
+    const result = await client.query(_queriesInterface.queries.orders.getOrders);
     client.release();
     res.status(200).json(result.rows);
   } catch (error) {
@@ -74,13 +82,14 @@ export const getOrders = async (req, res) => {
     });
   }
 };
-export const getOrdersById = async (req, res) => {
+exports.getOrders = getOrders;
+const getOrdersById = async (req, res) => {
   try {
     const {
       orderId
     } = req.params;
-    const client = await getConnection();
-    const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
+    const client = await (0, _connection.getConnection)();
+    const orderResult = await client.query(_queriesInterface.queries.orders.getOrdersById, [orderId]);
     if (orderResult.rows.length === 0) {
       client.release();
       return res.status(404).json({
@@ -88,9 +97,9 @@ export const getOrdersById = async (req, res) => {
       });
     }
     const orderData = orderResult.rows[0];
-    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
+    const itemsResult = await client.query(_queriesInterface.queries.orders.getOrderItemsByOrderId, [orderId]);
     const orderItems = itemsResult.rows;
-    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
+    const shippingResult = await client.query(_queriesInterface.queries.orders.getShippingInfoByOrderId, [orderId]);
     const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
     client.release();
     res.status(200).json({
@@ -109,7 +118,8 @@ export const getOrdersById = async (req, res) => {
 /**
  * Crea un nuevo pedido.
  */
-export const createOrders = async (req, res) => {
+exports.getOrdersById = getOrdersById;
+const createOrders = async (req, res) => {
   const {
     customer_id,
     order_date,
@@ -122,8 +132,8 @@ export const createOrders = async (req, res) => {
     });
   }
   try {
-    const client = await getConnection();
-    await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total]);
+    const client = await (0, _connection.getConnection)();
+    await client.query(_queriesInterface.queries.orders.createOrder, [customer_id, order_date, status_id, total]);
     client.release();
     res.status(201).json({
       msg: 'Pedido creado exitosamente.'
@@ -139,7 +149,8 @@ export const createOrders = async (req, res) => {
 /**
  * Actualiza un pedido existente.
  */
-export const updateOrders = async (req, res) => {
+exports.createOrders = createOrders;
+const updateOrders = async (req, res) => {
   const {
     id,
     customer_id,
@@ -153,8 +164,8 @@ export const updateOrders = async (req, res) => {
     });
   }
   try {
-    const client = await getConnection();
-    await client.query(queries.orders.updateOrders, [customer_id, order_date, status_id, total, id]);
+    const client = await (0, _connection.getConnection)();
+    await client.query(_queriesInterface.queries.orders.updateOrders, [customer_id, order_date, status_id, total, id]);
     client.release();
     res.status(200).json({
       msg: 'Pedido actualizado exitosamente.'
@@ -170,7 +181,8 @@ export const updateOrders = async (req, res) => {
 /**
  * Actualiza el estado de un pedido.
  */
-export const updateOrderStatus = async (req, res) => {
+exports.updateOrders = updateOrders;
+const updateOrderStatus = async (req, res) => {
   const {
     id,
     status_id
@@ -181,8 +193,8 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
   try {
-    const client = await getConnection();
-    await client.query(queries.orders.updateOrderStatus, [status_id, id]);
+    const client = await (0, _connection.getConnection)();
+    await client.query(_queriesInterface.queries.orders.updateOrderStatus, [status_id, id]);
     client.release();
     res.status(200).json({
       msg: 'Estado del pedido actualizado exitosamente.'
@@ -198,7 +210,8 @@ export const updateOrderStatus = async (req, res) => {
 /**
  * Elimina un pedido.
  */
-export const deleteOrders = async (req, res) => {
+exports.updateOrderStatus = updateOrderStatus;
+const deleteOrders = async (req, res) => {
   const {
     orderId
   } = req.params;
@@ -208,7 +221,7 @@ export const deleteOrders = async (req, res) => {
     });
   }
   try {
-    const client = await getConnection();
+    const client = await (0, _connection.getConnection)();
     const orderCheck = await client.query('SELECT id FROM orders WHERE id = $1', [orderId]);
     if (orderCheck.rowCount === 0) {
       client.release();
@@ -216,7 +229,7 @@ export const deleteOrders = async (req, res) => {
         msg: 'Pedido no encontrado.'
       });
     }
-    await client.query(queries.orders.deleteOrders, [orderId]);
+    await client.query(_queriesInterface.queries.orders.deleteOrders, [orderId]);
     client.release();
     res.status(200).json({
       msg: 'Pedido eliminado exitosamente.'
@@ -228,4 +241,5 @@ export const deleteOrders = async (req, res) => {
     });
   }
 };
+exports.deleteOrders = deleteOrders;
 //# sourceMappingURL=orders.controller.js.map

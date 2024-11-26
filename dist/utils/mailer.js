@@ -1,4 +1,11 @@
-import nodemailer from 'nodemailer';
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.sendEmail = void 0;
+var _nodemailer = _interopRequireDefault(require("nodemailer"));
 const emailConfig = {
   host: 'smtp.gmail.com',
   port: 587,
@@ -6,7 +13,7 @@ const emailConfig = {
   user: 'donkampo76@gmail.com',
   pass: 'rvoe qmdk eblb tvly'
 };
-const transporter = nodemailer.createTransport({
+const transporter = _nodemailer.default.createTransport({
   host: emailConfig.host,
   port: emailConfig.port,
   secure: emailConfig.secure,
@@ -15,7 +22,7 @@ const transporter = nodemailer.createTransport({
     pass: emailConfig.pass
   }
 });
-export const sendEmail = (to, subject, text) => {
+const sendEmail = (to, subject, text) => {
   const mailOptions = {
     from: emailConfig.user,
     to: to,
@@ -24,4 +31,5 @@ export const sendEmail = (to, subject, text) => {
   };
   return transporter.sendMail(mailOptions).then(info => console.log('Correo enviado:', info.response)).catch(error => console.error('Error al enviar el correo:', error));
 };
+exports.sendEmail = sendEmail;
 //# sourceMappingURL=mailer.js.map
