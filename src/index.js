@@ -9,15 +9,12 @@ import multer from 'multer';
 import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import helmet from 'helmet';
 
 
 dotenv.config();
 
 const app = express();
 
-// Seguridad con Helmet
-app.use(helmet());
 
 
 // Middleware para analizar JSON y formularios
