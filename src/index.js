@@ -39,7 +39,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage }).single('photo');
 
 // Configuración de CORS
-const allowedOrigins = [
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [
   'https://donkampo.com', // Origen permitido
   'http://localhost:3000', // Origen local
   'http://localhost:3001', // Origen local
