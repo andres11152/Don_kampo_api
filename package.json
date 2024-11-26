@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/ --exec babel-node",
+    "dev": "nodemon src/ --exec ./node_modules/.bin/babel-node",
     "build": "npm install && babel src -d dist",
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
@@ -16,7 +16,6 @@
     "@angular/cdk": "^17.3.10",
     "@angular/material": "^17.3.10",
     "@aws-sdk/client-s3": "^3.693.0",
-    "babel": "^6.23.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -36,7 +35,7 @@
   "devDependencies": {
     "@babel/cli": "^7.25.9",
     "@babel/core": "^7.26.0",
-    "@babel/node": "^7.24.8",
+    "@babel/node": "^7.26.0",
     "@babel/plugin-transform-runtime": "^7.24.7",
     "@babel/preset-env": "^7.26.0",
     "nodemon": "^3.1.4"

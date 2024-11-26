@@ -2,10 +2,23 @@ import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 export const getCustomerTypes = async (req, res) => {
   try {
-    const client = await getConnection();
+    const client = await getConnection(); // Establecemos la conexión
+    if (!client) {
+      throw new Error('No se pudo establecer la conexión con la base de datos.');
+    }
+
+    // Ejecutamos la consulta para obtener todos los tipos de cliente
     const result = await client.query(queries.customerTypes.getAllCustomerTypes);
-    client.release();
-    return res.status(200).json(result.rows); // Responder con los tipos de cliente obtenidos
+    client.release(); // Liberamos el cliente una vez que la consulta esté completada
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        msg: 'No se encontraron tipos de cliente.'
+      });
+    }
+
+    // Devolvemos los tipos de cliente obtenidos
+    return res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error al obtener los tipos de cliente:', error);
     return res.status(500).json({

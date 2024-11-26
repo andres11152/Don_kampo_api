@@ -4,7 +4,7 @@ import { queries } from '../database/queries.interface.js';
 export const getProducts = async (req, res) => {
   const {
     page = 1,
-    limit = 10
+    limit = 9
   } = req.query;
   const offset = (page - 1) * limit;
   let client;
