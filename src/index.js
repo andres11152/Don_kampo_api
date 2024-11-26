@@ -17,10 +17,6 @@ const app = express();
 
 
 
-// Middleware para analizar JSON y formularios
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
 // Configuración de Multer para subir archivos (imagen)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage }).single('photo');
