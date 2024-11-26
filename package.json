@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/ --exec ./node_modules/.bin/babel-node",
-    "build": "npm install && npx babel src -d dist",
+    "build": "npm install && npx babel src -d dist --source-maps",
     "start": "node dist/index.js",
     "migration": "node src/migration/migrate.js"
   },
@@ -37,6 +37,7 @@
     "@babel/core": "^7.26.0",
     "@babel/node": "^7.26.0",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+    "@babel/plugin-transform-async-to-generator": "^7.25.9",
     "@babel/plugin-transform-runtime": "^7.25.9",
     "@babel/preset-env": "^7.26.0",
     "nodemon": "^3.1.4"
