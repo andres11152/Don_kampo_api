@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/ --exec ./node_modules/.bin/babel-node",
-    "build": "npm install && ./node_modules/.bin/babel src --out-dir dist --source-maps",
+    "build": "npm install && babel src -d dist",
     "start": "node dist/index.js",
     "migration": "node src/migration/migrate.js"
   },
