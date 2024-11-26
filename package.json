@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/ --exec ./node_modules/.bin/babel-node",
-    "build": "npm install && npx babel src -d dist",
+    "build": "npm install && ./node_modules/.bin/babel src -d dist",
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
   },
@@ -39,5 +39,8 @@
     "@babel/plugin-transform-runtime": "^7.24.7",
     "@babel/preset-env": "^7.26.0",
     "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": "16.x"
   }
 }
