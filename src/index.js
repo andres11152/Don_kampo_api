@@ -76,23 +76,13 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   res.status(201).json({ message: 'Producto creado exitosamente' });
 });
 
-// Middleware para manejar solicitudes OPTIONS (Preflight)
-app.options('*', cors(corsOptions)); // Asegura que los preflight requests sean manejados correctamente
+app.options('*', cors(corsOptions)); 
 
 // Configuración de vistas
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Redirigir todas las solicitudes al archivo HTML en producción
-app.get('*', (req, res) => {
-  // Asegurarse de que la ruta a index.html es absoluta
-  const indexPath = path.resolve(__dirname, 'public', 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(500).send('Error al cargar la página');
-    }
-  });
-});
+
 
 // Configuración del servidor
 const port = process.env.PORT || 8080;
