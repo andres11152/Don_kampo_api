@@ -70,4 +70,3 @@ export const updateAllShippingCosts = /*#__PURE__*/function () {
     return _ref2.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=customerTypesController.js.map

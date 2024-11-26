@@ -29,4 +29,3 @@ export const getUserProfile = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=profile.controller.js.map

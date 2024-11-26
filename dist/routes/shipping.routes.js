@@ -7,4 +7,3 @@ router.get('/api/getshipping/:id', getShippingInfoById);
 router.put('/api/updateshipping/:id', updateShippingInfo);
 router.delete('/api/deleteshipping/:id', deleteShippingInfo);
 export default router;
-//# sourceMappingURL=shipping.routes.js.map

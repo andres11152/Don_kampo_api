@@ -267,4 +267,3 @@ export const updateUserStatus = /*#__PURE__*/function () {
     return _ref6.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=users.controller.js.map

@@ -34,4 +34,3 @@ const testConnection = /*#__PURE__*/function () {
   };
 }();
 testConnection();
-//# sourceMappingURL=connection.js.map

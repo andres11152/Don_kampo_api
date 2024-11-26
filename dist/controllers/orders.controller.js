@@ -264,4 +264,3 @@ export const deleteOrders = /*#__PURE__*/function () {
     return _ref7.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=orders.controller.js.map

@@ -160,4 +160,3 @@ export const deleteShippingInfo = /*#__PURE__*/function () {
     return _ref5.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=shipping.controller.js.map

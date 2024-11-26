@@ -61,4 +61,3 @@ export const loginController = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=login.controller.js.map

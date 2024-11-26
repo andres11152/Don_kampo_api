@@ -9,4 +9,3 @@ router.put('/api/updateorders/:orderId', updateOrders);
 router.delete('/api/deleteorders/:orderId', deleteOrders);
 router.put('/api/updatestatus/:id/:status_id', updateOrderStatus);
 export default router;
-//# sourceMappingURL=order.routes.js.map

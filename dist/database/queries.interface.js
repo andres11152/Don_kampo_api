@@ -278,4 +278,3 @@ export const queries = {
   `
   }
 };
-//# sourceMappingURL=queries.interface.js.map

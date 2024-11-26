@@ -9,4 +9,3 @@ export const dbSettings = {
   port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 6089
 };
 export const API_KEY = process.env.API_KEY || '';
-//# sourceMappingURL=config.js.map

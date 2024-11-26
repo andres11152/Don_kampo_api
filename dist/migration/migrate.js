@@ -18,4 +18,3 @@ const runMigration = /*#__PURE__*/function () {
   };
 }();
 runMigration();
-//# sourceMappingURL=migrate.js.map

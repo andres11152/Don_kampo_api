@@ -28,4 +28,3 @@ export const parseMultipartData = (req, res, next) => {
     });
   }
 };
-//# sourceMappingURL=validateData.js.map

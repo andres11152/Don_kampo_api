@@ -17,4 +17,3 @@ router.get('/api/getproduct/:id', getProductById);
 router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
 router.delete('/api/deleteproduct/:id', deleteProduct);
 export default router;
-//# sourceMappingURL=products.routes.js.map

@@ -16,4 +16,3 @@ export const optimizeImage = (req, res, next) => {
     next();
   }
 };
-//# sourceMappingURL=imageMiddleware.js.map

@@ -41,4 +41,3 @@ export const verifyToken = (req, res, next) => {
     }
   }
 };
-//# sourceMappingURL=auth.middleware.js.map

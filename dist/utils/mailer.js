@@ -24,4 +24,3 @@ export const sendEmail = (to, subject, text) => {
   };
   return transporter.sendMail(mailOptions).then(info => console.log('Correo enviado:', info.response)).catch(error => console.error('Error al enviar el correo:', error));
 };
-//# sourceMappingURL=mailer.js.map

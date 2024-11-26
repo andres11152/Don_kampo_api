@@ -9,4 +9,3 @@ export const s3Client = new S3Client({
   }
 });
 export default s3Client;
-//# sourceMappingURL=awsConfig.js.map

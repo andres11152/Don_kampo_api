@@ -74,4 +74,3 @@ export const verifyCodeAndResetPassword = /*#__PURE__*/function () {
     return _ref2.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=resetPassword.controller.js.map

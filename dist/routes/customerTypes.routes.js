@@ -4,4 +4,3 @@ const router = Router();
 router.get('/api/customer-types', getCustomerTypes);
 router.put('/api/customer-types/shipping-costs', updateAllShippingCosts);
 export default router;
-//# sourceMappingURL=customerTypes.routes.js.map

@@ -32,4 +32,3 @@ export const uploadImage = /*#__PURE__*/function () {
     return _ref.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=uploadImage.js.map

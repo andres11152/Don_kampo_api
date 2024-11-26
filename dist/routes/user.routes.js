@@ -14,4 +14,3 @@ router.put('/api/userstatus/:id/:status_id', updateUserStatus);
 router.post('/api/request-password-reset', requestPasswordReset);
 router.post('/api/verify-code-and-reset-password', verifyCodeAndResetPassword);
 export default router;
-//# sourceMappingURL=user.routes.js.map

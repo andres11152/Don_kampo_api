@@ -267,4 +267,3 @@ export const deleteProduct = /*#__PURE__*/function () {
     return _ref6.apply(this, arguments);
   };
 }();
-//# sourceMappingURL=products.controller.js.map
