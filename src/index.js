@@ -21,14 +21,6 @@ const app = express();
 // Seguridad con Helmet
 app.use(helmet());
 
-// Configuración de logging
-if (process.env.NODE_ENV === 'production') {
-  const __dirname = path.dirname(new URL(import.meta.url).pathname);
-  const logStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
-  app.use(morgan('combined', { stream: logStream }));
-} else {
-  app.use(morgan('dev'));
-}
 
 // Middleware para analizar JSON y formularios
 app.use(express.json());
