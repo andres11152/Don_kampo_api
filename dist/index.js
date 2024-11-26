@@ -1,7 +1,5 @@
 import express from 'express';
 import morgan from 'morgan';
-import fs from 'fs';
-import https from 'https'; // Requiere el módulo https de Node.js
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/user.routes.js';
 import productsRoutes from './routes/products.routes.js';
@@ -81,18 +79,9 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   });
 });
 
-// Redirigir tráfico HTTP a HTTPS
-app.use((req, res, next) => {
-  if (req.protocol === 'http') {
-    res.redirect(301, 'https://' + req.headers.host + req.url);
-  } else {
-    next();
-  }
-});
-
-// Crear servidor HTTP (IIS manejará el HTTPS)
-app.listen(80, () => {
-  console.log('Servidor HTTP corriendo en el puerto 80');
+// Escuchar en el puerto 80 (recomendado para producción)
+app.listen(80, '0.0.0.0', () => {
+  console.log(`Servidor corriendo en: http://ec2-18-222-204-187.us-east-2.compute.amazonaws.com`);
 });
 
 // Manejo de señales de interrupción
