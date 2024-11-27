@@ -13,25 +13,25 @@ import cors from 'cors';
 
 const app = express();
 
-// Configuración de CORS para permitir múltiples orígenes
 const allowedOrigins = [
-  'https://donkampo.com'  // Dominio principal  // Subdominio personalizado
+  'https://donkampo.com',  // dominio sin www
+  'https://www.donkampo.com',  // dominio con www
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);  // Permitir solicitudes de los dominios configurados
+    // Asegúrate de que el origen de tu frontend esté permitido
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);  // Permite solicitudes desde los orígenes permitidos
     } else {
-      callback(new Error('No permitido por CORS'));  // Bloquear otros orígenes
+      callback(new Error('CORS Error: Origin not allowed'), false);  // Bloquea otros orígenes
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,  // Permitir el envío de cookies y credenciales
+  credentials: true,  // Habilita el uso de cookies
 };
-
-app.use(cors(corsOptions));  // Aplica la configuración de CORS a todas las rutas
+  // Aplica esta configuración a todas las rutas
 
 app.use(morgan("dev"));
 app.use(express.json());
