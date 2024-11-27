@@ -13,30 +13,18 @@ import cors from 'cors';
 
 const app = express();
 
-// Middlewares
-app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Configuración de Multer para manejar imágenes
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage }).single('photo');
-
-// Orígenes permitidos para CORS
+// Configuración de CORS para permitir múltiples orígenes
 const allowedOrigins = [
-  'http://localhost:3000',        // Desarrollo local
-  'http://localhost:3001',        // Otro puerto en desarrollo
-  'https://donkampo.com',         // Frontend en producción
-  'https://api.donkampo.com',     // API en subdominio
+  'https://donkampo.com',  // Dominio principal
+  'https://api.donkampo.com',  // Subdominio personalizado
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permitir que no se pase un origin (en caso de peticiones sin origen, como desde el backend)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);  // Permitir solicitudes de los dominios configurados
     } else {
-      callback(new Error('No permitido por CORS'));
+      callback(new Error('No permitido por CORS'));  // Bloquear otros orígenes
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -44,22 +32,18 @@ const corsOptions = {
   credentials: true,  // Permitir el envío de cookies y credenciales
 };
 
-// Configuración de CORS
-app.use(cors(corsOptions));
+app.use(cors(corsOptions));  // Aplica la configuración de CORS a todas las rutas
 
-// Configuración de EJS (si es necesario para tu aplicación)
+app.use(morgan("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).single('photo');
+
 app.set('view engine', 'ejs');
 
-// Timeout para las peticiones
-app.use((req, res, next) => {
-  res.setTimeout(5000, () => {
-    console.log('La solicitud ha superado el tiempo de espera.');
-    res.status(408).send('Request timed out');
-  });
-  next();
-});
-
-// Rutas de la API
+// Rutas del backend
 app.use(authRoutes);
 app.use(usersRoutes);
 app.use(productsRoutes);
@@ -67,19 +51,17 @@ app.use(shippingRoutes);
 app.use(orderRoutes);
 app.use(customerTypesRoutes);
 
-// Ruta para crear un producto (con optimización de imágenes)
+// Ruta para crear productos (ejemplo de ruta POST)
 app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   console.log('Imagen subida:', req.file);
   res.status(201).json({ message: 'Producto creado exitosamente!' });
 });
 
-// Iniciar el servidor
 app.listen(PORT, () => {
   const host = `http://localhost:${PORT}`;
   console.log(`Servidor corriendo en: ${host}`);
 });
 
-// Manejo de cierre del servidor
 process.on("SIGINT", () => {
   console.log("Servidor cerrado correctamente");
   process.exit(0);
