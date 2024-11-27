@@ -16,6 +16,13 @@
     "@angular/cdk": "^17.3.10",
     "@angular/material": "^17.3.10",
     "@aws-sdk/client-s3": "^3.693.0",
+    "@babel/cli": "^7.25.9",
+    "@babel/core": "^7.26.0",
+    "@babel/node": "^7.26.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+    "@babel/plugin-transform-async-to-generator": "^7.25.9",
+    "@babel/plugin-transform-runtime": "^7.25.9",
+    "@babel/preset-env": "^7.26.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -30,14 +37,7 @@
     "nanoid": "^5.0.8",
     "nodemailer": "^6.9.16",
     "pg": "^8.12.0",
-    "sharp": "^0.33.5",
-    "@babel/cli": "^7.25.9",
-    "@babel/core": "^7.26.0",
-    "@babel/node": "^7.26.0",
-    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
-    "@babel/plugin-transform-async-to-generator": "^7.25.9",
-    "@babel/plugin-transform-runtime": "^7.25.9",
-    "@babel/preset-env": "^7.26.0"
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

@@ -10,12 +10,9 @@ import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-
 dotenv.config();
 
 const app = express();
-
-
 
 // Configuración de Multer para subir archivos (imagen)
 const storage = multer.memoryStorage();
@@ -39,7 +36,7 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
+  credentials: true, // Habilitar el soporte de credenciales como cookies o autenticación
 };
 
 // Aplicar CORS
@@ -59,6 +56,7 @@ app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   res.status(201).json({ message: 'Producto creado exitosamente' });
 });
 
+// Manejar solicitudes OPTIONS para CORS
 app.options('*', cors(corsOptions)); 
 
 // Configuración del servidor
