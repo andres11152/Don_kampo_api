@@ -31,6 +31,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,  // Habilita el uso de cookies
 };
+app.use(cors(corsOptions));
   // Aplica esta configuración a todas las rutas
 
 app.use(morgan("dev"));
