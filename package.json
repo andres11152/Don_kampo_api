@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/ --exec babel-node",
+    "dev": "nodemon --exec npx babel-node src/",
     "build": "npm install --save-dev @babel/cli @babel/core",
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
