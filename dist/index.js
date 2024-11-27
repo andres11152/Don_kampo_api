@@ -19,7 +19,8 @@ app.use(express.urlencoded({
 }));
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:5173']; // Cambia al puerto del frontend (Vite normalmente usa 3000)
+const allowedOrigins = ['https://donkampo.com',  // dominio sin www
+  'https://www.donkampo.com']; // Cambia al puerto del frontend (Vite normalmente usa 3000)
 const corsOptions = {
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
