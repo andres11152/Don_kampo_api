@@ -11,10 +11,5 @@ export const dbSettings = {
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
 }
 
-export const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.ALLOWED_ORIGIN || 'https://donkampo.com', // Lee la variable de entorno
-  ];
 
 export const API_KEY = process.env.API_KEY || '';
