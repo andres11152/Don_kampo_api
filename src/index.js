@@ -59,7 +59,7 @@ app.use(customerTypesRoutes);
 
 app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
   console.log('Imagen subida:', req.file);
-  res.status(201).json({ message: 'Producto creado exitosamente' });
+  res.status(201).json({ message: 'Producto creado exitosamente!' });
 });
 
 app.listen(PORT, () => {
