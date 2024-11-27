@@ -22,7 +22,7 @@ const upload = multer({ storage: storage }).single('photo');
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:3001','https://donkampo.com/'
+  'http://localhost:3001','https://donkampo.com'
 ]; 
 
 const corsOptions = {
