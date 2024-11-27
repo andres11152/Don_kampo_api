@@ -22,13 +22,14 @@ const upload = multer({ storage: storage }).single('photo');
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:3001','https://donkampo.com'
-]; 
+  'http://localhost:3001',
+  'https://donkampo.com'
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);  
+      callback(null, true);
     } else {
       callback(new Error('No permitido por CORS'));
     }
@@ -43,9 +44,9 @@ app.use(cors(corsOptions));
 app.set('view engine', 'ejs');
 
 app.use((req, res, next) => {
-  res.setTimeout(5000, () => {  
+  res.setTimeout(5000, () => {
     console.log('La solicitud ha superado el tiempo de espera.');
-    res.status(408).send('Request timed out');  
+    res.status(408).send('Request timed out');
   });
   next();
 });
