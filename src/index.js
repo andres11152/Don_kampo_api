@@ -15,8 +15,7 @@ const app = express();
 
 // Configuración de CORS para permitir múltiples orígenes
 const allowedOrigins = [
-  'https://donkampo.com',  // Dominio principal
-  'https://api.donkampo.com',  // Subdominio personalizado
+  'https://donkampo.com'  // Dominio principal  // Subdominio personalizado
 ];
 
 const corsOptions = {
