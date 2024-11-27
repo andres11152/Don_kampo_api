@@ -68,6 +68,6 @@ app.listen(PORT, () => {
 });
 
 process.on("SIGINT", () => {
-  console.log("Servidor cerrado correctamente!");
+  console.log("Servidor cerrado correctamente");
   process.exit(0);
 });
