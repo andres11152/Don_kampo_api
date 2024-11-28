@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: donkampo-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm run start
+    plan: free
