@@ -1,75 +1,70 @@
-import express from "express";
-import cors from "cors";
-import morgan from "morgan";
-import { PORT } from "./config/config.js";
-import authRoutes from "./routes/auth.routes.js";
-import usersRoutes from "./routes/user.routes.js";
-import productsRoutes from './routes/products.routes.js';
-import shippingRoutes from './routes/shipping.routes.js';
-import orderRoutes from './routes/order.routes.js';
+"use strict";
 
-// Configuración del servidor
-const app = express();
-
-// Middleware
-app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({
-  extended: false
-}));
-
-// Configuración de CORS
-const allowedOrigins = ['https://donkampo.com',  // dominio sin www
-  'https://www.donkampo.com']; // Cambia al puerto del frontend (Vite normalmente usa 3000)
-const corsOptions = {
-  origin: allowedOrigins,
+var _express = _interopRequireDefault(require("express"));
+var _morgan = _interopRequireDefault(require("morgan"));
+var _config = require("./config/config.js");
+var _authRoutes = _interopRequireDefault(require("./routes/auth.routes.js"));
+var _userRoutes = _interopRequireDefault(require("./routes/user.routes.js"));
+var _productsRoutes = _interopRequireDefault(require("./routes/products.routes.js"));
+var _shippingRoutes = _interopRequireDefault(require("./routes/shipping.routes.js"));
+var _orderRoutes = _interopRequireDefault(require("./routes/order.routes.js"));
+var _customerTypesRoutes = _interopRequireDefault(require("./routes/customerTypes.routes.js"));
+var _multer = _interopRequireDefault(require("multer"));
+var _imageMiddleware = require("./middlewares/imageMiddleware.js");
+var _cors = _interopRequireDefault(require("cors"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+var app = (0, _express["default"])();
+var allowedOrigins = ['https://donkampo.com',
+// dominio sin www
+'https://www.donkampo.com', 'http://localhost:3000' // dominio con www
+];
+var corsOptions = {
+  origin: function origin(_origin, callback) {
+    // Asegúrate de que el origen de tu frontend esté permitido
+    if (!_origin || allowedOrigins.includes(_origin)) {
+      callback(null, true); // Permite solicitudes desde los orígenes permitidos
+    } else {
+      callback(new Error('CORS Error: Origin not allowed'), false); // Bloquea otros orígenes
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Permite el envío de cookies y encabezados de autenticación
+  credentials: true // Habilita el uso de cookies
 };
-app.use(cors(corsOptions)); // Aplica las opciones de CORS
+app.use((0, _cors["default"])(corsOptions));
+// Aplica esta configuración a todas las rutas
 
-// Configuración de EJS
+app.use((0, _morgan["default"])("dev"));
+app.use(_express["default"].json());
+app.use(_express["default"].urlencoded({
+  extended: false
+}));
+var storage = _multer["default"].memoryStorage();
+var upload = (0, _multer["default"])({
+  storage: storage
+}).single('photo');
 app.set('view engine', 'ejs');
 
-// Configuración de Timeout para las solicitudes
-app.use((req, res, next) => {
-  res.setTimeout(5000, () => {
-    // Timeout de 5 segundos
-    console.log('La solicitud ha superado el tiempo de espera.');
-    res.status(408).send('Request timed out');
+// Rutas del backend
+app.use(_authRoutes["default"]);
+app.use(_userRoutes["default"]);
+app.use(_productsRoutes["default"]);
+app.use(_shippingRoutes["default"]);
+app.use(_orderRoutes["default"]);
+app.use(_customerTypesRoutes["default"]);
+
+// Ruta para crear productos (ejemplo de ruta POST)
+app.post('/api/createproduct', upload, _imageMiddleware.optimizeImage, function (req, res) {
+  console.log('Imagen subida:', req.file);
+  res.status(201).json({
+    message: 'Producto creado exitosamente!'
   });
-  next();
 });
-
-// Rutas
-app.use(authRoutes); // Ruta para el inicio de sesión
-app.use(usersRoutes); // Ruta para los usuarios
-app.use(productsRoutes); // Ruta para los productos y precios
-app.use(shippingRoutes); // Ruta para los métodos de envío
-app.use(orderRoutes); // Ruta para los pedidos
-
-// Configuración del servidor - Ruta principal
-app.get("/", (req, res) => {
-  res.render(process.cwd() + "/web/index.ejs"); // Renderiza el archivo index.ejs al acceder a la ruta raíz.
+app.listen(_config.PORT, function () {
+  var host = "http://localhost:".concat(_config.PORT);
+  console.log("Servidor corriendo en: ".concat(host));
 });
-
-// Manejo de errores
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Muestra el stack trace del error en la consola.
-  res.status(500).send("Error interno del servidor"); // Responde con un mensaje de error 500.
-});
-
-// Inicialización del servidor
-const server = app.listen(PORT, () => {
-  const host = `http://localhost:${PORT}`;
-  console.log(`Servidor corriendo en: ${host}`); // Muestra en consola que el servidor está corriendo y en qué URL.
-});
-
-// Manejo de señal de terminación (SIGINT)
-process.on("SIGINT", () => {
-  server.close(() => {
-    console.log("Servidor cerrado correctamente"); // Muestra en consola que el servidor se ha cerrado correctamente.
-    process.exit(0); // Termina el proceso de Node.js.
-  });
+process.on("SIGINT", function () {
+  console.log("Servidor cerrado correctamente");
+  process.exit(0);
 });

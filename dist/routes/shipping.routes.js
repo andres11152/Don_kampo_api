@@ -1,10 +1,16 @@
-import express from 'express';
-import { createShippingInfo, getShippingInfo, getShippingInfoById, updateShippingInfo, deleteShippingInfo } from '../controllers/shipping.controller.js';
-const router = express.Router();
-router.post('/api/createshipping', createShippingInfo); // Ruta para crear nueva información de envío
-router.get('/api/shipping', getShippingInfo); // Ruta para obtener toda la información de envíos
-router.get('/api/getshipping/:id', getShippingInfoById); // Ruta para obtener información de envío por ID
-router.put('/api/updateshipping/:id', updateShippingInfo); // Ruta para actualizar información de envío
-router.delete('/api/deleteshipping/:id', deleteShippingInfo); // Ruta para eliminar información de envío
+"use strict";
 
-export default router;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = void 0;
+var _express = _interopRequireDefault(require("express"));
+var _shippingController = require("../controllers/shipping.controller.js");
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+var router = _express["default"].Router();
+router.post('/api/createshipping', _shippingController.createShippingInfo);
+router.get('/api/shipping', _shippingController.getShippingInfo);
+router.get('/api/getshipping/:id', _shippingController.getShippingInfoById);
+router.put('/api/updateshipping/:id', _shippingController.updateShippingInfo);
+router["delete"]('/api/deleteshipping/:id', _shippingController.deleteShippingInfo);
+var _default = exports["default"] = router;

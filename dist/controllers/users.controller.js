@@ -1,272 +1,380 @@
-import bcrypt from 'bcrypt';
-import { getConnection } from '../database/connection.js';
-import { queries } from '../database/queries.interface.js';
+"use strict";
 
-/**
- * Obtiene todos los usuarios de la base de datos.
- */
-export const getUsers = async (req, res) => {
-  try {
-    const client = await getConnection();
-    const result = await client.query(queries.users.getUsers);
-    client.release(); // Cambiado de client.end() a client.release()
-    return res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error al obtener los usuarios:', error);
-    return res.status(500).json({
-      msg: 'Error al obtener los usuarios'
-    });
-  }
-};
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.updateUsers = exports.updateUserStatus = exports.getUsersById = exports.getUsers = exports.deleteUsers = exports.createUsers = void 0;
+var _bcrypt = _interopRequireDefault(require("bcrypt"));
+var _connection = require("../database/connection.js");
+var _queriesInterface = require("../database/queries.interface.js");
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return e; }; var t, e = {}, r = Object.prototype, n = r.hasOwnProperty, o = Object.defineProperty || function (t, e, r) { t[e] = r.value; }, i = "function" == typeof Symbol ? Symbol : {}, a = i.iterator || "@@iterator", c = i.asyncIterator || "@@asyncIterator", u = i.toStringTag || "@@toStringTag"; function define(t, e, r) { return Object.defineProperty(t, e, { value: r, enumerable: !0, configurable: !0, writable: !0 }), t[e]; } try { define({}, ""); } catch (t) { define = function define(t, e, r) { return t[e] = r; }; } function wrap(t, e, r, n) { var i = e && e.prototype instanceof Generator ? e : Generator, a = Object.create(i.prototype), c = new Context(n || []); return o(a, "_invoke", { value: makeInvokeMethod(t, r, c) }), a; } function tryCatch(t, e, r) { try { return { type: "normal", arg: t.call(e, r) }; } catch (t) { return { type: "throw", arg: t }; } } e.wrap = wrap; var h = "suspendedStart", l = "suspendedYield", f = "executing", s = "completed", y = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var p = {}; define(p, a, function () { return this; }); var d = Object.getPrototypeOf, v = d && d(d(values([]))); v && v !== r && n.call(v, a) && (p = v); var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p); function defineIteratorMethods(t) { ["next", "throw", "return"].forEach(function (e) { define(t, e, function (t) { return this._invoke(e, t); }); }); } function AsyncIterator(t, e) { function invoke(r, o, i, a) { var c = tryCatch(t[r], t, o); if ("throw" !== c.type) { var u = c.arg, h = u.value; return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) { invoke("next", t, i, a); }, function (t) { invoke("throw", t, i, a); }) : e.resolve(h).then(function (t) { u.value = t, i(u); }, function (t) { return invoke("throw", t, i, a); }); } a(c.arg); } var r; o(this, "_invoke", { value: function value(t, n) { function callInvokeWithMethodAndArg() { return new e(function (e, r) { invoke(t, n, e, r); }); } return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(e, r, n) { var o = h; return function (i, a) { if (o === f) throw Error("Generator is already running"); if (o === s) { if ("throw" === i) throw a; return { value: t, done: !0 }; } for (n.method = i, n.arg = a;;) { var c = n.delegate; if (c) { var u = maybeInvokeDelegate(c, n); if (u) { if (u === y) continue; return u; } } if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) { if (o === h) throw o = s, n.arg; n.dispatchException(n.arg); } else "return" === n.method && n.abrupt("return", n.arg); o = f; var p = tryCatch(e, r, n); if ("normal" === p.type) { if (o = n.done ? s : l, p.arg === y) continue; return { value: p.arg, done: n.done }; } "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg); } }; } function maybeInvokeDelegate(e, r) { var n = r.method, o = e.iterator[n]; if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y; var i = tryCatch(o, e.iterator, r.arg); if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y; var a = i.arg; return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y); } function pushTryEntry(t) { var e = { tryLoc: t[0] }; 1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e); } function resetTryEntry(t) { var e = t.completion || {}; e.type = "normal", delete e.arg, t.completion = e; } function Context(t) { this.tryEntries = [{ tryLoc: "root" }], t.forEach(pushTryEntry, this), this.reset(!0); } function values(e) { if (e || "" === e) { var r = e[a]; if (r) return r.call(e); if ("function" == typeof e.next) return e; if (!isNaN(e.length)) { var o = -1, i = function next() { for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next; return next.value = t, next.done = !0, next; }; return i.next = i; } } throw new TypeError(_typeof(e) + " is not iterable"); } return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), o(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) { var e = "function" == typeof t && t.constructor; return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name)); }, e.mark = function (t) { return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t; }, e.awrap = function (t) { return { __await: t }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () { return this; }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) { void 0 === i && (i = Promise); var a = new AsyncIterator(wrap(t, r, n, o), i); return e.isGeneratorFunction(r) ? a : a.next().then(function (t) { return t.done ? t.value : a.next(); }); }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () { return this; }), define(g, "toString", function () { return "[object Generator]"; }), e.keys = function (t) { var e = Object(t), r = []; for (var n in e) r.push(n); return r.reverse(), function next() { for (; r.length;) { var t = r.pop(); if (t in e) return next.value = t, next.done = !1, next; } return next.done = !0, next; }; }, e.values = values, Context.prototype = { constructor: Context, reset: function reset(e) { if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t); }, stop: function stop() { this.done = !0; var t = this.tryEntries[0].completion; if ("throw" === t.type) throw t.arg; return this.rval; }, dispatchException: function dispatchException(e) { if (this.done) throw e; var r = this; function handle(n, o) { return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o; } for (var o = this.tryEntries.length - 1; o >= 0; --o) { var i = this.tryEntries[o], a = i.completion; if ("root" === i.tryLoc) return handle("end"); if (i.tryLoc <= this.prev) { var c = n.call(i, "catchLoc"), u = n.call(i, "finallyLoc"); if (c && u) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } else if (c) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); } else { if (!u) throw Error("try statement without catch or finally"); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } } } }, abrupt: function abrupt(t, e) { for (var r = this.tryEntries.length - 1; r >= 0; --r) { var o = this.tryEntries[r]; if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) { var i = o; break; } } i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null); var a = i ? i.completion : {}; return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a); }, complete: function complete(t, e) { if ("throw" === t.type) throw t.arg; return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y; }, finish: function finish(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y; } }, "catch": function _catch(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.tryLoc === t) { var n = r.completion; if ("throw" === n.type) { var o = n.arg; resetTryEntry(r); } return o; } } throw Error("illegal catch attempt"); }, delegateYield: function delegateYield(e, r, n) { return this.delegate = { iterator: values(e), resultName: r, nextLoc: n }, "next" === this.method && (this.arg = t), y; } }, e; }
+function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
+function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+// Obtener todos los usuarios
+var getUsers = exports.getUsers = /*#__PURE__*/function () {
+  var _ref = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(req, res) {
+    var client, result;
+    return _regeneratorRuntime().wrap(function _callee$(_context) {
+      while (1) switch (_context.prev = _context.next) {
+        case 0:
+          _context.prev = 0;
+          _context.next = 3;
+          return (0, _connection.getConnection)();
+        case 3:
+          client = _context.sent;
+          _context.next = 6;
+          return client.query(_queriesInterface.queries.users.getUsers);
+        case 6:
+          result = _context.sent;
+          client.release();
+          return _context.abrupt("return", res.status(200).json(result.rows));
+        case 11:
+          _context.prev = 11;
+          _context.t0 = _context["catch"](0);
+          console.error('Error al obtener los usuarios:', _context.t0);
+          return _context.abrupt("return", res.status(500).json({
+            msg: 'Error al obtener los usuarios'
+          }));
+        case 15:
+        case "end":
+          return _context.stop();
+      }
+    }, _callee, null, [[0, 11]]);
+  }));
+  return function getUsers(_x, _x2) {
+    return _ref.apply(this, arguments);
+  };
+}();
 
-/**
- * Obtiene un usuario por ID de la base de datos.
- */
-export const getUsersById = async (req, res) => {
-  const {
-    id
-  } = req.params;
-  if (!id) {
-    return res.status(400).json({
-      msg: 'Por favor proporciona un ID válido.'
-    });
-  }
-  try {
-    const client = await getConnection();
+// Obtener un usuario por ID
+var getUsersById = exports.getUsersById = /*#__PURE__*/function () {
+  var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2(req, res) {
+    var id, client, userResult, userData, ordersResult, userOrders;
+    return _regeneratorRuntime().wrap(function _callee2$(_context2) {
+      while (1) switch (_context2.prev = _context2.next) {
+        case 0:
+          id = req.params.id;
+          if (id) {
+            _context2.next = 3;
+            break;
+          }
+          return _context2.abrupt("return", res.status(400).json({
+            msg: 'Por favor proporciona un ID válido.'
+          }));
+        case 3:
+          _context2.prev = 3;
+          _context2.next = 6;
+          return (0, _connection.getConnection)();
+        case 6:
+          client = _context2.sent;
+          _context2.next = 9;
+          return client.query(_queriesInterface.queries.users.getUsersById, [id]);
+        case 9:
+          userResult = _context2.sent;
+          if (!(userResult.rows.length === 0)) {
+            _context2.next = 13;
+            break;
+          }
+          client.release();
+          return _context2.abrupt("return", res.status(404).json({
+            msg: 'Usuario no encontrado.'
+          }));
+        case 13:
+          userData = userResult.rows[0];
+          _context2.next = 16;
+          return client.query(_queriesInterface.queries.users.getUserOrdersById, [id]);
+        case 16:
+          ordersResult = _context2.sent;
+          userOrders = ordersResult.rows;
+          client.release();
+          return _context2.abrupt("return", res.status(200).json({
+            user: userData,
+            orders: userOrders
+          }));
+        case 22:
+          _context2.prev = 22;
+          _context2.t0 = _context2["catch"](3);
+          console.error('Error al obtener usuario:', _context2.t0);
+          return _context2.abrupt("return", res.status(500).json({
+            msg: 'Error interno del servidor.'
+          }));
+        case 26:
+        case "end":
+          return _context2.stop();
+      }
+    }, _callee2, null, [[3, 22]]);
+  }));
+  return function getUsersById(_x3, _x4) {
+    return _ref2.apply(this, arguments);
+  };
+}();
 
-    // Obtener la información del usuario
-    const userResult = await client.query(queries.users.getUsersById, [id]);
-    if (userResult.rows.length === 0) {
-      client.release();
-      return res.status(404).json({
-        msg: 'Usuario no encontrado.'
-      });
-    }
-    const userData = userResult.rows[0];
+// Crear un nuevo usuario
+var createUsers = exports.createUsers = /*#__PURE__*/function () {
+  var _ref3 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(req, res) {
+    var _req$body, user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type, client, emailCheck, hashedPassword;
+    return _regeneratorRuntime().wrap(function _callee3$(_context3) {
+      while (1) switch (_context3.prev = _context3.next) {
+        case 0:
+          _req$body = req.body, user_name = _req$body.user_name, lastname = _req$body.lastname, email = _req$body.email, phone = _req$body.phone, city = _req$body.city, address = _req$body.address, neighborhood = _req$body.neighborhood, user_password = _req$body.user_password, user_type = _req$body.user_type;
+          if (!(!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type)) {
+            _context3.next = 3;
+            break;
+          }
+          return _context3.abrupt("return", res.status(400).json({
+            msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
+          }));
+        case 3:
+          _context3.prev = 3;
+          _context3.next = 6;
+          return (0, _connection.getConnection)();
+        case 6:
+          client = _context3.sent;
+          _context3.next = 9;
+          return client.query('SELECT * FROM users WHERE email = $1', [email]);
+        case 9:
+          emailCheck = _context3.sent;
+          if (!(emailCheck.rowCount > 0)) {
+            _context3.next = 13;
+            break;
+          }
+          client.release();
+          return _context3.abrupt("return", res.status(400).json({
+            msg: 'El correo electrónico ya está registrado.'
+          }));
+        case 13:
+          _context3.next = 15;
+          return _bcrypt["default"].hash(user_password, 10);
+        case 15:
+          hashedPassword = _context3.sent;
+          _context3.next = 18;
+          return client.query(_queriesInterface.queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
+        case 18:
+          client.release();
+          return _context3.abrupt("return", res.status(201).json({
+            msg: 'Usuario creado exitosamente.'
+          }));
+        case 22:
+          _context3.prev = 22;
+          _context3.t0 = _context3["catch"](3);
+          console.error('Error al crear usuario:', _context3.t0);
+          return _context3.abrupt("return", res.status(500).json({
+            msg: 'Error interno del servidor, intente nuevamente.'
+          }));
+        case 26:
+        case "end":
+          return _context3.stop();
+      }
+    }, _callee3, null, [[3, 22]]);
+  }));
+  return function createUsers(_x5, _x6) {
+    return _ref3.apply(this, arguments);
+  };
+}();
 
-    // Obtener las órdenes asociadas al usuario
-    const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
-    const userOrders = ordersResult.rows;
-    client.release();
+// Actualizar la información de un usuario
+var updateUsers = exports.updateUsers = /*#__PURE__*/function () {
+  var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(req, res) {
+    var id, _req$body2, user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type, client, updates, values, paramIndex, hashedPassword, query, result;
+    return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+      while (1) switch (_context4.prev = _context4.next) {
+        case 0:
+          id = req.params.id;
+          _req$body2 = req.body, user_name = _req$body2.user_name, lastname = _req$body2.lastname, email = _req$body2.email, phone = _req$body2.phone, city = _req$body2.city, address = _req$body2.address, neighborhood = _req$body2.neighborhood, user_password = _req$body2.user_password, user_type = _req$body2.user_type;
+          if (id) {
+            _context4.next = 4;
+            break;
+          }
+          return _context4.abrupt("return", res.status(400).json({
+            msg: 'ID del usuario es obligatorio.'
+          }));
+        case 4:
+          _context4.prev = 4;
+          _context4.next = 7;
+          return (0, _connection.getConnection)();
+        case 7:
+          client = _context4.sent;
+          updates = [];
+          values = [];
+          paramIndex = 1;
+          if (user_name) {
+            updates.push("user_name = $".concat(paramIndex++));
+            values.push(user_name);
+          }
+          if (lastname) {
+            updates.push("lastname = $".concat(paramIndex++));
+            values.push(lastname);
+          }
+          if (email) {
+            updates.push("email = $".concat(paramIndex++));
+            values.push(email);
+          }
+          if (phone) {
+            updates.push("phone = $".concat(paramIndex++));
+            values.push(phone);
+          }
+          if (city) {
+            updates.push("city = $".concat(paramIndex++));
+            values.push(city);
+          }
+          if (address) {
+            updates.push("address = $".concat(paramIndex++));
+            values.push(address);
+          }
+          if (neighborhood) {
+            updates.push("neighborhood = $".concat(paramIndex++));
+            values.push(neighborhood);
+          }
+          if (!user_password) {
+            _context4.next = 24;
+            break;
+          }
+          _context4.next = 21;
+          return _bcrypt["default"].hash(user_password, 10);
+        case 21:
+          hashedPassword = _context4.sent;
+          updates.push("user_password = $".concat(paramIndex++));
+          values.push(hashedPassword);
+        case 24:
+          if (user_type) {
+            updates.push("user_type = $".concat(paramIndex++));
+            values.push(user_type);
+          }
+          values.push(id);
+          query = "\n      UPDATE users\n      SET ".concat(updates.join(', '), "\n      WHERE id = $").concat(paramIndex, "\n      RETURNING *;\n    ");
+          _context4.next = 29;
+          return client.query(query, values);
+        case 29:
+          result = _context4.sent;
+          client.release();
+          if (!(result.rowCount === 0)) {
+            _context4.next = 33;
+            break;
+          }
+          return _context4.abrupt("return", res.status(404).json({
+            msg: 'Usuario no encontrado.'
+          }));
+        case 33:
+          return _context4.abrupt("return", res.status(200).json({
+            msg: 'Usuario actualizado exitosamente.'
+          }));
+        case 36:
+          _context4.prev = 36;
+          _context4.t0 = _context4["catch"](4);
+          console.error('Error al actualizar usuario:', _context4.t0);
+          return _context4.abrupt("return", res.status(500).json({
+            msg: 'Error interno del servidor.'
+          }));
+        case 40:
+        case "end":
+          return _context4.stop();
+      }
+    }, _callee4, null, [[4, 36]]);
+  }));
+  return function updateUsers(_x7, _x8) {
+    return _ref4.apply(this, arguments);
+  };
+}();
 
-    // Responder con la información del usuario y sus órdenes
-    return res.status(200).json({
-      user: userData,
-      orders: userOrders
-    });
-  } catch (error) {
-    console.error('Error al obtener usuario:', error);
-    return res.status(500).json({
-      msg: 'Error interno del servidor.'
-    });
-  }
-};
+// Eliminar un usuario
+var deleteUsers = exports.deleteUsers = /*#__PURE__*/function () {
+  var _ref5 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(req, res) {
+    var id, client, result;
+    return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+      while (1) switch (_context5.prev = _context5.next) {
+        case 0:
+          id = req.params.id;
+          if (id) {
+            _context5.next = 3;
+            break;
+          }
+          return _context5.abrupt("return", res.status(400).json({
+            msg: 'Por favor proporciona un ID válido.'
+          }));
+        case 3:
+          _context5.prev = 3;
+          _context5.next = 6;
+          return (0, _connection.getConnection)();
+        case 6:
+          client = _context5.sent;
+          _context5.next = 9;
+          return client.query(_queriesInterface.queries.users.deleteUsers, [id]);
+        case 9:
+          result = _context5.sent;
+          client.release();
+          if (!(result.rowCount === 0)) {
+            _context5.next = 13;
+            break;
+          }
+          return _context5.abrupt("return", res.status(404).json({
+            msg: 'Usuario no encontrado.'
+          }));
+        case 13:
+          return _context5.abrupt("return", res.status(200).json({
+            msg: 'Usuario eliminado exitosamente.'
+          }));
+        case 16:
+          _context5.prev = 16;
+          _context5.t0 = _context5["catch"](3);
+          console.error('Error al eliminar usuario:', _context5.t0);
+          return _context5.abrupt("return", res.status(500).json({
+            msg: 'Error interno del servidor.'
+          }));
+        case 20:
+        case "end":
+          return _context5.stop();
+      }
+    }, _callee5, null, [[3, 16]]);
+  }));
+  return function deleteUsers(_x9, _x10) {
+    return _ref5.apply(this, arguments);
+  };
+}();
 
-/**
- * Crea un nuevo usuario en la base de datos.
- */
-export const createUsers = async (req, res) => {
-  const {
-    user_name,
-    lastname,
-    email,
-    phone,
-    city,
-    address,
-    neighborhood,
-    user_password,
-    user_type
-  } = req.body;
-
-  // Validación de campos
-  if (!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
-    return res.status(400).json({
-      msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
-    });
-  }
-  try {
-    const client = await getConnection();
-
-    // Verificar si el email ya existe
-    const emailCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (emailCheck.rowCount > 0) {
-      client.release();
-      return res.status(400).json({
-        msg: 'El correo electrónico ya está registrado.'
-      });
-    }
-
-    // Hashear la contraseña y crear el usuario
-    const hashedPassword = await bcrypt.hash(user_password, 10);
-    await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
-    client.release();
-    return res.status(201).json({
-      msg: 'Usuario creado exitosamente.'
-    });
-  } catch (error) {
-    console.error('Error al crear usuario:', error);
-    return res.status(500).json({
-      msg: 'Error interno del servidor, intente nuevamente.'
-    });
-  }
-};
-/**
- * Actualiza un usuario existente en la base de datos.
- */
-export const updateUsers = async (req, res) => {
-  const {
-    id
-  } = req.params;
-  const {
-    user_name,
-    lastname,
-    email,
-    phone,
-    city,
-    address,
-    neighborhood,
-    user_password,
-    user_type
-  } = req.body;
-  if (!id) {
-    return res.status(400).json({
-      msg: 'ID del usuario es obligatorio.'
-    });
-  }
-  try {
-    const client = await getConnection();
-
-    // Construcción dinámica de los campos a actualizar
-    const updates = [];
-    const values = [];
-    let paramIndex = 1;
-    if (user_name) {
-      updates.push(`user_name = $${paramIndex++}`);
-      values.push(user_name);
-    }
-    if (lastname) {
-      updates.push(`lastname = $${paramIndex++}`);
-      values.push(lastname);
-    }
-    if (email) {
-      updates.push(`email = $${paramIndex++}`);
-      values.push(email);
-    }
-    if (phone) {
-      updates.push(`phone = $${paramIndex++}`);
-      values.push(phone);
-    }
-    if (city) {
-      updates.push(`city = $${paramIndex++}`);
-      values.push(city);
-    }
-    if (address) {
-      updates.push(`address = $${paramIndex++}`);
-      values.push(address);
-    }
-    if (neighborhood) {
-      updates.push(`neighborhood = $${paramIndex++}`);
-      values.push(neighborhood);
-    }
-    if (user_password) {
-      const hashedPassword = await bcrypt.hash(user_password, 10);
-      updates.push(`user_password = $${paramIndex++}`);
-      values.push(hashedPassword);
-    }
-    if (user_type) {
-      updates.push(`user_type = $${paramIndex++}`);
-      values.push(user_type);
-    }
-    values.push(id); // Añade el id al final de los valores
-
-    const query = `
-      UPDATE users
-      SET ${updates.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING *;
-    `;
-    const result = await client.query(query, values);
-    client.release();
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        msg: 'Usuario no encontrado.'
-      });
-    }
-    return res.status(200).json({
-      msg: 'Usuario actualizado exitosamente.'
-    });
-  } catch (error) {
-    console.error('Error al actualizar usuario:', error);
-    return res.status(500).json({
-      msg: 'Error interno del servidor.'
-    });
-  }
-};
-
-/**
- * Elimina un usuario de la base de datos.
- */
-export const deleteUsers = async (req, res) => {
-  const {
-    id
-  } = req.params;
-  console.log("ID recibido en el controlador:", id); // Log para verificar el ID recibido
-
-  // Validación del ID
-  if (!id) {
-    return res.status(400).json({
-      msg: 'Por favor proporciona un ID válido.'
-    });
-  }
-  try {
-    const client = await getConnection();
-    console.log("Conexión establecida con la base de datos");
-
-    // Ejecutar la consulta para eliminar
-    const result = await client.query(queries.users.deleteUsers, [id]); // Asegúrate de que la consulta esté correcta
-    console.log("Resultado de la consulta DELETE:", result);
-    client.release();
-
-    // Verificar si se eliminó algún registro
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        msg: 'Usuario no encontrado.'
-      });
-    }
-    return res.status(200).json({
-      msg: 'Usuario eliminado exitosamente.'
-    });
-  } catch (error) {
-    console.error('Error al eliminar usuario:', error); // Log para mostrar cualquier error
-    return res.status(500).json({
-      msg: 'Error interno del servidor.'
-    });
-  }
-};
-export const updateUserStatus = async (req, res) => {
-  const {
-    id,
-    status_id
-  } = req.params;
-
-  // Validación de los datos de entrada
-  if (!id || !status_id) {
-    return res.status(400).json({
-      msg: 'Por favor proporciona un ID de usuario y un nuevo estado válido.'
-    });
-  }
-  try {
-    const client = await getConnection();
-    // Ejecuta la consulta para actualizar solo el estado
-    await client.query(queries.users.updateUserStatus, [id, status_id]);
-    client.release();
-    return res.status(200).json({
-      msg: 'Estado del usuario actualizado exitosamente.'
-    });
-  } catch (error) {
-    console.error('Error al actualizar el estado del usuario:', error);
-    return res.status(500).json({
-      msg: 'Error interno del servidor.'
-    });
-  }
-};
+// Actualizar el estado de un usuario
+var updateUserStatus = exports.updateUserStatus = /*#__PURE__*/function () {
+  var _ref6 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(req, res) {
+    var _req$params, id, status_id, client;
+    return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+      while (1) switch (_context6.prev = _context6.next) {
+        case 0:
+          _req$params = req.params, id = _req$params.id, status_id = _req$params.status_id;
+          if (!(!id || !status_id)) {
+            _context6.next = 3;
+            break;
+          }
+          return _context6.abrupt("return", res.status(400).json({
+            msg: 'Por favor proporciona un ID de usuario y un nuevo estado válido.'
+          }));
+        case 3:
+          _context6.prev = 3;
+          _context6.next = 6;
+          return (0, _connection.getConnection)();
+        case 6:
+          client = _context6.sent;
+          _context6.next = 9;
+          return client.query(_queriesInterface.queries.users.updateUserStatus, [id, status_id]);
+        case 9:
+          client.release();
+          return _context6.abrupt("return", res.status(200).json({
+            msg: 'Estado del usuario actualizado exitosamente.'
+          }));
+        case 13:
+          _context6.prev = 13;
+          _context6.t0 = _context6["catch"](3);
+          console.error('Error al actualizar el estado del usuario:', _context6.t0);
+          return _context6.abrupt("return", res.status(500).json({
+            msg: 'Error interno del servidor.'
+          }));
+        case 17:
+        case "end":
+          return _context6.stop();
+      }
+    }, _callee6, null, [[3, 13]]);
+  }));
+  return function updateUserStatus(_x11, _x12) {
+    return _ref6.apply(this, arguments);
+  };
+}();

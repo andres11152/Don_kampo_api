@@ -15,7 +15,7 @@ const app = express();
 
 const allowedOrigins = [
   'https://donkampo.com',  // dominio sin www
-  'https://www.donkampo.com',  // dominio con www
+  'https://www.donkampo.com' ,'http://localhost:3000',  // dominio con www
 ];
 
 const corsOptions = {

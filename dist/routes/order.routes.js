@@ -1,17 +1,17 @@
-import { Router } from 'express';
-import { placeOrder, getOrders, getOrdersById, createOrders, updateOrders, deleteOrders, updateOrderStatus } from '../controllers/orders.controller.js';
-const router = Router();
+"use strict";
 
-// Ruta para colocar un nuevo pedido
-router.post('/api/orders/placeOrder', placeOrder);
-
-// Rutas para otros métodos
-router.get('/api/orders', getOrders);
-router.get('/api/orders/:orderId', getOrdersById);
-router.post('/api/createorders', createOrders);
-router.put('/api/updateorders/:orderId', updateOrders);
-router.delete('/api/deleteorders/:orderId', deleteOrders);
-
-//Rutas para el estado del pedido
-router.put('/api/updatestatus/:id/:status_id', updateOrderStatus);
-export default router;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = void 0;
+var _express = require("express");
+var _ordersController = require("../controllers/orders.controller.js");
+var router = (0, _express.Router)();
+router.post('/api/orders/placeOrder', _ordersController.placeOrder);
+router.get('/api/orders', _ordersController.getOrders);
+router.get('/api/orders/:orderId', _ordersController.getOrdersById);
+router.post('/api/createorders', _ordersController.createOrders);
+router.put('/api/updateorders/:orderId', _ordersController.updateOrders);
+router["delete"]('/api/deleteorders/:orderId', _ordersController.deleteOrders);
+router.put('/api/updatestatus/:id/:status_id', _ordersController.updateOrderStatus);
+var _default = exports["default"] = router;

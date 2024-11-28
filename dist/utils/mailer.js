@@ -1,18 +1,19 @@
-import nodemailer from 'nodemailer';
+"use strict";
 
-// Configuración de correo de Gmail
-const emailConfig = {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.sendEmail = void 0;
+var _nodemailer = _interopRequireDefault(require("nodemailer"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
+var emailConfig = {
   host: 'smtp.gmail.com',
   port: 587,
   secure: false,
-  // Usamos false para el puerto 587
   user: 'donkampo76@gmail.com',
-  // Tu correo de Gmail
-  pass: 'rvoe qmdk eblb tvly' // Usa la contraseña de aplicación generada
+  pass: 'rvoe qmdk eblb tvly'
 };
-
-// Crea el transporter usando la configuración
-const transporter = nodemailer.createTransport({
+var transporter = _nodemailer["default"].createTransport({
   host: emailConfig.host,
   port: emailConfig.port,
   secure: emailConfig.secure,
@@ -21,14 +22,16 @@ const transporter = nodemailer.createTransport({
     pass: emailConfig.pass
   }
 });
-
-// Función para enviar el correo
-export const sendEmail = (to, subject, text) => {
-  const mailOptions = {
+var sendEmail = exports.sendEmail = function sendEmail(to, subject, text) {
+  var mailOptions = {
     from: emailConfig.user,
     to: to,
     subject: subject,
     text: text
   };
-  return transporter.sendMail(mailOptions).then(info => console.log('Correo enviado:', info.response)).catch(error => console.error('Error al enviar el correo:', error));
+  return transporter.sendMail(mailOptions).then(function (info) {
+    return console.log('Correo enviado:', info.response);
+  })["catch"](function (error) {
+    return console.error('Error al enviar el correo:', error);
+  });
 };
