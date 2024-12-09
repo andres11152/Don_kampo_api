@@ -181,5 +181,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For any questions or feedback, please contact **Andres Betancourt** at [andres11152@gmail.com].
+For any questions or feedback, please contact **Andres Betancourt** at [info@cre8tive.pro].
 
