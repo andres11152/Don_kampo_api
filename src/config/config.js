@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config();  
 
-export const PORT = parseInt(process.env.PORT) || process.argv[2] || 8080;
+export const PORT = process.env.PORT || 8080;
 
 export const dbSettings = {
     user: process.env.DB_USER || '',
@@ -11,4 +11,5 @@ export const dbSettings = {
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 6089, 
 }
 
-export const API_KEY = process.env.API_KEY || ''; 
+
+export const API_KEY = process.env.API_KEY || '';

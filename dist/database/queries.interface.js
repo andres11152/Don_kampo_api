@@ -48,13 +48,13 @@ export const queries = {
       UPDATE users 
       SET user_password = $1, reset_password_token = NULL, reset_password_expires = NULL 
       WHERE id = $2
-    `,
+    `
   },
   customerTypes: {
     getAllCustomerTypes: `
     SELECT * FROM customer_types;
   `,
-  updateAllShippingCosts: `
+    updateAllShippingCosts: `
    UPDATE customer_types
     SET shipping_cost = CASE 
       WHEN type_name = 'Hogar' THEN $1::numeric
@@ -62,8 +62,8 @@ export const queries = {
       WHEN type_name = 'Supermercado' THEN $3::numeric
       WHEN type_name = 'Restaurante' THEN $4::numeric
   END;
-  `,
-  }, 
+  `
+  },
   orders: {
     getOrders: `
       SELECT 
@@ -157,9 +157,8 @@ export const queries = {
         price
       ) 
       VALUES ($1, $2, $3, $4)
-    `  
+    `
   },
-
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
     getOrderStatusesById: "SELECT * FROM order_statuses WHERE id = $1",
@@ -172,9 +171,8 @@ export const queries = {
       SET status_name = $1
       WHERE id = $2
     `,
-    deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1",
+    deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1"
   },
-
   shipping_statuses: {
     getShippingStatuses: "SELECT * FROM shipping_statuses",
     getShippingStatusesById: "SELECT * FROM shipping_statuses WHERE id = $1",
@@ -187,9 +185,8 @@ export const queries = {
       SET status_name = $1
       WHERE id = $2
     `,
-    deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1",
+    deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1"
   },
-
   shipping_info: {
     getShippingInfo: "SELECT * FROM shipping_info",
     getShippingInfoById: "SELECT * FROM shipping_info WHERE id = $1",
@@ -207,7 +204,7 @@ export const queries = {
         shipping_status_id = $5
       WHERE id = $6
     `,
-    deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
+    deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1"
   },
   products: {
     getProducts: `
@@ -230,7 +227,7 @@ export const queries = {
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $1;
   `,
-  getProductById: `
+    getProductById: `
     SELECT 
       p.product_id, 
       p.name, 
@@ -241,18 +238,15 @@ export const queries = {
     FROM products p
     WHERE p.product_id = $1;
   `,
-
-  createProduct: `
+    createProduct: `
     INSERT INTO products (name, description, category, stock, photo_url)
     VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
   `,
-
-  createProductVariation: `
+    createProductVariation: `
     INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
     VALUES ($1, $2, $3, $4, $5, $6, $7);
   `,
-
-  updateProduct: `
+    updateProduct: `
     UPDATE products
     SET 
       name = $1, 
@@ -264,18 +258,7 @@ export const queries = {
     WHERE product_id = $6
     RETURNING product_id;
   `,
-  updateProductVariation: `
-    UPDATE product_variations
-    SET 
-      quality = $1, 
-      quantity = $2, 
-      price_home = $3, 
-      price_supermarket = $4, 
-      price_restaurant = $5, 
-      price_fruver = $6
-    WHERE variation_id = $7;
-  `,
-  getProductVariations: `
+    getProductVariations: `
     SELECT 
       v.variation_id, 
       v.quality, 
@@ -287,13 +270,11 @@ export const queries = {
     FROM product_variations v
     WHERE v.product_id = $1;
   `,
-  
-  deleteProduct: `
+    deleteProduct: `
     DELETE FROM products WHERE product_id = $1;
   `,
-  deleteProductVariation: `
+    deleteProductVariation: `
     DELETE FROM product_variations WHERE product_id = $1;
   `
-}
+  }
 };
-

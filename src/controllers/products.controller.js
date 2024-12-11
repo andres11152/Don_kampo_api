@@ -167,16 +167,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-
-const uploadImageSafe = async (buffer, filename) => {
-  try {
-    return await uploadImage(buffer, filename);
-  } catch (error) {
-    console.error('Error al subir la imagen:', error);
-    return null;
-  }
-};
-
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;  
@@ -195,7 +185,9 @@ export const updateProduct = async (req, res) => {
     if (!queries.products.updateProduct) {
       return res.status(500).json({ message: 'Error en la consulta SQL' });
     }
-
+    if (!queries.products.updateProduct) {
+      throw new Error('La consulta updateProduct no está definida.');
+    }
     const result = await client.query(queries.products.updateProduct, [
       name,
       description,
@@ -256,5 +248,113 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ message: 'Error al eliminar el producto' });
   } finally {
     if (client) client.release();
+  }
+};
+
+export const updateMultipleProducts = async (req, res) => {
+  let client;
+  const products = req.body;
+  
+  // Verificar que el array de productos esté presente y no esté vacío
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ message: 'Debe proporcionar un array de productos para actualizar.' });
+  }
+
+  try {
+    client = await getConnection();
+    await client.query('BEGIN'); // Iniciar transacción
+
+    for (const product of products) {
+      const {
+        product_id, // ID del producto
+        name,
+        description,
+        category,
+        stock,
+        variations,
+        photo_url = null, // Foto, que puede ser nula
+      } = product;
+
+      // Validar el ID del producto
+      const parsedProductId = parseInt(product_id, 10);
+      if (isNaN(parsedProductId)) {
+        throw new Error(`ID del producto inválido: ${product_id}`);
+      }
+
+      // Validar la consulta de actualización del producto
+      if (!queries.products.updateProduct) {
+        throw new Error('Consulta SQL para actualizar producto no definida.');
+      }
+
+      // Actualizar el producto principal
+      const result = await client.query(queries.products.updateProduct, [
+        name,
+        description,
+        category,
+        stock,
+        photo_url || null, // Si photo_url es vacío, se envía como null
+        parsedProductId,
+      ]);
+
+      if (result.rowCount === 0) {
+        throw new Error(`Producto con ID: ${product_id} no encontrado.`);
+      }
+
+      // Manejar las variaciones del producto, si existen
+      if (Array.isArray(variations) && variations.length > 0) {
+        for (const variation of variations) {
+          const {
+            variation_id,
+            quality,
+            quantity,
+            price_home,
+            price_supermarket,
+            price_restaurant,
+            price_fruver,
+          } = variation;
+
+          if (variation_id) {
+            // Actualizar una variación existente
+            await client.query(queries.products.updateProductVariation, [
+              quality,
+              quantity,
+              parseFloat(price_home || 0),
+              parseFloat(price_supermarket || 0),
+              parseFloat(price_restaurant || 0),
+              parseFloat(price_fruver || 0),
+              variation_id,
+            ]);
+          } else {
+            // Crear una nueva variación
+            await client.query(queries.products.createProductVariation, [
+              parsedProductId,
+              quality,
+              quantity,
+              parseFloat(price_home || 0),
+              parseFloat(price_supermarket || 0),
+              parseFloat(price_restaurant || 0),
+              parseFloat(price_fruver || 0),
+            ]);
+          }
+        }
+      }
+    }
+
+    // Confirmar transacción
+    await client.query('COMMIT');
+    res.status(200).json({ message: 'Productos actualizados exitosamente.' });
+  } catch (error) {
+    console.error('Error al actualizar los productos:', error);
+
+    if (client) {
+      await client.query('ROLLBACK'); // Revertir transacción en caso de error
+    }
+
+    res.status(500).json({
+      message: 'Error al actualizar los productos.',
+      error: error.message,
+    });
+  } finally {
+    if (client) client.release(); // Liberar cliente
   }
 };
