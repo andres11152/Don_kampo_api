@@ -14,6 +14,9 @@ dotenv.config();
 
 const app = express();
 
+// Middleware para parsear JSON
+app.use(express.json());
+
 // Configuración de Multer para subir archivos (imagen)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage }).single('photo');

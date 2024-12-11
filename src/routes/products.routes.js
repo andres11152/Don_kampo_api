@@ -19,4 +19,3 @@ router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
 router.delete('/api/deleteproduct/:id', deleteProduct);
 
 export default router;
-
