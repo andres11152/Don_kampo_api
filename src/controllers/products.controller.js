@@ -158,15 +158,6 @@ export const createProduct = async (req, res) => {
   }
 };
 
-const uploadImageSafe = async (buffer, filename) => {
-  try {
-    return await uploadImage(buffer, filename);
-  } catch (error) {
-    console.error('Error al subir la imagen:', error);
-    return null;
-  }
-};
-
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;  
@@ -244,6 +235,78 @@ export const deleteProduct = async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar el producto:', error);
     res.status(500).json({ message: 'Error al eliminar el producto' });
+  } finally {
+    if (client) client.release();
+  }
+};
+export const updateMultipleProducts = async (req, res) => {
+  let client;
+  const { products } = req.body;
+
+  console.log(products);
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ message: 'Debe proporcionar un array de productos para actualizar.' });
+  }
+
+  try {
+    client = await getConnection();
+    await client.query('BEGIN'); // Iniciar transacción
+
+    for (const product of products) {
+      const {
+        id,
+        name,
+        description,
+        category,
+        stock,
+        variations,
+      } = product;
+
+      const parsedProductId = parseInt(id, 10);
+
+      if (isNaN(parsedProductId)) {
+        throw new Error(`ID del producto inválido para el producto con ID: ${id}`);
+      }
+
+      if (!queries.products.updateProduct) {
+        throw new Error('Error en la consulta SQL para actualizar el producto.');
+      }
+
+      const result = await client.query(queries.products.updateProduct, [
+        name,
+        description,
+        category,
+        stock,
+        parsedProductId,
+      ]);
+
+      if (result.rowCount === 0) {
+        throw new Error(`Producto con ID: ${id} no encontrado.`);
+      }
+
+      if (Array.isArray(variations) && variations.length > 0) {
+        await client.query(queries.products.deleteProductVariation, [parsedProductId]);
+
+        for (const variation of variations) {
+          await client.query(queries.products.createProductVariation, [
+            parsedProductId,
+            variation.quality,
+            variation.quantity,
+            parseFloat(variation.price_home || 0),
+            parseFloat(variation.price_supermarket || 0),
+            parseFloat(variation.price_restaurant || 0),
+            parseFloat(variation.price_fruver || 0),
+          ]);
+        }
+      }
+    }
+
+    await client.query('COMMIT'); 
+    res.status(200).json({ message: 'Productos actualizados exitosamente.' });
+  } catch (error) {
+    console.error('Error al actualizar los productos:', error);
+    if (client) await client.query('ROLLBACK');
+    res.status(500).json({ message: 'Error al actualizar los productos.', error: error.message });
   } finally {
     if (client) client.release();
   }
