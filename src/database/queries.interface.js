@@ -264,7 +264,17 @@ export const queries = {
     WHERE product_id = $6
     RETURNING product_id;
   `,
-
+  updateProductVariation: `
+    UPDATE product_variations
+    SET 
+      quality = $1, 
+      quantity = $2, 
+      price_home = $3, 
+      price_supermarket = $4, 
+      price_restaurant = $5, 
+      price_fruver = $6
+    WHERE variation_id = $7;
+  `,
   getProductVariations: `
     SELECT 
       v.variation_id, 
@@ -277,6 +287,7 @@ export const queries = {
     FROM product_variations v
     WHERE v.product_id = $1;
   `,
+  
   deleteProduct: `
     DELETE FROM products WHERE product_id = $1;
   `,

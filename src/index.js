@@ -43,6 +43,8 @@ const upload = multer({ storage: storage }).single('photo');
 
 app.set('view engine', 'ejs');
 
+app.use(express.json());
+
 // Rutas del backend
 app.use(authRoutes);
 app.use(usersRoutes);
