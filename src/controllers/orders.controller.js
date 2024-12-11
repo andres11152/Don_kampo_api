@@ -2,7 +2,6 @@
   import { queries } from '../database/queries.interface.js';
   import crypto from 'crypto';
   
-
   export const placeOrder = async (req, res) => {
     const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, needsElectronicInvoice, companyName, companyNit } = req.body;
     const trackingNumber = crypto.randomBytes(5).toString('hex');
@@ -81,25 +80,62 @@
     }
 };
 
+export const getOrders = async (req, res) => {
+  try {
+    const client = await getConnection();
 
-  export const getOrders = async (req, res) => {
-    try {
-      const client = await getConnection();
-      const result = await client.query(queries.orders.getOrders);
+    // Obtener información de los pedidos
+    const ordersResult = await client.query(queries.orders.getOrders);
+    const orders = ordersResult.rows;
+
+    // Obtener productos de todos los pedidos
+    const orderIds = orders.map(order => order.id);
+    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
+    const orderItems = itemsResult.rows;
+
+    // Obtener información de envío de todos los pedidos
+    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
+    const shippingInfo = shippingResult.rows;
+
+    client.release();
+
+    // Estructurar la respuesta consolidando la información
+    const ordersWithDetails = orders.map(order => {
+      return {
+        order,
+        items: orderItems.filter(item => item.order_id === order.id),
+        shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null,
+      };
+    });
+
+    res.status(200).json(ordersWithDetails);
+  } catch (error) {
+    console.error('Error al obtener los pedidos:', error);
+    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
+  }
+};
+
+export const getOrdersById = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const client = await getConnection();
+
+    const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
+    if (orderResult.rows.length === 0) {
       client.release();
-      res.status(200).json(result.rows);
-    } catch (error) {
-      console.error('Error al obtener los pedidos:', error);
-      res.status(500).json({ msg: 'Error al obtener los pedidos.' });
+      return res.status(404).json({ msg: 'Pedido no encontrado.' });
     }
-  };
+    const orderData = orderResult.rows[0];
 
-  export const getOrdersById = async (req, res) => {
-    try {
-      const { orderId } = req.params;
-      const client = await getConnection();
+    // Productos del pedido
+    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
+    const orderItems = itemsResult.rows;
 
+    // Información de envío
+    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
+    const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
 
+<<<<<<< HEAD
       const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
         client.release();
@@ -123,6 +159,22 @@
       res.status(500).json({ msg: 'Error al obtener el pedido.' });
     }
   };
+=======
+    client.release();
+
+    // Respuesta estructurada
+    res.status(200).json({
+      order: orderData,
+      items: orderItems,
+      shippingInfo,
+    });
+  } catch (error) {
+    console.error('Error al obtener el pedido:', error);
+    res.status(500).json({ msg: 'Error al obtener el pedido.' });
+  }
+};
+
+>>>>>>> c1f2a45200e6d7a0dcb5a7fb2f6aa32de6896186
 
   /**
    * Crea un nuevo pedido.
