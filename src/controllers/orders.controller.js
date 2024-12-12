@@ -78,12 +78,13 @@
         console.error('Error al realizar el pedido:', error);
         res.status(500).json({ msg: 'Error interno del servidor.' });
     }
-};
+  };
 
-export const getOrders = async (req, res) => {
-  try {
-    const client = await getConnection();
-
+  export const getOrders = async (req, res) => {
+    try {
+      const client = await getConnection();
+  
+  
     // Obtener información de los pedidos
     const ordersResult = await client.query(queries.orders.getOrders);
     const orders = ordersResult.rows;
@@ -111,31 +112,16 @@ export const getOrders = async (req, res) => {
     res.status(200).json(ordersWithDetails);
   } catch (error) {
     console.error('Error al obtener los pedidos:', error);
-    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
-  }
-};
+    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
+  }
+  };
 
-export const getOrdersById = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const client = await getConnection();
+  export const getOrdersById = async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const client = await getConnection();
 
-    const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
-    if (orderResult.rows.length === 0) {
-      client.release();
-      return res.status(404).json({ msg: 'Pedido no encontrado.' });
-    }
-    const orderData = orderResult.rows[0];
 
-    // Productos del pedido
-    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
-    const orderItems = itemsResult.rows;
-
-    // Información de envío
-    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
-    const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
-
-<<<<<<< HEAD
       const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
         client.release();
@@ -159,22 +145,6 @@ export const getOrdersById = async (req, res) => {
       res.status(500).json({ msg: 'Error al obtener el pedido.' });
     }
   };
-=======
-    client.release();
-
-    // Respuesta estructurada
-    res.status(200).json({
-      order: orderData,
-      items: orderItems,
-      shippingInfo,
-    });
-  } catch (error) {
-    console.error('Error al obtener el pedido:', error);
-    res.status(500).json({ msg: 'Error al obtener el pedido.' });
-  }
-};
-
->>>>>>> c1f2a45200e6d7a0dcb5a7fb2f6aa32de6896186
 
   /**
    * Crea un nuevo pedido.
