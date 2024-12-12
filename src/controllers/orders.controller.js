@@ -89,8 +89,10 @@ export const getOrders = async (req, res) => {
     const ordersResult = await client.query(queries.orders.getOrders);
     const orders = ordersResult.rows;
 
+    // Obtener IDs de los pedidos
+    const orderIds = orders.map((order) => order.id);
+
     // Obtener productos de todos los pedidos
-    const orderIds = orders.map(order => order.id);
     const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
     const orderItems = itemsResult.rows;
 
@@ -98,14 +100,57 @@ export const getOrders = async (req, res) => {
     const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
     const shippingInfo = shippingResult.rows;
 
+    // Obtener IDs únicos de los productos
+    const productIds = [...new Set(orderItems.map((item) => item.product_id))];
+
+    // Obtener variaciones de productos
+    const productVariationsResult = await client.query(
+      `SELECT 
+        v.variation_id, 
+        v.product_id, 
+        v.quality, 
+        v.quantity, 
+        v.price_home, 
+        v.price_supermarket, 
+        v.price_restaurant, 
+        v.price_fruver
+       FROM product_variations v
+       WHERE v.product_id = ANY($1)`,
+      [productIds]
+    );
+    const productVariations = productVariationsResult.rows;
+
     client.release();
 
     // Estructurar la respuesta consolidando la información
-    const ordersWithDetails = orders.map(order => {
+    const ordersWithDetails = orders.map((order) => {
       return {
         order,
-        items: orderItems.filter(item => item.order_id === order.id),
-        shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null,
+        items: orderItems
+          .filter((item) => item.order_id === order.id)
+          .map((item) => {
+            const variation = productVariations.find(
+              (v) => v.variation_id === item.product_variation_id
+            );
+
+            return {
+              ...item,
+              variation: variation
+                ? {
+                    variationId: variation.variation_id,
+                    variationQuality: variation.quality,
+                    variationQuantity: variation.quantity,
+                    priceHome: variation.price_home,
+                    priceSupermarket: variation.price_supermarket,
+                    priceRestaurant: variation.price_restaurant,
+                    priceFruver: variation.price_fruver,
+                  }
+                : null,
+
+              product_variation_id: undefined,
+            };
+          }),
+        shippingInfo: shippingInfo.find((info) => info.order_id === order.id) || null,
       };
     });
 
@@ -115,6 +160,7 @@ export const getOrders = async (req, res) => {
     res.status(500).json({ msg: 'Error al obtener los pedidos.' });
   }
 };
+
 
 export const getOrdersById = async (req, res) => {
   try {
