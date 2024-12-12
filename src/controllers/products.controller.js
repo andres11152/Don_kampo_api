@@ -161,6 +161,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;  
+  
   const { name, description, category, stock, photo_url, variations } = req.body;
 
   const parsedProductId = parseInt(id, 10);
@@ -244,7 +245,7 @@ export const deleteProduct = async (req, res) => {
 
 export const updateMultipleProducts = async (req, res) => {
   let client;
-  const { products } = req.body;
+  const products = req.body;
 
   // Verificar que el array de productos esté presente y no esté vacío
   if (!Array.isArray(products) || products.length === 0) {
