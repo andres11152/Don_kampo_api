@@ -15,7 +15,6 @@
     try {
         const client = await getConnection();
 
-        // Consultamos el tipo de usuario y validamos si es un restaurante
         const userResult = await client.query(
             `SELECT id, user_type FROM users WHERE id = $1`,
             [userId]
@@ -96,11 +95,13 @@
         console.error('Error al realizar el pedido:', error);
         res.status(500).json({ msg: 'Error interno del servidor.' });
     }
-};
-export const getOrders = async (req, res) => {
-  try {
-    const client = await getConnection();
+  };
 
+  export const getOrders = async (req, res) => {
+    try {
+      const client = await getConnection();
+  
+  
     // Obtener información de los pedidos
     const ordersResult = await client.query(queries.orders.getOrders);
     const orders = ordersResult.rows;
@@ -160,72 +161,39 @@ export const getOrders = async (req, res) => {
     res.status(200).json(ordersWithDetails);
   } catch (error) {
     console.error('Error al obtener los pedidos:', error);
-    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
-  }
-};
+    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
+  }
+  };
 
-export const getOrdersById = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const client = await getConnection();
+  export const getOrdersById = async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const client = await getConnection();
 
-    // Obtener el pedido por ID
-    const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
-    if (orderResult.rows.length === 0) {
+
+      const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
+      if (orderResult.rows.length === 0) {
+        client.release();
+        return res.status(404).json({ msg: 'Pedido no encontrado.' });
+      }
+      const orderData = orderResult.rows[0];
+      const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
+      const orderItems = itemsResult.rows;
+      const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
+      const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
+
       client.release();
-      return res.status(404).json({ msg: 'Pedido no encontrado.' });
+
+      res.status(200).json({
+        order: orderData,
+        items: orderItems,
+        shippingInfo,
+      });
+    } catch (error) {
+      console.error('Error al obtener el pedido:', error);
+      res.status(500).json({ msg: 'Error al obtener el pedido.' });
     }
-    const order = orderResult.rows[0];
-
-    // Obtener productos del pedido
-    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
-    const orderItems = itemsResult.rows;
-
-    // Obtener información de envío del pedido
-    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
-    const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
-
-    // Obtener información de user_data para este pedido
-    const userDataResult = await client.query(`
-      SELECT user_data
-      FROM user_data
-      WHERE order_id = $1;
-    `, [orderId]);
-    const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
-
-    // Obtener variaciones de los productos (usando variation_id)
-    const variationIds = orderItems.map(item => item.product_variation_id);
-    const variationsResult = await client.query(`
-      SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
-      FROM product_variations
-      WHERE variation_id = ANY($1);
-    `, [variationIds]);
-
-    // Mapeo de las variaciones por variation_id
-    const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
-      acc[variation_id] = variation;
-      return acc;
-    }, {});
-
-    client.release();
-
-    // Estructurar la respuesta consolidando la información
-    const orderWithDetails = {
-      order,
-      userData: userData || null,
-      items: orderItems.map(item => ({
-        ...item,
-        variation: variationsMap[item.product_variation_id] || null, // Obtener variaciones usando product_variation_id
-      })),
-      shippingInfo: shippingInfo || null,
-    };
-
-    res.status(200).json(orderWithDetails);
-  } catch (error) {
-    console.error('Error al obtener el pedido:', error);
-    res.status(500).json({ msg: 'Error al obtener el pedido.' });
-  }
-};
+  };
 
   /**
    * Crea un nuevo pedido.

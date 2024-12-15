@@ -91,5 +91,3 @@ CREATE TABLE   products (
    photo  bytea,
 )
 */
-
-
