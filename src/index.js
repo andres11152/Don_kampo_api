@@ -6,6 +6,7 @@ import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import customerTypesRoutes from './routes/customerTypes.routes.js';
 import multer from 'multer';
+import advertsimentsRoutes from './routes/advertisements.routes.js';
 import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
 import morgan from 'morgan'
@@ -54,6 +55,7 @@ app.use(productsRoutes);
 app.use(shippingRoutes);
 app.use(orderRoutes);
 app.use(customerTypesRoutes);
+app.use(advertsimentsRoutes);
 
 // Ruta para crear productos (ejemplo de ruta POST)
 app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
