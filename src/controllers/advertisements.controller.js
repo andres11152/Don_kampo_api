@@ -1,12 +1,21 @@
 import { queries } from '../database/queries.interface.js';
 import { getConnection } from '../database/connection.js';
 
-// Obtener todas las categorías
 export const getAdvertisements = async (req, res) => {
   try {
     const connection = await getConnection();
     const result = await connection.query(queries.advertisements.getAll);
-    res.json(result.rows);
+
+    const categories = result.rows.reduce((acc, row) => {
+      acc[row.category] = {
+        photos: row.photos || [],
+        title: row.title || '',
+        description: row.description || '',
+      };
+      return acc;
+    }, {});
+
+    res.json(categories);
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Error al obtener las categorías.');
@@ -15,7 +24,7 @@ export const getAdvertisements = async (req, res) => {
 
 // Crear una nueva categoría
 export const createAdvertisement = async (req, res) => {
-  const { category, title, description } = req.body;
+  const [ category, title, description ] = req.body;
   const photos = req.files;
 
   // Validar datos obligatorios
