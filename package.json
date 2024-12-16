@@ -6,11 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --exec npx babel-node src/",
-    "build": "npm install --save-dev @babel/cli @babel/core",
+    "build": "npx babel src --out-dir dist",
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
   },
-  "author": "Andres Betancourt O",
+  "author": "Cre8tive Agency",
   "license": "ISC",
   "dependencies": {
     "@angular/cdk": "^17.3.10",
@@ -36,6 +36,7 @@
     "@babel/cli": "^7.25.9",
     "@babel/core": "^7.26.0",
     "@babel/node": "^7.26.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/plugin-transform-runtime": "^7.25.9",
     "@babel/preset-env": "^7.26.0",
     "babel-cli": "^6.26.0",
