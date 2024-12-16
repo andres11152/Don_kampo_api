@@ -16,6 +16,7 @@ dotenv.config();
 
 const app = express();
 
+
 const allowedOrigins = [
   'https://donkampo.com',  // dominio sin www
   'https://www.donkampo.com' ,'http://localhost:3000',  // dominio con www
@@ -40,13 +41,13 @@ app.use(cors(corsOptions));
 app.use(morgan("dev"));
 app.use(express.json());
 
-// Configuración de Multer para subir archivos (imagen)
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage }).single('photo');
-
 app.set('view engine', 'ejs');
 
 app.use(express.json());
+
+app.use(express.json({ limit: '50mb' })); // Ajusta el límite según lo necesites
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
 
 // Rutas del backend
 app.use(authRoutes);
@@ -57,11 +58,6 @@ app.use(orderRoutes);
 app.use(customerTypesRoutes);
 app.use(advertsimentsRoutes);
 
-// Ruta para crear productos (ejemplo de ruta POST)
-app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
-  console.log('Imagen subida:', req.file);
-  res.status(201).json({ message: 'Producto creado exitosamente!' });
-});
 
 // Manejar solicitudes OPTIONS para CORS
 app.options('*', cors(corsOptions)); 
