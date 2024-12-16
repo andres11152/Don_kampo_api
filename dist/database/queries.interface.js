@@ -66,55 +66,83 @@ export const queries = {
   },
   orders: {
     getOrders: `
-      SELECT 
-        o.id, 
-        o.customer_id, 
-        o.order_date, 
-        o.status_id, 
-        o.total, 
-        o.requires_electronic_billing, 
-        o.company_name, 
-        o.nit 
-      FROM orders o
-    `,
+    SELECT 
+      o.id, 
+      o.customer_id, 
+      o.order_date, 
+      o.status_id, 
+      o.total, 
+      o.requires_electronic_billing, 
+      o.company_name, 
+      o.nit 
+    FROM orders o
+  `,
     getOrdersById: `
-      SELECT 
-        o.id, 
-        o.customer_id, 
-        o.order_date, 
-        o.status_id, 
-        o.total, 
-        o.requires_electronic_billing, 
-        o.company_name, 
-        o.nit,
-        u.user_name AS customer_name, 
-        u.email AS customer_email
-      FROM orders o
-      LEFT JOIN users u ON o.customer_id = u.id
-      WHERE o.id = $1
-    `,
+    SELECT 
+      o.id, 
+      o.customer_id, 
+      o.order_date, 
+      o.status_id, 
+      o.total, 
+      o.requires_electronic_billing, 
+      o.company_name, 
+      o.nit,
+      u.user_name AS customer_name, 
+      u.email AS customer_email
+    FROM orders o
+    LEFT JOIN users u ON o.customer_id = u.id
+    WHERE o.id = $1
+  `,
     getOrderItemsByOrderId: `
-      SELECT 
-        oi.order_id, 
-        oi.product_id, 
-        oi.quantity, 
-        oi.price,
-        p.name AS product_name, 
-        p.description AS product_description
-      FROM order_items oi
-      LEFT JOIN products p ON oi.product_id = p.product_id
-      WHERE oi.order_id = $1
-    `,
+    SELECT 
+      oi.order_id, 
+      oi.product_id, 
+      oi.quantity, 
+      oi.price,
+      p.name AS product_name, 
+      p.description AS product_description,
+      pv.variation_id AS product_variation_id
+    FROM order_items oi
+    LEFT JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+    WHERE oi.order_id = $1
+  `,
+    getOrderItemsByOrderIds: `
+    SELECT 
+      oi.order_id, 
+      oi.product_id, 
+      oi.quantity, 
+      oi.price,
+      p.name AS product_name, 
+      p.description AS product_description,
+      pv.variation_id AS product_variation_id
+    FROM order_items oi
+    LEFT JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+    WHERE oi.order_id = ANY($1)
+  `,
     getShippingInfoByOrderId: `
-      SELECT 
-        si.shipping_method, 
-        si.tracking_number, 
-        si.estimated_delivery,
-        si.actual_delivery, 
-        si.shipping_status_id
-      FROM shipping_info si
-      WHERE si.order_id = $1
-    `,
+    SELECT 
+      si.order_id,
+      si.shipping_method, 
+      si.tracking_number, 
+      si.estimated_delivery,
+      si.actual_delivery, 
+      si.shipping_status_id
+    FROM shipping_info si
+    WHERE si.order_id = $1
+  `,
+    getShippingInfoByOrderIds: `
+    SELECT 
+      si.order_id,
+      si.shipping_method, 
+      si.tracking_number, 
+      si.estimated_delivery,
+      si.actual_delivery, 
+      si.shipping_status_id
+    FROM shipping_info si
+    WHERE si.order_id = ANY($1)
+  `,
     createOrder: `
       INSERT INTO orders (
         customer_id, 
@@ -258,6 +286,17 @@ export const queries = {
     WHERE product_id = $6
     RETURNING product_id;
   `,
+    updateProductVariation: `
+    UPDATE product_variations
+    SET 
+      quality = $1, 
+      quantity = $2, 
+      price_home = $3, 
+      price_supermarket = $4, 
+      price_restaurant = $5, 
+      price_fruver = $6
+    WHERE variation_id = $7;
+  `,
     getProductVariations: `
     SELECT 
       v.variation_id, 
@@ -276,5 +315,17 @@ export const queries = {
     deleteProductVariation: `
     DELETE FROM product_variations WHERE product_id = $1;
   `
+  },
+  advertisements: {
+    getAll: 'SELECT * FROM advertisements',
+    createAdvertisement: `
+    INSERT INTO advertisements (title, description, category, photo_url)
+    VALUES ($1, $2, $3, $4) RETURNING advertisement_id
+  `,
+    updateAdvertisement: `
+    UPDATE advertisements SET title = $1, description = $2, category = $3, photo_url = $4
+    WHERE advertisement_id = $5
+  `,
+    deleteAdvertisement: 'DELETE FROM advertisements WHERE advertisement_id = $1'
   }
 };

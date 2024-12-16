@@ -29,10 +29,6 @@ export const createAdvertisement = async (req, res) => {
 
   try {
     const { title, description, category } = req.body;
-<<<<<<< HEAD
-    console.log(req.body);
-=======
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
     // Manejo de imágenes: validación explícita
     const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png';  // Imagen predeterminada
     let photoUrl = defaultPhotoUrl;
@@ -74,32 +70,22 @@ export const updateAdvertisement = async (req, res) => {
   let connection;
   const { id } = req.params;
   const { title, description, category, photo_url } = req.body;
-<<<<<<< HEAD
-=======
   console.log(req.body); // Ver los datos recibidos para depuración
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
 
   const parsedAdvertisementId = parseInt(id, 10);
 
   if (isNaN(parsedAdvertisementId)) {
     return res.status(400).json({ message: 'ID de la publicidad inválido' });
   }
-<<<<<<< HEAD
-=======
 
   // Validación de campos obligatorios
   if (!title || !description || !category) {
     return res.status(400).json({ message: 'Faltan campos obligatorios' });
   }
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
 
   try {
     connection = await getConnection();
 
-<<<<<<< HEAD
-    const updatedPhotoUrl = photo_url || null;  // Si no se proporciona photo_url, se establece como null
-
-=======
     // No se actualiza la imagen, solo se conserva la foto actual o se usa la proporcionada en photo_url
     let updatedPhotoUrl = photo_url || null;
 
@@ -114,16 +100,11 @@ export const updateAdvertisement = async (req, res) => {
     }
 
     // Actualización en la base de datos
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
     const result = await connection.query(queries.advertisements.updateAdvertisement, [
       title,
       description,
       category,
-<<<<<<< HEAD
-      updatedPhotoUrl,
-=======
       updatedPhotoUrl, // Solo se actualiza la foto si se ha proporcionado una nueva
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
       parsedAdvertisementId
     ]);
 
@@ -140,20 +121,12 @@ export const updateAdvertisement = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-// Eliminar una publicidad
-export const deleteAdvertisement = async (req, res) => {
-  const { id } = req.params;
-  let connection;
-
-=======
 
 // Eliminar una publicidad
 export const deleteAdvertisement = async (req, res) => {
   const { id } = req.params;
   let connection;
 
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
   if (!id) {
     return res.status(400).json({ message: 'El ID de la publicidad es requerido' });
   }

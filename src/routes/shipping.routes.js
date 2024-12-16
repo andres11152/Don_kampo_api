@@ -1,6 +1,5 @@
 import express from 'express';
-import {createShippingInfo,getShippingInfo,getShippingInfoById, updateShippingInfo, deleteShippingInfo,} 
-from '../controllers/shipping.controller.js';
+import { createShippingInfo, getShippingInfo, getShippingInfoById, updateShippingInfo, deleteShippingInfo } from '../controllers/shipping.controller.js';
 
 const router = express.Router();
 
