@@ -25,17 +25,12 @@ router.post('/api/publicidad',
   optimizeImage, 
   createAdvertisement
 );
-<<<<<<< HEAD
-
-router.put('/api/publicidad/:id', updateAdvertisement);
-=======
 router.put('/api/publicidad/:id',
   upload.single('photo_url'),
   handleMulterError,          
   optimizeImage,              
   updateAdvertisement      
 );
->>>>>>> 8271b5ed57dd42ea27c9ded783c469d35125ae3f
 router.delete('/api/publicidad/:id', deleteAdvertisement);
 
 export default router;
