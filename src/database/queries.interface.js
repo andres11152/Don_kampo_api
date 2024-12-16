@@ -323,22 +323,16 @@ export const queries = {
     DELETE FROM product_variations WHERE product_id = $1;
   `,
 },
-  advertisements: {
-    getAll: 'select * from advertisements',
-    create: `
-      insert into advertisements (category, photos, title, description)
-      values ($1, $2, $3, $4)
-      returning *`,
-    updateTitleAndDescription: `
-      update advertisements
-      set title = $1, description = $2, updated_at = current_timestamp
-      where id = $3
-      returning *`,
-    updatePhotos: `
-      update advertisements
-      set photos = $1, updated_at = current_timestamp
-      where id = $2
-      returning *`,
-  },
+advertisements: {
+  getAll: 'SELECT * FROM advertisements',
+  createAdvertisement: `
+    INSERT INTO advertisements (title, description, category, photo_url)
+    VALUES ($1, $2, $3, $4) RETURNING advertisement_id
+  `,
+  updateAdvertisement: `
+    UPDATE advertisements SET title = $1, description = $2, category = $3, photo_url = $4
+    WHERE advertisement_id = $5
+  `,
+  deleteAdvertisement: 'DELETE FROM advertisements WHERE advertisement_id = $1',
+},
 };
-
