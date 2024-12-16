@@ -5,9 +5,7 @@ import productsRoutes from './routes/products.routes.js';
 import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import customerTypesRoutes from './routes/customerTypes.routes.js';
-import multer from 'multer';
 import advertsimentsRoutes from './routes/advertisements.routes.js';
-import { optimizeImage } from './middlewares/imageMiddleware.js';
 import cors from 'cors';
 import morgan from 'morgan'
 import dotenv from 'dotenv';

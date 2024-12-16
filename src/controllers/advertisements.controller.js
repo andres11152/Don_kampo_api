@@ -29,7 +29,6 @@ export const createAdvertisement = async (req, res) => {
 
   try {
     const { title, description, category } = req.body;
-    console.log(req.body);
     // Manejo de imágenes: validación explícita
     const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png';  // Imagen predeterminada
     let photoUrl = defaultPhotoUrl;
@@ -71,6 +70,7 @@ export const updateAdvertisement = async (req, res) => {
   let connection;
   const { id } = req.params;
   const { title, description, category, photo_url } = req.body;
+  console.log(req.body); // Ver los datos recibidos para depuración
 
   const parsedAdvertisementId = parseInt(id, 10);
 
@@ -78,16 +78,33 @@ export const updateAdvertisement = async (req, res) => {
     return res.status(400).json({ message: 'ID de la publicidad inválido' });
   }
 
+  // Validación de campos obligatorios
+  if (!title || !description || !category) {
+    return res.status(400).json({ message: 'Faltan campos obligatorios' });
+  }
+
   try {
     connection = await getConnection();
 
-    const updatedPhotoUrl = photo_url || null;  // Si no se proporciona photo_url, se establece como null
+    // No se actualiza la imagen, solo se conserva la foto actual o se usa la proporcionada en photo_url
+    let updatedPhotoUrl = photo_url || null;
 
+    // Si no se envía una nueva imagen, no se hace nada con photo_url
+    if (req.file && req.file.buffer) {
+      try {
+        updatedPhotoUrl = await uploadImage(req.file.buffer, req.file.originalname); // Solo si se sube una nueva imagen
+      } catch (error) {
+        console.error('Error al subir la imagen:', error.message);
+        return res.status(500).json({ message: 'Error al subir la imagen a S3' });
+      }
+    }
+
+    // Actualización en la base de datos
     const result = await connection.query(queries.advertisements.updateAdvertisement, [
       title,
       description,
       category,
-      updatedPhotoUrl,
+      updatedPhotoUrl, // Solo se actualiza la foto si se ha proporcionado una nueva
       parsedAdvertisementId
     ]);
 
@@ -103,6 +120,7 @@ export const updateAdvertisement = async (req, res) => {
     if (connection) connection.release();
   }
 };
+
 
 // Eliminar una publicidad
 export const deleteAdvertisement = async (req, res) => {
