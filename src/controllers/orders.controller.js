@@ -3,10 +3,11 @@
   import crypto from 'crypto';
   
   export const placeOrder = async (req, res) => {
-    const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, needsElectronicInvoice, companyName, companyNit } = req.body;
+    const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit } = req.body;
     const trackingNumber = crypto.randomBytes(5).toString('hex');
     const shippingStatusId = 1;
 
+    
     if (!userId || !cartDetails || !total) {
         return res.status(400).json({ msg: 'Información incompleta para procesar el pedido.' });
     }
@@ -15,7 +16,7 @@
         const client = await getConnection();
 
         const userResult = await client.query(
-            `SELECT id FROM users WHERE id = $1`,
+            `SELECT id, user_type FROM users WHERE id = $1`,
             [userId]
         );
 
@@ -24,6 +25,13 @@
             return res.status(404).json({ msg: 'Usuario no encontrado.' });
         }
 
+        const userType = userResult.rows[0].user_type;
+        const isRestaurant = userType === 'restaurante'; // Ajusta el valor según cómo esté almacenado
+
+        // Si el usuario es un restaurante, se necesita factura electrónica
+        const needsElectronicInvoice = isRestaurant || false;
+
+        // Verificamos si los productos existen
         const productIds = cartDetails.map((item) => item.productId);
         const productCheckResult = await client.query(
             `SELECT product_id FROM products WHERE product_id = ANY($1)`,
@@ -42,16 +50,24 @@
         }
 
         const orderResult = await client.query(queries.orders.createOrder, [
-            userId,
-            new Date(),
-            1, 
-            total,
-            needsElectronicInvoice || false,
-            companyName || null,
-            companyNit || null,
-        ]);
-        const orderId = orderResult.rows[0].id;
-
+          userId,
+          new Date(),
+          1,
+          total,
+          needsElectronicInvoice, // Incluimos la lógica de la factura electrónica aquí
+          companyName || null,
+          companyNit || null,
+      ]);
+      
+      const orderId = orderResult.rows[0].id;
+      
+      // Luego guardas el user_data en una tabla separada
+      await client.query('INSERT INTO user_data (order_id, user_data) VALUES ($1, $2)', [
+          orderId,
+          userData,
+      ]);
+      
+        // Creamos los items de la orden
         for (const item of cartDetails) {
             await client.query(queries.orders.createOrderItem, [
                 orderId,
@@ -61,6 +77,7 @@
             ]);
         }
 
+        // Si hay información de envío, la guardamos también
         if (shippingMethod && estimatedDelivery && actualDelivery) {
             await client.query(queries.shipping_info.createShippingInfo, [
                 shippingMethod,
@@ -88,15 +105,41 @@
     // Obtener información de los pedidos
     const ordersResult = await client.query(queries.orders.getOrders);
     const orders = ordersResult.rows;
-
+    
     // Obtener productos de todos los pedidos
     const orderIds = orders.map(order => order.id);
     const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
     const orderItems = itemsResult.rows;
-
+    
     // Obtener información de envío de todos los pedidos
     const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
     const shippingInfo = shippingResult.rows;
+
+    // Obtener información de user_data para todos los pedidos
+    const userDataResult = await client.query(`
+      SELECT order_id, user_data
+      FROM user_data
+      WHERE order_id = ANY($1);
+    `, [orderIds]);
+    const userDataMap = userDataResult.rows.reduce((acc, { order_id, user_data }) => {
+      acc[order_id] = user_data;
+      return acc;
+    }, {});
+
+    // Obtener variaciones de los productos (usando variation_id)
+    const variationIds = orderItems.map(item => item.product_variation_id);  // Asumiendo que tienes un campo product_variation_id
+    
+    const variationsResult = await client.query(`
+      SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+      FROM product_variations
+      WHERE variation_id = ANY($1);
+    `, [variationIds]);
+
+    // Mapeo de las variaciones por variation_id
+    const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
+      acc[variation_id] = variation;
+      return acc;
+    }, {});
 
     client.release();
 
@@ -104,7 +147,13 @@
     const ordersWithDetails = orders.map(order => {
       return {
         order,
-        items: orderItems.filter(item => item.order_id === order.id),
+        userData: userDataMap[order.id] || null,
+        items: orderItems
+          .filter(item => item.order_id === order.id)
+          .map(item => ({
+            ...item,
+            variation: variationsMap[item.product_variation_id] || null, // Obtener variaciones usando product_variation_id
+          })),
         shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null,
       };
     });

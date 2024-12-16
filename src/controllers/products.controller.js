@@ -170,6 +170,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;  
+  
   const { name, description, category, stock, photo_url, variations } = req.body;
 
   const parsedProductId = parseInt(id, 10);
