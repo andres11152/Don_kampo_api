@@ -19,8 +19,7 @@ router.post('/api/createproduct', upload.single('photo_url'), handleMulterError,
 router.get('/api/products', getProducts); 
 router.get('/api/getproduct/:id', getProductById);  
 router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
-router.delete('/api/deleteproduct/:id', deleteProduct);
-
 router.put('/api/updatemultipleproducts', updateMultipleProducts);
+router.delete('/api/deleteproduct/:id', deleteProduct);
 
 export default router;

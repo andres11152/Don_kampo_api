@@ -3,7 +3,7 @@ import { uploadImage } from '../helpers/uploadImage.js';
 import { queries } from '../database/queries.interface.js';
 
 export const getProducts = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 9 } = req.query;
   const offset = (page - 1) * limit;
 
   let client;
@@ -98,25 +98,25 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   let client;
 
-  const { name, description, category, stock, variations } = req.body;
-
-  const photoBuffer = req.file?.buffer || null;
-  const defaultPhotoUrl = 'https://example.com/default-image.jpg';
-  let photoUrl = null;
-
-  if (photoBuffer) {
-    try {
-      photoUrl = await uploadImage(photoBuffer, req.file.originalname);
-    } catch (error) {
-      return res.status(500).json({ message: 'Error al subir la imagen a S3' });
-    }
-  } else {
-    photoUrl = defaultPhotoUrl;
-  }
-
-  const validatedStock = stock ? parseInt(stock, 10) : 0;
-
   try {
+    const { name, description, category, stock, variations } = req.body;
+
+    // Manejo de imágenes: validación explícita
+    const defaultPhotoUrl = 'https://example.com/default-image.jpg';
+    let photoUrl = defaultPhotoUrl;
+
+    if (req.file && req.file.buffer) {
+      try {
+        photoUrl = await uploadImage(req.file.buffer, req.file.originalname);
+      } catch (error) {
+        console.error('Error al subir la imagen:', error.message);
+        return res.status(500).json({ message: 'Error al subir la imagen a S3' });
+      }
+    }
+
+    const validatedStock = stock ? parseInt(stock, 10) : 0;
+
+    // Conexión a la base de datos
     client = await getConnection();
 
     const result = await client.query(queries.products.createProduct, [
@@ -129,9 +129,17 @@ export const createProduct = async (req, res) => {
 
     const productId = result.rows[0].product_id;
 
+    // Manejo de variaciones
     if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
-        const { quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver } = variation;
+        const {
+          quality,
+          quantity,
+          price_home,
+          price_supermarket,
+          price_restaurant,
+          price_fruver,
+        } = variation;
 
         if (!quality || !quantity) continue;
 
@@ -152,6 +160,7 @@ export const createProduct = async (req, res) => {
       product_id: productId,
     });
   } catch (error) {
+    console.error('Error en createProduct:', error.message);
     res.status(500).json({ message: 'Error al crear el producto', error: error.message });
   } finally {
     if (client) client.release();
@@ -161,6 +170,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;  
+  
   const { name, description, category, stock, photo_url, variations } = req.body;
 
   const parsedProductId = parseInt(id, 10);
@@ -244,8 +254,8 @@ export const deleteProduct = async (req, res) => {
 
 export const updateMultipleProducts = async (req, res) => {
   let client;
-  const { products } = req.body;
-
+  const products = req.body;
+  
   // Verificar que el array de productos esté presente y no esté vacío
   if (!Array.isArray(products) || products.length === 0) {
     return res.status(400).json({ message: 'Debe proporcionar un array de productos para actualizar.' });
