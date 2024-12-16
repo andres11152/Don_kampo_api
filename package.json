@@ -13,6 +13,7 @@
   "author": "Andres Betancourt O",
   "license": "ISC",
   "dependencies": {
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@angular/cdk": "^17.3.10",
     "@angular/material": "^17.3.10",
     "@aws-sdk/client-s3": "^3.693.0",
@@ -38,7 +39,6 @@
     "@babel/cli": "^7.26.4",
     "@babel/core": "^7.26.0",
     "@babel/node": "^7.26.0",
-    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/plugin-transform-async-to-generator": "^7.15.4",
     "@babel/plugin-transform-runtime": "^7.25.9",
     "@babel/preset-env": "^7.26.0",
