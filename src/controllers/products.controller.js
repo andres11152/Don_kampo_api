@@ -6,55 +6,27 @@ export const getProducts = async (req, res) => {
   const { page = 1, limit = 9 } = req.query;
   const offset = (page - 1) * limit;
   let client;
+
   try {
     client = await getConnection();
-    const productsResult = await client.query(queries.products.getProducts, [
+    const { rows } = await client.query(queries.products.getProducts, [
       offset,
       limit,
     ]);
-    if (productsResult.rows.length === 0) {
+
+    if (rows.length === 0) {
       return res.status(404).json({ message: "No hay productos disponibles" });
     }
-    const productsWithVariations = productsResult.rows.reduce((acc, row) => {
-      const existingProduct = acc.find(
-        (product) => product.product_id === row.product_id
-      );
-      const variation = {
-        variation_id: row.variation_id,
-        quality: row.quality,
-        quantity: row.quantity,
-        price_home: row.price_home,
-        price_supermarket: row.price_supermarket,
-        price_restaurant: row.price_restaurant,
-        price_fruver: row.price_fruver,
-      };
-      if (existingProduct) {
-        existingProduct.variations.push(variation);
-      } else {
-        acc.push({
-          product_id: row.product_id,
-          name: row.name,
-          description: row.description,
-          category: row.category,
-          stock: row.stock,
-          photo_url: row.photo_url,
-          variations: row.variation_id ? [variation] : [],
-        });
-      }
-      return acc;
-    }, []);
-    res.status(200).json(productsWithVariations);
+
+    res.status(200).json(rows); // Devuelve los datos tal cual, ya agrupados
   } catch (error) {
-    console.error(
-      "Error al obtener los productos:",
-      error.message,
-      error.stack
-    );
+    console.error("Error al obtener los productos:", error.message, error.stack);
     res.status(500).json({ message: "Error al obtener los productos" });
   } finally {
     if (client) client.release();
   }
 };
+
 
 export const getProductById = async (req, res) => {
   const { id } = req.params;

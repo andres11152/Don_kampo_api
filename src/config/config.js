@@ -9,6 +9,9 @@ export const dbSettings = {
     database: process.env.DB_NAME || '', 
     password: process.env.DB_PW || '',
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 6089, 
+    max: process.env.DB_MAX || 10, 
+    idleTimeoutMillis: process.env.DB_IDLE_TIMEOUT || 30000, 
+    connectionTimeoutMillis: process.env.DB_CONN_TIMEOUT || 2000,
 }
 
 
