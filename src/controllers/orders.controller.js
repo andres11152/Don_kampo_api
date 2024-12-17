@@ -263,20 +263,27 @@
    */
   export const deleteOrders = async (req, res) => {
     const { orderId } = req.params;
-
+  
     if (!orderId) {
       return res.status(400).json({ msg: 'ID del pedido no proporcionado.' });
     }
-
+  
     try {
       const client = await getConnection();
+  
+      // Verificar si el pedido existe
       const orderCheck = await client.query('SELECT id FROM orders WHERE id = $1', [orderId]);
       if (orderCheck.rowCount === 0) {
         client.release();
         return res.status(404).json({ msg: 'Pedido no encontrado.' });
       }
-
+  
+      // Eliminar datos relacionados en user_data
+      await client.query(queries.user_data.deleteUserDataByOrderId, [orderId]);
+  
+      // Eliminar el pedido de orders
       await client.query(queries.orders.deleteOrders, [orderId]);
+  
       client.release();
       res.status(200).json({ msg: 'Pedido eliminado exitosamente.' });
     } catch (error) {

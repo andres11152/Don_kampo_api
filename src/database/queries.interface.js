@@ -335,4 +335,10 @@ advertisements: {
   `,
   deleteAdvertisement: 'DELETE FROM advertisements WHERE advertisement_id = $1',
 },
+user_data: {
+  deleteUserDataByOrderId: `
+    DELETE FROM user_data
+    WHERE order_id = $1
+  `,
+},
 };
