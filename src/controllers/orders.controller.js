@@ -169,32 +169,64 @@
     try {
       const { orderId } = req.params;
       const client = await getConnection();
-
-
+  
+      // Obtener información del pedido
       const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
         client.release();
         return res.status(404).json({ msg: 'Pedido no encontrado.' });
       }
-      const orderData = orderResult.rows[0];
+      const order = orderResult.rows[0];
+  
+      // Obtener productos del pedido
       const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
       const orderItems = itemsResult.rows;
+  
+      // Obtener información de envío del pedido
       const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
       const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
-
+  
+      // Obtener información de user_data del pedido
+      const userDataResult = await client.query(`
+        SELECT user_data
+        FROM user_data
+        WHERE order_id = $1;
+      `, [orderId]);
+      const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
+  
+      // Obtener variaciones de los productos (usando product_variation_id)
+      const variationIds = orderItems.map(item => item.product_variation_id);
+      const variationsResult = await client.query(`
+        SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+        FROM product_variations
+        WHERE variation_id = ANY($1);
+      `, [variationIds]);
+  
+      // Mapeo de las variaciones por variation_id
+      const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
+        acc[variation_id] = variation;
+        return acc;
+      }, {});
+  
       client.release();
-
-      res.status(200).json({
-        order: orderData,
-        items: orderItems,
+  
+      // Estructurar la respuesta consolidando la información
+      const orderWithDetails = {
+        order,
+        userData,
+        items: orderItems.map(item => ({
+          ...item,
+          variation: variationsMap[item.product_variation_id] || null, // Obtener variaciones usando product_variation_id
+        })),
         shippingInfo,
-      });
+      };
+  
+      res.status(200).json(orderWithDetails);
     } catch (error) {
       console.error('Error al obtener el pedido:', error);
       res.status(500).json({ msg: 'Error al obtener el pedido.' });
     }
   };
-
   /**
    * Crea un nuevo pedido.
    */
