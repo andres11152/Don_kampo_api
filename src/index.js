@@ -57,12 +57,6 @@ app.use(orderRoutes);
 app.use(customerTypesRoutes);
 app.use(advertsimentsRoutes);
 
-// Ruta para crear productos (ejemplo de ruta POST)
-app.post('/api/createproduct', upload, optimizeImage, (req, res) => {
-  console.log('Imagen subida:', req.file);
-  res.status(201).json({ message: 'Producto creado exitosamente!' });
-});
-
 // Manejar solicitudes OPTIONS para CORS
 app.options('*', cors(corsOptions)); 
 
