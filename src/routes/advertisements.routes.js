@@ -6,8 +6,8 @@ import {
   updateAdvertisement,
   deleteAdvertisement,
 } from "../controllers/advertisements.controller.js";
-import { handleMulterError } from "../middlewares/validateData.js";
-import { optimizeImage } from "../middlewares/imageMiddleware.js";
+import { handleMulterError } from "../middlewares/validateData.middleware.js";
+import { optimizeImage } from "../middlewares/image.middleware.js";
 
 const storage = multer.memoryStorage();
 const upload = multer({

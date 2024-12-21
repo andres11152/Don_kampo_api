@@ -1,6 +1,6 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
-import { sendEmail } from '../utils/mailer.js';  
+import { sendEmail } from '../helpers/mailer.js';  
 import bcrypt from 'bcrypt';
 
 export const requestPasswordReset = async (req, res) => {

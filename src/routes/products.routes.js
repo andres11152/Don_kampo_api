@@ -1,8 +1,8 @@
 import express from 'express';
 import multer from 'multer';
 import { getProducts, getProductById, createProduct, updateProduct, deleteProduct, updateMultipleProducts } from '../controllers/products.controller.js';
-import { handleMulterError, parseMultipartData } from '../middlewares/validateData.js';
-import { optimizeImage } from '../middlewares/imageMiddleware.js';
+import { handleMulterError, parseMultipartData } from '../middlewares/validateData.middleware.js';
+import { optimizeImage } from '../middlewares/image.middleware.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({
