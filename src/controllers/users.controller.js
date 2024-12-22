@@ -4,14 +4,17 @@ import { queries } from '../database/queries.interface.js';
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     const result = await client.query(queries.users.getUsers);
-    client.release();
-    return res.status(200).json(result.rows);
+
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error al obtener los usuarios:', error);
-    return res.status(500).json({ msg: 'Error al obtener los usuarios' });
+    console.error('Error al obtener los usuarios:', error.message);
+    res.status(500).json({ msg: 'Error al obtener los usuarios', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -23,12 +26,12 @@ export const getUsersById = async (req, res) => {
     return res.status(400).json({ msg: 'Por favor proporciona un ID válido.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     const userResult = await client.query(queries.users.getUsersById, [id]);
 
     if (userResult.rows.length === 0) {
-      client.release();
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
 
@@ -36,15 +39,15 @@ export const getUsersById = async (req, res) => {
     const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
     const userOrders = ordersResult.rows;
 
-    client.release();
-
-    return res.status(200).json({
+    res.status(200).json({
       user: userData,
       orders: userOrders,
     });
   } catch (error) {
-    console.error('Error al obtener usuario:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor.' });
+    console.error('Error al obtener usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -58,22 +61,24 @@ export const createUsers = async (req, res) => {
     });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
+
     const emailCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     if (emailCheck.rowCount > 0) {
-      client.release();
       return res.status(400).json({ msg: 'El correo electrónico ya está registrado.' });
     }
 
     const hashedPassword = await bcrypt.hash(user_password, 10);
     await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
 
-    client.release();
-    return res.status(201).json({ msg: 'Usuario creado exitosamente.' });
+    res.status(201).json({ msg: 'Usuario creado exitosamente.' });
   } catch (error) {
-    console.error('Error al crear usuario:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor, intente nuevamente.' });
+    console.error('Error al crear usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor, intente nuevamente.', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -86,8 +91,10 @@ export const updateUsers = async (req, res) => {
     return res.status(400).json({ msg: 'ID del usuario es obligatorio.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
+
     const updates = [];
     const values = [];
     let paramIndex = 1;
@@ -116,16 +123,17 @@ export const updateUsers = async (req, res) => {
     `;
 
     const result = await client.query(query, values);
-    client.release();
 
     if (result.rowCount === 0) {
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
 
-    return res.status(200).json({ msg: 'Usuario actualizado exitosamente.' });
+    res.status(200).json({ msg: 'Usuario actualizado exitosamente.' });
   } catch (error) {
-    console.error('Error al actualizar usuario:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor.' });
+    console.error('Error al actualizar usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -137,20 +145,21 @@ export const deleteUsers = async (req, res) => {
     return res.status(400).json({ msg: 'Por favor proporciona un ID válido.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     const result = await client.query(queries.users.deleteUsers, [id]);
-
-    client.release();
 
     if (result.rowCount === 0) {
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
 
-    return res.status(200).json({ msg: 'Usuario eliminado exitosamente.' });
+    res.status(200).json({ msg: 'Usuario eliminado exitosamente.' });
   } catch (error) {
-    console.error('Error al eliminar usuario:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor.' });
+    console.error('Error al eliminar usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -164,13 +173,16 @@ export const updateUserStatus = async (req, res) => {
     });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     await client.query(queries.users.updateUserStatus, [id, status_id]);
-    client.release();
-    return res.status(200).json({ msg: 'Estado del usuario actualizado exitosamente.' });
+
+    res.status(200).json({ msg: 'Estado del usuario actualizado exitosamente.' });
   } catch (error) {
-    console.error('Error al actualizar el estado del usuario:', error);
-    return res.status(500).json({ msg: 'Error interno del servidor.' });
+    console.error('Error al actualizar el estado del usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
+  } finally {
+    if (client) client.release();
   }
 };

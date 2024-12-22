@@ -4,8 +4,9 @@ import { uploadImage } from '../helpers/uploadImage.js';
 
 // Obtener todas las publicidades
 export const getAdvertisements = async (req, res) => {
+  let connection;
   try {
-    const connection = await getConnection();
+    connection = await getConnection();
     const result = await connection.query(queries.advertisements.getAll);
 
     const advertisements = result.rows.map(row => ({
@@ -13,13 +14,15 @@ export const getAdvertisements = async (req, res) => {
       title: row.title || '',
       description: row.description || '',
       category: row.category || '',
-      photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png'  // Imagen por defecto si no existe
+      photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png', // Imagen por defecto
     }));
 
     res.json(advertisements);
   } catch (error) {
     console.error('Error en getAdvertisements:', error.message);
     res.status(500).json({ message: 'Error al obtener las publicidades', error: error.message });
+  } finally {
+    if (connection) connection.release();
   }
 };
 
@@ -29,9 +32,9 @@ export const createAdvertisement = async (req, res) => {
 
   try {
     const { title, description, category } = req.body;
-    console.log(req.body);
-    // Manejo de imágenes: validación explícita
-    const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png';  // Imagen predeterminada
+
+    // Manejo de imágenes
+    const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png'; // Imagen predeterminada
     let photoUrl = defaultPhotoUrl;
 
     if (req.file && req.file.buffer) {
@@ -49,14 +52,14 @@ export const createAdvertisement = async (req, res) => {
       title,
       description,
       category,
-      photoUrl
+      photoUrl,
     ]);
 
-    const advertisementId = result.rows[0].advertisement_id;
+    const advertisementId = result.rows[0]?.advertisement_id;
 
     res.status(201).json({
       message: 'Publicidad creada exitosamente',
-      advertisement_id: advertisementId
+      advertisement_id: advertisementId,
     });
   } catch (error) {
     console.error('Error al crear la publicidad:', error.message);
@@ -81,14 +84,12 @@ export const updateAdvertisement = async (req, res) => {
   try {
     connection = await getConnection();
 
-    const updatedPhotoUrl = photo_url || null;  // Si no se proporciona photo_url, se establece como null
-
     const result = await connection.query(queries.advertisements.updateAdvertisement, [
       title,
       description,
       category,
-      updatedPhotoUrl,
-      parsedAdvertisementId
+      photo_url || null, // Si no se proporciona photo_url, se establece como null
+      parsedAdvertisementId,
     ]);
 
     if (result.rowCount === 0) {

@@ -1,5 +1,5 @@
 import { getConnection } from '../database/connection.js';
-import { uploadImage } from '../helpers/uploadImage.js'; 
+import { uploadImage } from '../helpers/uploadImage.js';
 import { queries } from '../database/queries.interface.js';
 
 export const getProducts = async (req, res) => {
@@ -19,7 +19,9 @@ export const getProducts = async (req, res) => {
     const productsWithVariations = [];
 
     productsResult.rows.forEach((row) => {
-      const existingProduct = productsWithVariations.find((product) => product.product_id === row.product_id);
+      const existingProduct = productsWithVariations.find(
+        (product) => product.product_id === row.product_id
+      );
 
       if (existingProduct) {
         existingProduct.variations.push({
@@ -57,21 +59,20 @@ export const getProducts = async (req, res) => {
     });
 
     res.status(200).json(productsWithVariations);
-
   } catch (error) {
     console.error('Error al obtener los productos:', error);
-    res.status(500).json({ message: 'Error al obtener los productos' });
+    res.status(500).json({ message: 'Error al obtener los productos', error: error.message });
   } finally {
     if (client) client.release();
   }
 };
 
 export const getProductById = async (req, res) => {
-  const { id } = req.params;  
+  const { id } = req.params;
 
   let client;
   try {
-    client = await getConnection();  
+    client = await getConnection();
 
     const productResult = await client.query(queries.products.getProductById, [id]);
 
@@ -80,18 +81,18 @@ export const getProductById = async (req, res) => {
     }
 
     const variationsResult = await client.query(queries.products.getProductVariations, [id]);
-  
+
     const productWithVariations = {
-      ...productResult.rows[0], 
-      variations: variationsResult.rows  
+      ...productResult.rows[0],
+      variations: variationsResult.rows,
     };
 
     res.status(200).json(productWithVariations);
   } catch (error) {
     console.error('Error al obtener el producto por ID:', error);
-    res.status(500).json({ message: 'Error al obtener el producto' });
+    res.status(500).json({ message: 'Error al obtener el producto', error: error.message });
   } finally {
-    if (client) client.release();  
+    if (client) client.release();
   }
 };
 
@@ -101,7 +102,6 @@ export const createProduct = async (req, res) => {
   try {
     const { name, description, category, stock, variations } = req.body;
 
-    // Manejo de imágenes: validación explícita
     const defaultPhotoUrl = 'https://example.com/default-image.jpg';
     let photoUrl = defaultPhotoUrl;
 
@@ -116,7 +116,6 @@ export const createProduct = async (req, res) => {
 
     const validatedStock = stock ? parseInt(stock, 10) : 0;
 
-    // Conexión a la base de datos
     client = await getConnection();
 
     const result = await client.query(queries.products.createProduct, [
@@ -129,7 +128,6 @@ export const createProduct = async (req, res) => {
 
     const productId = result.rows[0].product_id;
 
-    // Manejo de variaciones
     if (Array.isArray(variations) && variations.length > 0) {
       for (const variation of variations) {
         const {
@@ -169,8 +167,8 @@ export const createProduct = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   let client;
-  const { id } = req.params;  
-  
+  const { id } = req.params;
+
   const { name, description, category, stock, photo_url, variations } = req.body;
 
   const parsedProductId = parseInt(id, 10);
@@ -183,19 +181,13 @@ export const updateProduct = async (req, res) => {
     client = await getConnection();
     const updatedPhotoUrl = photo_url || null;
 
-    if (!queries.products.updateProduct) {
-      return res.status(500).json({ message: 'Error en la consulta SQL' });
-    }
-    if (!queries.products.updateProduct) {
-      throw new Error('La consulta updateProduct no está definida.');
-    }
     const result = await client.query(queries.products.updateProduct, [
       name,
       description,
       category,
       stock,
-      updatedPhotoUrl,  
-      parsedProductId,  
+      updatedPhotoUrl,
+      parsedProductId,
     ]);
 
     if (result.rowCount === 0) {
@@ -221,14 +213,14 @@ export const updateProduct = async (req, res) => {
     res.status(200).json({ message: 'Producto actualizado exitosamente' });
   } catch (error) {
     console.error('Error al actualizar el producto:', error);
-    res.status(500).json({ message: 'Error al actualizar el producto' });
+    res.status(500).json({ message: 'Error al actualizar el producto', error: error.message });
   } finally {
     if (client) client.release();
   }
 };
 
 export const deleteProduct = async (req, res) => {
-  const { id } = req.params;  
+  const { id } = req.params;
   let client;
 
   if (!id) {
@@ -246,7 +238,7 @@ export const deleteProduct = async (req, res) => {
     res.status(200).json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     console.error('Error al eliminar el producto:', error);
-    res.status(500).json({ message: 'Error al eliminar el producto' });
+    res.status(500).json({ message: 'Error al eliminar el producto', error: error.message });
   } finally {
     if (client) client.release();
   }
@@ -255,45 +247,37 @@ export const deleteProduct = async (req, res) => {
 export const updateMultipleProducts = async (req, res) => {
   let client;
   const products = req.body;
-  
-  // Verificar que el array de productos esté presente y no esté vacío
+
   if (!Array.isArray(products) || products.length === 0) {
     return res.status(400).json({ message: 'Debe proporcionar un array de productos para actualizar.' });
   }
 
   try {
     client = await getConnection();
-    await client.query('BEGIN'); // Iniciar transacción
+    await client.query('BEGIN');
 
     for (const product of products) {
       const {
-        product_id, // ID del producto
+        product_id,
         name,
         description,
         category,
         stock,
         variations,
-        photo_url = null, // Foto, que puede ser nula
+        photo_url = null,
       } = product;
 
-      // Validar el ID del producto
       const parsedProductId = parseInt(product_id, 10);
       if (isNaN(parsedProductId)) {
         throw new Error(`ID del producto inválido: ${product_id}`);
       }
 
-      // Validar la consulta de actualización del producto
-      if (!queries.products.updateProduct) {
-        throw new Error('Consulta SQL para actualizar producto no definida.');
-      }
-
-      // Actualizar el producto principal
       const result = await client.query(queries.products.updateProduct, [
         name,
         description,
         category,
         stock,
-        photo_url || null, // Si photo_url es vacío, se envía como null
+        photo_url || null,
         parsedProductId,
       ]);
 
@@ -301,7 +285,6 @@ export const updateMultipleProducts = async (req, res) => {
         throw new Error(`Producto con ID: ${product_id} no encontrado.`);
       }
 
-      // Manejar las variaciones del producto, si existen
       if (Array.isArray(variations) && variations.length > 0) {
         for (const variation of variations) {
           const {
@@ -315,7 +298,6 @@ export const updateMultipleProducts = async (req, res) => {
           } = variation;
 
           if (variation_id) {
-            // Actualizar una variación existente
             await client.query(queries.products.updateProductVariation, [
               quality,
               quantity,
@@ -326,7 +308,6 @@ export const updateMultipleProducts = async (req, res) => {
               variation_id,
             ]);
           } else {
-            // Crear una nueva variación
             await client.query(queries.products.createProductVariation, [
               parsedProductId,
               quality,
@@ -341,21 +322,17 @@ export const updateMultipleProducts = async (req, res) => {
       }
     }
 
-    // Confirmar transacción
     await client.query('COMMIT');
     res.status(200).json({ message: 'Productos actualizados exitosamente.' });
   } catch (error) {
     console.error('Error al actualizar los productos:', error);
 
     if (client) {
-      await client.query('ROLLBACK'); // Revertir transacción en caso de error
+      await client.query('ROLLBACK');
     }
 
-    res.status(500).json({
-      message: 'Error al actualizar los productos.',
-      error: error.message,
-    });
+    res.status(500).json({ message: 'Error al actualizar los productos.', error: error.message });
   } finally {
-    if (client) client.release(); // Liberar cliente
+    if (client) client.release();
   }
 };
