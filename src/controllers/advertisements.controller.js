@@ -14,7 +14,8 @@ export const getAdvertisements = async (req, res) => {
       title: row.title || '',
       description: row.description || '',
       category: row.category || '',
-      photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png', // Imagen por defecto
+      photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png',
+      related_product_id: row.related_product_id || null, // Relación con el producto
     }));
 
     res.json(advertisements);
@@ -26,12 +27,20 @@ export const getAdvertisements = async (req, res) => {
   }
 };
 
+
 // Crear una publicidad
 export const createAdvertisement = async (req, res) => {
   let connection;
 
   try {
-    const { title, description, category } = req.body;
+    const { title, description, category, related_product_id } = req.body;
+
+    // Validación de campos obligatorios
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        message: 'Los campos title, description y category son obligatorios',
+      });
+    }
 
     // Manejo de imágenes
     const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png'; // Imagen predeterminada
@@ -53,6 +62,7 @@ export const createAdvertisement = async (req, res) => {
       description,
       category,
       photoUrl,
+      related_product_id || null, // Si no se proporciona, se establece como null
     ]);
 
     const advertisementId = result.rows[0]?.advertisement_id;
@@ -73,22 +83,43 @@ export const createAdvertisement = async (req, res) => {
 export const updateAdvertisement = async (req, res) => {
   let connection;
   const { id } = req.params;
-  const { title, description, category, photo_url } = req.body;
+  const { title, description, category, photo_url, related_product_id } = req.body;
 
   const parsedAdvertisementId = parseInt(id, 10);
 
+  // Validación del ID de la publicidad
   if (isNaN(parsedAdvertisementId)) {
     return res.status(400).json({ message: 'ID de la publicidad inválido' });
+  }
+
+  // Validación de campos obligatorios
+  if (!title || !description || !category) {
+    return res.status(400).json({
+      message: 'Los campos title, description y category son obligatorios',
+    });
   }
 
   try {
     connection = await getConnection();
 
+    // Manejo de imágenes
+    let updatedPhotoUrl = photo_url || 'https://www.donkampo.com/images/1.png'; // Valor predeterminado
+    if (req.file && req.file.buffer) {
+      try {
+        updatedPhotoUrl = await uploadImage(req.file.buffer, req.file.originalname);
+      } catch (error) {
+        console.error('Error al subir la imagen:', error.message);
+        return res.status(500).json({ message: 'Error al subir la imagen a S3' });
+      }
+    }
+
+    // Actualización en la base de datos
     const result = await connection.query(queries.advertisements.updateAdvertisement, [
       title,
       description,
       category,
-      photo_url || null, // Si no se proporciona photo_url, se establece como null
+      updatedPhotoUrl,
+      related_product_id || null, // Si no se proporciona, se establece como null
       parsedAdvertisementId,
     ]);
 
