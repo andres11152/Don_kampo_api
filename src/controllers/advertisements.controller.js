@@ -27,7 +27,6 @@ export const getAdvertisements = async (req, res) => {
   }
 };
 
-
 // Crear una publicidad
 export const createAdvertisement = async (req, res) => {
   let connection;
