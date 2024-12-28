@@ -35,7 +35,7 @@ export const createAdvertisement = async (req, res) => {
     const { title, description, category, related_product_id } = req.body;
 
     // Validación de campos obligatorios
-    if (!title || !description || !category) {
+    if (!title || !description || !category || !related_product_id) {
       return res.status(400).json({
         message: 'Los campos title, description y category son obligatorios',
       });
@@ -92,7 +92,7 @@ export const updateAdvertisement = async (req, res) => {
   }
 
   // Validación de campos obligatorios
-  if (!title || !description || !category) {
+  if (!title || !description || !category || !related_product_id) {
     return res.status(400).json({
       message: 'Los campos title, description y category son obligatorios',
     });
