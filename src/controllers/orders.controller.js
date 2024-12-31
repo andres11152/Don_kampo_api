@@ -102,71 +102,99 @@ import crypto from 'crypto';
   export const getOrders = async (req, res) => {
     try {
       const client = await getConnection();
+    
+      // Obtener información de los pedidos
+      const ordersResult = await client.query(queries.orders.getOrders);
+      const orders = ordersResult.rows;
+      
+      // Obtener productos de todos los pedidos
+      const orderIds = orders.map(order => order.id);
+      const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
+      const orderItems = itemsResult.rows;
+      
+      // Obtener información de envío de todos los pedidos
+      const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
+      const shippingInfo = shippingResult.rows;
   
+      // Obtener información de user_data para todos los pedidos
+      const userDataResult = await client.query(`
+        SELECT order_id, user_data
+        FROM user_data
+        WHERE order_id = ANY($1);
+      `, [orderIds]);
+      const userDataMap = userDataResult.rows.reduce((acc, { order_id, user_data }) => {
+        acc[order_id] = user_data;
+        return acc;
+      }, {});
   
-    // Obtener información de los pedidos
-    const ordersResult = await client.query(queries.orders.getOrders);
-    const orders = ordersResult.rows;
-    
-    // Obtener productos de todos los pedidos
-    const orderIds = orders.map(order => order.id);
-    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
-    const orderItems = itemsResult.rows;
-    
-    // Obtener información de envío de todos los pedidos
-    const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
-    const shippingInfo = shippingResult.rows;
-
-    // Obtener información de user_data para todos los pedidos
-    const userDataResult = await client.query(`
-      SELECT order_id, user_data
-      FROM user_data
-      WHERE order_id = ANY($1);
-    `, [orderIds]);
-    const userDataMap = userDataResult.rows.reduce((acc, { order_id, user_data }) => {
-      acc[order_id] = user_data;
-      return acc;
-    }, {});
-
-    // Obtener variaciones de los productos (usando variation_id)
-    const variationIds = orderItems.map(item => item.product_variation_id);  // Asumiendo que tienes un campo product_variation_id
-    
-    const variationsResult = await client.query(`
-      SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
-      FROM product_variations
-      WHERE variation_id = ANY($1);
-    `, [variationIds]);
-
-    // Mapeo de las variaciones por variation_id
-    const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
-      acc[variation_id] = variation;
-      return acc;
-    }, {});
-
-    client.release();
-
-    // Estructurar la respuesta consolidando la información
-    const ordersWithDetails = orders.map(order => {
-      return {
-        order,
-        userData: userDataMap[order.id] || null,
-        items: orderItems
+      // Obtener variaciones de los productos (usando variation_id)
+      const variationIds = orderItems.map(item => item.product_variation_id);  // Asumiendo que tienes un campo product_variation_id
+      
+      const variationsResult = await client.query(`
+        SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+        FROM product_variations
+        WHERE variation_id = ANY($1);
+      `, [variationIds]);
+  
+      // Mapeo de las variaciones por variation_id
+      const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
+        acc[variation_id] = {
+          ...variation,
+          price_home: variation.price_home,
+          price_supermarket: variation.price_supermarket,
+          price_restaurant: variation.price_restaurant,
+          price_fruver: variation.price_fruver,
+        };
+        return acc;
+      }, {});
+  
+      client.release();
+  
+      // Formateador para precios
+      const formatPrice = (value) => {
+        return new Intl.NumberFormat('es-CO', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      };
+  
+      // Estructurar la respuesta consolidando la información
+      const ordersWithDetails = orders.map(order => {
+        const items = orderItems
           .filter(item => item.order_id === order.id)
           .map(item => ({
             ...item,
-            variation: variationsMap[item.product_variation_id] || null, // Obtener variaciones usando product_variation_id
-          })),
-        shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null,
-      };
-    });
-
-    res.status(200).json(ordersWithDetails);
-  } catch (error) {
-    console.error('Error al obtener los pedidos:', error);
-    res.status(500).json({ msg: 'Error al obtener los pedidos.' });
-  }
+            price: formatPrice(item.price), // Formatear precio del ítem
+            variation: {
+              ...variationsMap[item.product_variation_id],
+              price_home: formatPrice(variationsMap[item.product_variation_id]?.price_home || 0),
+              price_supermarket: formatPrice(variationsMap[item.product_variation_id]?.price_supermarket || 0),
+              price_restaurant: formatPrice(variationsMap[item.product_variation_id]?.price_restaurant || 0),
+              price_fruver: formatPrice(variationsMap[item.product_variation_id]?.price_fruver || 0),
+            },
+          }));
+  
+        // Calcular el total del pedido y formatearlo
+        const total = formatPrice(order.total);
+  
+        return {
+          order: {
+            ...order,
+            total, // Total formateado
+          },
+          userData: userDataMap[order.id] || null,
+          items,
+          shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null,
+        };
+      });
+  
+      res.status(200).json(ordersWithDetails);
+    } catch (error) {
+      console.error('Error al obtener los pedidos:', error);
+      res.status(500).json({ msg: 'Error al obtener los pedidos.' });
+    }
   };
-
+    
   export const getOrdersById = async (req, res) => {
     try {
       const { orderId } = req.params;
@@ -212,13 +240,31 @@ import crypto from 'crypto';
   
       client.release();
   
+      // Formateador para precios
+      const formatPrice = (value) => {
+        return new Intl.NumberFormat('es-CO', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      };
+  
       // Estructurar la respuesta consolidando la información
       const orderWithDetails = {
-        order,
+        order: {
+          ...order,
+          total: formatPrice(order.total), // Formatear el total
+        },
         userData,
         items: orderItems.map(item => ({
           ...item,
-          variation: variationsMap[item.product_variation_id] || null, // Obtener variaciones usando product_variation_id
+          price: formatPrice(item.price), // Formatear precio del ítem
+          variation: {
+            ...variationsMap[item.product_variation_id],
+            price_home: formatPrice(variationsMap[item.product_variation_id]?.price_home || 0),
+            price_supermarket: formatPrice(variationsMap[item.product_variation_id]?.price_supermarket || 0),
+            price_restaurant: formatPrice(variationsMap[item.product_variation_id]?.price_restaurant || 0),
+            price_fruver: formatPrice(variationsMap[item.product_variation_id]?.price_fruver || 0),
+          },
         })),
         shippingInfo,
       };
@@ -229,6 +275,7 @@ import crypto from 'crypto';
       res.status(500).json({ msg: 'Error al obtener el pedido.' });
     }
   };
+  
   /**
    * Crea un nuevo pedido.
    */
@@ -296,25 +343,47 @@ import crypto from 'crypto';
    * Elimina un pedido.
    */
   export const deleteOrders = async (req, res) => {
-    const { orderId } = req.params;
-
-    if (!orderId) {
-      return res.status(400).json({ msg: 'ID del pedido no proporcionado.' });
-    }
-
     try {
+      const { orderId } = req.params; // Asegúrate de usar "orderId" aquí
+      console.log('ID recibido:', orderId); // Log para depuración
+  
       const client = await getConnection();
-      const orderCheck = await client.query('SELECT id FROM orders WHERE id = $1', [orderId]);
-      if (orderCheck.rowCount === 0) {
+  
+      // Validar que el ID sea un número válido
+      const numericId = parseInt(orderId, 10);
+      if (isNaN(numericId)) {
+        return res.status(400).json({ msg: 'El ID proporcionado no es válido.' });
+      }
+  
+      // Verificar si el pedido existe
+      const checkOrder = await client.query('SELECT * FROM orders WHERE id = $1', [numericId]);
+      if (checkOrder.rows.length === 0) {
         client.release();
+        return res.status(404).json({ msg: 'Pedido no encontrado en la base de datos.' });
+      }
+  
+      // Eliminar dependencias en user_data
+      await client.query('DELETE FROM user_data WHERE order_id = $1', [numericId]);
+  
+      // Eliminar el pedido
+      const result = await client.query('DELETE FROM orders WHERE id = $1', [numericId]);
+  
+      client.release();
+  
+      if (result.rowCount === 0) {
         return res.status(404).json({ msg: 'Pedido no encontrado.' });
       }
-
-      await client.query(queries.orders.deleteOrders, [orderId]);
-      client.release();
+  
       res.status(200).json({ msg: 'Pedido eliminado exitosamente.' });
     } catch (error) {
       console.error('Error al eliminar el pedido:', error);
-      res.status(500).json({ msg: 'Error interno del servidor.' });
+      res.status(500).json({ msg: 'Error al eliminar el pedido.' });
     }
   };
+  
+  
+  
+  
+  
+  
+  
