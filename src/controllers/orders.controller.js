@@ -381,8 +381,90 @@ import crypto from 'crypto';
     }
   };
   
-  
-  
+/**
+ * Actualiza los precios de los productos en las órdenes en base a los precios actuales de los productos y variaciones.
+ */
+export const updateOrderPrices = async (req, res) => {
+  try {
+    const client = await getConnection();
+
+    // Obtener todas las órdenes con estado pendiente (status_id = 1)
+    const ordersResult = await client.query(`
+      SELECT id
+      FROM orders
+      WHERE status_id = 1;
+    `);
+
+    const orderIds = ordersResult.rows.map(order => order.id);
+
+    if (orderIds.length === 0) {
+      client.release();
+      return res.status(200).json({ msg: 'No hay órdenes pendientes para actualizar.' });
+    }
+
+    // Obtener los ítems de las órdenes pendientes
+    const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
+    const orderItems = itemsResult.rows;
+
+    if (orderItems.length === 0) {
+      client.release();
+      return res.status(200).json({ msg: 'No hay ítems en las órdenes pendientes para actualizar.' });
+    }
+
+    // Obtener las variaciones de los productos asociados a los ítems
+    const variationIds = orderItems.map(item => item.variation_id); // Cambio aquí
+    const variationsResult = await client.query(`
+      SELECT variation_id, price_home
+      FROM product_variations
+      WHERE variation_id = ANY($1);
+    `, [variationIds]);
+
+    const variationsMap = variationsResult.rows.reduce((acc, { variation_id, price_home }) => {
+      acc[variation_id] = price_home;
+      return acc;
+    }, {});
+
+    // Actualizar los precios de los ítems en base a las variaciones actuales
+    for (const item of orderItems) {
+      const newPrice = variationsMap[item.variation_id]; // Cambio aquí
+
+      if (newPrice) {
+        await client.query(`
+          UPDATE order_items
+          SET price = $1
+          WHERE order_id = $2 AND product_id = $3 AND variation_id = $4; // Cambio aquí
+        `, [newPrice, item.order_id, item.product_id, item.variation_id]); // Cambio aquí
+      }
+    }
+
+    // Recalcular y actualizar el total de cada orden
+    for (const orderId of orderIds) {
+      const updatedItemsResult = await client.query(`
+        SELECT quantity, price
+        FROM order_items
+        WHERE order_id = $1;
+      `, [orderId]);
+
+      const updatedItems = updatedItemsResult.rows;
+
+      const newTotal = updatedItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+
+      await client.query(`
+        UPDATE orders
+        SET total = $1
+        WHERE id = $2;
+      `, [newTotal, orderId]);
+    }
+
+    client.release();
+    res.status(200).json({ msg: 'Precios y totales de las órdenes actualizados exitosamente.' });
+  } catch (error) {
+    console.error('Error al actualizar los precios de las órdenes:', error);
+    res.status(500).json({ msg: 'Error interno del servidor.' });
+  }
+};
+
+
   
   
   
