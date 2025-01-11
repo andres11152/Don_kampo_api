@@ -285,6 +285,10 @@ export const updateMultipleProducts = async (req, res) => {
         throw new Error(`Producto con ID: ${product_id} no encontrado.`);
       }
 
+      // Función para limpiar y convertir números
+      const cleanNumber = (value) =>
+        parseFloat(String(value).replace('.', '').replace(',', '.')) || 0;
+
       if (Array.isArray(variations) && variations.length > 0) {
         for (const variation of variations) {
           const {
@@ -298,24 +302,26 @@ export const updateMultipleProducts = async (req, res) => {
           } = variation;
 
           if (variation_id) {
+            // Actualizar variación existente
             await client.query(queries.products.updateProductVariation, [
               quality,
               quantity,
-              parseFloat(price_home || 0),
-              parseFloat(price_supermarket || 0),
-              parseFloat(price_restaurant || 0),
-              parseFloat(price_fruver || 0),
+              cleanNumber(price_home),
+              cleanNumber(price_supermarket),
+              cleanNumber(price_restaurant),
+              cleanNumber(price_fruver),
               variation_id,
             ]);
           } else {
+            // Crear nueva variación
             await client.query(queries.products.createProductVariation, [
               parsedProductId,
               quality,
               quantity,
-              parseFloat(price_home || 0),
-              parseFloat(price_supermarket || 0),
-              parseFloat(price_restaurant || 0),
-              parseFloat(price_fruver || 0),
+              cleanNumber(price_home),
+              cleanNumber(price_supermarket),
+              cleanNumber(price_restaurant),
+              cleanNumber(price_fruver),
             ]);
           }
         }
