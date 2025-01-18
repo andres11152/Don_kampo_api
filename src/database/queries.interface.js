@@ -74,7 +74,8 @@ export const queries = {
       o.total, 
       o.requires_electronic_billing, 
       o.company_name, 
-      o.nit 
+      o.nit,
+      o.user_type
     FROM orders o
   `,
   getOrdersById: `
@@ -144,18 +145,19 @@ export const queries = {
     WHERE si.order_id = ANY($1)
   `,
     createOrder: `
-      INSERT INTO orders (
-        customer_id, 
-        order_date, 
-        status_id, 
-        total, 
-        requires_electronic_billing, 
-        company_name, 
-        nit
-      ) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING id
-    `,
+    INSERT INTO orders (
+      customer_id, 
+      order_date, 
+      status_id, 
+      total, 
+      requires_electronic_billing, 
+      company_name, 
+      nit,
+      user_type
+    ) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+    RETURNING id
+  `,
     updateOrders: `
       UPDATE orders
       SET 

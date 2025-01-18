@@ -36,7 +36,7 @@ import crypto from 'crypto';
         const productIds = cartDetails.map((item) => item.productId);
         const productCheckResult = await client.query(
             `SELECT product_id FROM products WHERE product_id = ANY($1)`,
-            [productIds]
+            [productIds]  
         );
 
         const existingProductIds = productCheckResult.rows.map((row) => row.product_id);
@@ -55,7 +55,7 @@ import crypto from 'crypto';
           new Date(),
           1,
           total,
-          needsElectronicInvoice, // Incluimos la lógica de la factura electrónica aquí
+          needsElectronicInvoice,
           companyName || null,
           companyNit || null,
       ]);
@@ -272,15 +272,15 @@ import crypto from 'crypto';
    * Crea un nuevo pedido.
    */
   export const createOrders = async (req, res) => {
-    const { customer_id, order_date, status_id, total } = req.body;
+    const { customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit,user_type } = req.body;
 
-    if (!customer_id || !order_date || !status_id || !total) {
+    if (!customer_id || !order_date || !status_id || !total || !user_type) {
       return res.status(400).json({ msg: 'Campos obligatorios incompletos.' });
     }
 
     try {
       const client = await getConnection();
-      await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total]);
+      await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit ,user_type ]);
       client.release();
       res.status(201).json({ msg: 'Pedido creado exitosamente.' });
     } catch (error) {

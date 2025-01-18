@@ -90,8 +90,11 @@ CREATE TABLE   products (
    updated_at   timestamp without time zone,
    photo  bytea,
 )
-*/
+
 
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public';
+*/
+
+ALTER TABLE orders ADD COLUMN user_type VARCHAR(255);
