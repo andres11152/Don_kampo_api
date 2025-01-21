@@ -152,10 +152,9 @@ export const queries = {
       total, 
       requires_electronic_billing, 
       company_name, 
-      nit,
-      user_type
+      nit
     ) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7) 
     RETURNING id
   `,
     updateOrders: `

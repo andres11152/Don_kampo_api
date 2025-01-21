@@ -188,99 +188,95 @@ import crypto from 'crypto';
     }
   };
   
-    
-  export const getOrdersById = async (req, res) => {
-    try {
-      const { orderId } = req.params;
-      const client = await getConnection();
-  
-      // Obtener información del pedido
-      const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
-      if (orderResult.rows.length === 0) {
-        client.release();
-        return res.status(404).json({ msg: 'Pedido no encontrado.' });
+    export const getOrdersById = async (req, res) => {
+      try {
+          const { orderId } = req.params;
+          const client = await getConnection();
+
+          // Obtener información del pedido
+          const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
+          if (orderResult.rows.length === 0) {
+              client.release();
+              return res.status(404).json({ msg: 'Pedido no encontrado.' });
+          }
+          const order = orderResult.rows[0];
+
+          // Obtener productos del pedido
+          const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
+          const orderItems = itemsResult.rows;
+
+          // Obtener información de envío del pedido
+          const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
+          const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
+
+          // Obtener información de user_data del pedido
+          const userDataResult = await client.query(
+              `SELECT user_data FROM user_data WHERE order_id = $1;`,
+              [orderId]
+          );
+          const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
+
+          // Obtener variaciones de los productos (usando product_variation_id)
+          const variationIds = orderItems.map(item => item.product_variation_id);
+          const variationsResult = await client.query(
+              `SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+              FROM product_variations
+              WHERE variation_id = ANY($1);`,
+              [variationIds]
+          );
+
+          // Mapeo de las variaciones por variation_id
+          const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
+              acc[variation_id] = {
+                  ...variation,
+                  // Ahora los precios son enteros, los manejamos directamente
+                  price_home: variation.price_home || 0,
+                  price_supermarket: variation.price_supermarket || 0,
+                  price_restaurant: variation.price_restaurant || 0,
+                  price_fruver: variation.price_fruver || 0,
+              };
+              return acc;
+          }, {});
+
+          client.release();
+
+          // Estructurar la respuesta consolidando la información
+          const orderWithDetails = {
+              order: {
+                  ...order,
+                  total: order.total, // Total es un entero
+              },
+              userData,
+              items: orderItems.map(item => ({
+                  ...item,
+                  price: item.price, // Precio del producto como entero
+                  variation: {
+                      ...variationsMap[item.product_variation_id],
+                  },
+              })),
+              shippingInfo,
+          };
+
+          res.status(200).json(orderWithDetails);
+      } catch (error) {
+          console.error('Error al obtener el pedido:', error);
+          res.status(500).json({ msg: 'Error al obtener el pedido.' });
       }
-      const order = orderResult.rows[0];
-  
-      // Obtener productos del pedido
-      const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
-      const orderItems = itemsResult.rows;
-  
-      // Obtener información de envío del pedido
-      const shippingResult = await client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
-      const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
-  
-      // Obtener información de user_data del pedido
-      const userDataResult = await client.query(
-        `SELECT user_data FROM user_data WHERE order_id = $1;`,
-        [orderId]
-      );
-      const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
-  
-      // Obtener variaciones de los productos (usando product_variation_id)
-      const variationIds = orderItems.map(item => item.product_variation_id);
-      const variationsResult = await client.query(
-        `SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
-         FROM product_variations
-         WHERE variation_id = ANY($1);`,
-        [variationIds]
-      );
-  
-      // Mapeo de las variaciones por variation_id
-      const variationsMap = variationsResult.rows.reduce((acc, { variation_id, ...variation }) => {
-        acc[variation_id] = {
-          ...variation,
-          price_home: parseFloat(variation.price_home.replace('.', '').replace(',', '.')),
-          price_supermarket: parseFloat(variation.price_supermarket.replace('.', '').replace(',', '.')),
-          price_restaurant: parseFloat(variation.price_restaurant.replace('.', '').replace(',', '.')),
-          price_fruver: parseFloat(variation.price_fruver.replace('.', '').replace(',', '.')),
-        };
-        return acc;
-      }, {});
-  
-      client.release();
-  
-      // Estructurar la respuesta consolidando la información
-      const orderWithDetails = {
-        order: {
-          ...order,
-          total: Number(order.total), // Asegurarse de que el total sea numérico y sin formateo
-        },
-        userData,
-        items: orderItems.map(item => ({
-          ...item,
-          price: Number(item.price), // No aplicar formateos adicionales
-          variation: {
-            ...variationsMap[item.product_variation_id],
-            price_home: Number(variationsMap[item.product_variation_id]?.price_home || 0),
-            price_supermarket: Number(variationsMap[item.product_variation_id]?.price_supermarket || 0),
-            price_restaurant: Number(variationsMap[item.product_variation_id]?.price_restaurant || 0),
-            price_fruver: Number(variationsMap[item.product_variation_id]?.price_fruver || 0),
-          },
-        })),
-        shippingInfo,
-      };
-  
-      res.status(200).json(orderWithDetails);
-    } catch (error) {
-      console.error('Error al obtener el pedido:', error);
-      res.status(500).json({ msg: 'Error al obtener el pedido.' });
-    }
   };
-  
+
   /**
    * Crea un nuevo pedido.
    */
   export const createOrders = async (req, res) => {
-    const { customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit,user_type } = req.body;
+    const { customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit } = req.body;
 
-    if (!customer_id || !order_date || !status_id || !total || !user_type) {
+    if (!customer_id || !order_date || !status_id || !total ) {
       return res.status(400).json({ msg: 'Campos obligatorios incompletos.' });
     }
 
     try {
       const client = await getConnection();
-      await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit ,user_type ]);
+      await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit]);
       client.release();
       res.status(201).json({ msg: 'Pedido creado exitosamente.' });
     } catch (error) {

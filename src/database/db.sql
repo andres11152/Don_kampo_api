@@ -95,6 +95,12 @@ CREATE TABLE   products (
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public';
-*/
+
 
 ALTER TABLE orders ADD COLUMN user_type VARCHAR(255);
+*/
+ALTER TABLE product_variations
+ALTER COLUMN price_home TYPE INTEGER USING FLOOR(price_home),
+ALTER COLUMN price_supermarket TYPE INTEGER USING FLOOR(price_supermarket),
+ALTER COLUMN price_restaurant TYPE INTEGER USING FLOOR(price_restaurant),
+ALTER COLUMN price_fruver TYPE INTEGER USING FLOOR(price_fruver);
