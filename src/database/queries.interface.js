@@ -31,7 +31,7 @@ export const queries = {
       WHERE id = $1;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
-    getUserByEmail: 'SELECT id FROM users WHERE email = $1',
+    getUserByEmail: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
     updateUserResetToken: `
       UPDATE users 
       SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 

@@ -11,16 +11,20 @@ export const requestPasswordReset = async (req, res) => {
   try {
     const { email, provider = 'gmail' } = req.body;
 
+    // Validar que el correo esté presente
     if (!email) {
-      return res.status(400).json({ msg: 'Email is required' });
+      return res.status(400).json({ msg: 'Por favor, ingresa un correo electrónico.' });
     }
+
+    const normalizedEmail = email.toLowerCase(); // Normalizar a minúsculas para evitar problemas con mayúsculas/minúsculas
 
     // Establecer conexión con la base de datos
     client = await getConnection();
 
-    const result = await client.query(queries.users.getUserByEmail, [email]);
+    // Buscar el usuario por correo
+    const result = await client.query(queries.users.getUserByEmail, [normalizedEmail]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ msg: 'Email not found' });
+      return res.status(404).json({ msg: 'El correo electrónico no está registrado.' });
     }
 
     const userId = result.rows[0].id;
@@ -40,16 +44,30 @@ export const requestPasswordReset = async (req, res) => {
     // Enviar correo electrónico con el código de verificación
     await sendEmail(
       email,
-      'Password Reset Code',
-      `Your password reset code is: ${verificationCode}`,
+      'Código para restablecer tu contraseña',
+      `Tu código de restablecimiento de contraseña es: ${verificationCode}`,
       provider
     );
 
-    res.status(200).json({ msg: 'Verification code sent to email' });
+    res.status(200).json({ msg: 'Se ha enviado un código de verificación a tu correo electrónico.' });
   } catch (error) {
     console.error('Error en requestPasswordReset:', error.message);
-    res.status(500).json({ msg: 'Server error', error: error.message });
+
+    // Diferenciar errores del cliente y errores del servidor
+    if (error.message.includes('CORS') || error.message.includes('ECONNREFUSED')) {
+      res.status(503).json({
+        msg: 'Servicio no disponible. Por favor, intenta más tarde.',
+      });
+    } else if (error.message.includes('Correo')) {
+      res.status(400).json({ msg: 'El correo electrónico es obligatorio.' });
+    } else {
+      res.status(500).json({
+        msg: 'Ocurrió un error al procesar tu solicitud. Intenta nuevamente.',
+        error: error.message, // Solo para debug en desarrollo
+      });
+    }
   } finally {
+    // Liberar la conexión a la base de datos
     if (client) {
       try {
         client.release();
@@ -59,6 +77,7 @@ export const requestPasswordReset = async (req, res) => {
     }
   }
 };
+
 
 /**
  * Verificar código y restablecer contraseña.
@@ -68,8 +87,11 @@ export const verifyCodeAndResetPassword = async (req, res) => {
   try {
     const { email, code, newPassword } = req.body;
 
+    // Validar que todos los campos estén presentes
     if (!email || !code || !newPassword) {
-      return res.status(400).json({ msg: 'Email, code, and new password are required' });
+      return res
+        .status(400)
+        .json({ msg: 'Correo, código y nueva contraseña son requeridos.' });
     }
 
     // Establecer conexión con la base de datos
@@ -79,27 +101,32 @@ export const verifyCodeAndResetPassword = async (req, res) => {
 
     // Verificar el código y la fecha de expiración
     const result = await client.query(queries.users.verifyUserResetCode, [
-      email,
+      email.toLowerCase(), // Normalizar el correo a minúsculas
       code,
       currentTimeInSeconds,
     ]);
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ msg: 'Invalid or expired code' });
+      return res
+        .status(400)
+        .json({ msg: 'El código es inválido o ha expirado.' });
     }
 
     const userId = result.rows[0].id;
 
-    // Hash de la nueva contraseña
+    // Generar el hash de la nueva contraseña
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Actualizar la contraseña del usuario
     await client.query(queries.users.updateUserPassword, [hashedPassword, userId]);
 
-    res.status(200).json({ msg: 'Password successfully reset' });
+    res.status(200).json({ msg: 'La contraseña se ha restablecido correctamente.' });
   } catch (error) {
     console.error('Error en verifyCodeAndResetPassword:', error.message);
-    res.status(500).json({ msg: 'Server error', error: error.message });
+    res.status(500).json({
+      msg: 'Ocurrió un error en el servidor. Por favor, intenta nuevamente.',
+      error: error.message, // Solo para debug en desarrollo
+    });
   } finally {
     if (client) {
       try {
@@ -110,3 +137,4 @@ export const verifyCodeAndResetPassword = async (req, res) => {
     }
   }
 };
+
