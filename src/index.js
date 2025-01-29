@@ -11,6 +11,7 @@ import shippingRoutes from './routes/shipping.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import customerTypesRoutes from './routes/customerTypes.routes.js';
 import advertsimentsRoutes from './routes/advertisements.routes.js';
+// import minimumOrderRoutes from './routes/minimumOrder.routes.js';
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use(shippingRoutes);
 app.use(orderRoutes);
 app.use(customerTypesRoutes);
 app.use(advertsimentsRoutes);
+//app.use(minimumOrderRoutes);
 
 app.options('*', cors(corsOptions));
 

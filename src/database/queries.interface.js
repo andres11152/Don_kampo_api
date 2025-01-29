@@ -351,6 +351,43 @@ advertisements: {
     DELETE FROM advertisements WHERE advertisement_id = $1
   `,
 },
+minimumOrders: {
+  // Obtener todos los pedidos mínimos
+  getAll: `
+    SELECT 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at 
+    FROM minimum_orders
+    ORDER BY customer_type
+  `,
 
+  // Crear o actualizar un pedido mínimo
+  createOrUpdate: `
+    INSERT INTO minimum_orders (customer_type, minimum_order_amount)
+    VALUES ($1, $2)
+    ON CONFLICT (customer_type)
+    DO UPDATE SET 
+      minimum_order_amount = $2, 
+      updated_at = NOW()
+    RETURNING 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at
+  `,
+
+  // Eliminar un pedido mínimo
+  delete: `
+    DELETE FROM minimum_orders 
+    WHERE id = $1
+    RETURNING 
+      id, 
+      customer_type
+  `,
+},
 };
 
