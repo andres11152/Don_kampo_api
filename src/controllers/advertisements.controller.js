@@ -64,7 +64,7 @@ export const createAdvertisement = async (req, res) => {
       related_product_id || null, // Si no se proporciona, se establece como null
     ]);
 
-    const advertisementId = result.rows[0] ? result.rows[0].advertisement_id : undefined;
+    const advertisementId = result.rows[0]?.advertisement_id;
 
     res.status(201).json({
       message: 'Publicidad creada exitosamente',
