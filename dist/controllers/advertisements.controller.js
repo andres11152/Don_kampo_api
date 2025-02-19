@@ -1,98 +1,204 @@
 import _asyncToGenerator from "@babel/runtime/helpers/asyncToGenerator";
 import { queries } from '../database/queries.interface.js';
 import { getConnection } from '../database/connection.js';
+import { uploadImage } from '../helpers/uploadImage.js';
+
+// Obtener todas las publicidades
 export const getAdvertisements = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (req, res) {
+    let connection;
     try {
-      const connection = yield getConnection();
+      connection = yield getConnection();
       const result = yield connection.query(queries.advertisements.getAll);
-      res.json(result.rows);
+      const advertisements = result.rows.map(row => ({
+        advertisement_id: row.advertisement_id,
+        title: row.title || '',
+        description: row.description || '',
+        category: row.category || '',
+        photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png',
+        related_product_id: row.related_product_id || null // Relación con el producto
+      }));
+      res.setHeader("Content-Type", "application/json");
+      res.json(advertisements);
     } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Error al obtener las categorías.');
+      console.error('Error en getAdvertisements:', error.message);
+      res.status(500).json({
+        message: 'Error al obtener las publicidades',
+        error: error.message
+      });
+    } finally {
+      if (connection) connection.release();
     }
   });
   return function getAdvertisements(_x, _x2) {
     return _ref.apply(this, arguments);
   };
 }();
+
+// Crear una publicidad
 export const createAdvertisement = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(function* (req, res) {
-    const {
-      category,
-      title,
-      description
-    } = req.body;
-    const photos = req.files;
-    if (!category || !photos || photos.length === 0) {
-      return res.status(400).json({
-        message: 'La categoría y las fotos son obligatorias.'
-      });
-    }
+    let connection;
     try {
-      const connection = yield getConnection();
-      const result = yield connection.query(queries.advertisements.create, [category, photos, title || '', description || '']);
-      res.json(result.rows[0]);
+      var _result$rows$;
+      const {
+        title,
+        description,
+        category,
+        related_product_id
+      } = req.body;
+
+      // Validación de campos obligatorios
+      if (!title || !description || !category || !related_product_id) {
+        return res.status(400).json({
+          message: 'Los campos title, description y category son obligatorios'
+        });
+      }
+
+      // Manejo de imágenes
+      const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png'; // Imagen predeterminada
+      let photoUrl = defaultPhotoUrl;
+      if (req.file && req.file.buffer) {
+        try {
+          photoUrl = yield uploadImage(req.file.buffer, req.file.originalname);
+        } catch (error) {
+          console.error('Error al subir la imagen:', error.message);
+          return res.status(500).json({
+            message: 'Error al subir la imagen a S3'
+          });
+        }
+      }
+
+      // Conexión a la base de datos
+      connection = yield getConnection();
+      const result = yield connection.query(queries.advertisements.createAdvertisement, [title, description, category, photoUrl, related_product_id || null // Si no se proporciona, se establece como null
+      ]);
+      const advertisementId = (_result$rows$ = result.rows[0]) === null || _result$rows$ === void 0 ? void 0 : _result$rows$.advertisement_id;
+      res.status(201).json({
+        message: 'Publicidad creada exitosamente',
+        advertisement_id: advertisementId
+      });
     } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Error al crear la categoría.');
+      console.error('Error al crear la publicidad:', error.message);
+      res.status(500).json({
+        message: 'Error al crear la publicidad',
+        error: error.message
+      });
+    } finally {
+      if (connection) connection.release();
     }
   });
   return function createAdvertisement(_x3, _x4) {
     return _ref2.apply(this, arguments);
   };
 }();
+
+// Actualizar una publicidad
 export const updateAdvertisement = /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(function* (req, res) {
+    let connection;
     const {
       id
     } = req.params;
     const {
       title,
-      description
+      description,
+      category,
+      photo_url,
+      related_product_id
     } = req.body;
-    try {
-      const connection = yield getConnection();
-      const result = yield connection.query(queries.advertisements.updateTitleAndDescription, [title || '', description || '', id]);
-      if (result.rowCount === 0) return res.status(404).json({
-        message: 'Categoría no encontrada.'
+    const parsedAdvertisementId = parseInt(id, 10);
+
+    // Validación del ID de la publicidad
+    if (isNaN(parsedAdvertisementId)) {
+      return res.status(400).json({
+        message: 'ID de la publicidad inválido'
       });
-      res.json(result.rows[0]);
+    }
+
+    // Validación de campos obligatorios
+    if (!title || !description || !category || !related_product_id) {
+      return res.status(400).json({
+        message: 'Los campos title, description y category son obligatorios'
+      });
+    }
+    try {
+      connection = yield getConnection();
+
+      // Manejo de imágenes
+      let updatedPhotoUrl = photo_url || 'https://www.donkampo.com/images/1.png'; // Valor predeterminado
+      if (req.file && req.file.buffer) {
+        try {
+          updatedPhotoUrl = yield uploadImage(req.file.buffer, req.file.originalname);
+        } catch (error) {
+          console.error('Error al subir la imagen:', error.message);
+          return res.status(500).json({
+            message: 'Error al subir la imagen a S3'
+          });
+        }
+      }
+
+      // Actualización en la base de datos
+      const result = yield connection.query(queries.advertisements.updateAdvertisement, [title, description, category, updatedPhotoUrl, related_product_id || null,
+      // Si no se proporciona, se establece como null
+      parsedAdvertisementId]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({
+          message: 'Publicidad no encontrada'
+        });
+      }
+      res.status(200).json({
+        message: 'Publicidad actualizada exitosamente'
+      });
     } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Error al actualizar la categoría.');
+      console.error('Error al actualizar la publicidad:', error.message);
+      res.status(500).json({
+        message: 'Error al actualizar la publicidad',
+        error: error.message
+      });
+    } finally {
+      if (connection) connection.release();
     }
   });
   return function updateAdvertisement(_x5, _x6) {
     return _ref3.apply(this, arguments);
   };
 }();
-export const updatePhotos = /*#__PURE__*/function () {
+
+// Eliminar una publicidad
+export const deleteAdvertisement = /*#__PURE__*/function () {
   var _ref4 = _asyncToGenerator(function* (req, res) {
     const {
       id
     } = req.params;
-    const {
-      photos
-    } = req.body;
-    if (!photos || !Array.isArray(photos)) {
+    let connection;
+    if (!id) {
       return res.status(400).json({
-        message: 'Debe proporcionar un arreglo de fotos.'
+        message: 'El ID de la publicidad es requerido'
       });
     }
     try {
-      const connection = yield getConnection();
-      const result = yield connection.query(queries.advertisements.updatePhotos, [photos, id]);
-      if (result.rowCount === 0) return res.status(404).json({
-        message: 'Categoría no encontrada.'
+      connection = yield getConnection();
+      const result = yield connection.query(queries.advertisements.deleteAdvertisement, [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({
+          message: 'Publicidad no encontrada o ya eliminada'
+        });
+      }
+      res.status(200).json({
+        message: 'Publicidad eliminada correctamente'
       });
-      res.json(result.rows[0]);
     } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Error al actualizar las fotos.');
+      console.error('Error al eliminar la publicidad:', error.message);
+      res.status(500).json({
+        message: 'Error al eliminar la publicidad',
+        error: error.message
+      });
+    } finally {
+      if (connection) connection.release();
     }
   });
-  return function updatePhotos(_x7, _x8) {
+  return function deleteAdvertisement(_x7, _x8) {
     return _ref4.apply(this, arguments);
   };
 }();

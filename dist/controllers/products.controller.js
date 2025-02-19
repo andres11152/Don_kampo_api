@@ -55,7 +55,8 @@ export const getProducts = /*#__PURE__*/function () {
     } catch (error) {
       console.error('Error al obtener los productos:', error);
       res.status(500).json({
-        message: 'Error al obtener los productos'
+        message: 'Error al obtener los productos',
+        error: error.message
       });
     } finally {
       if (client) client.release();
@@ -88,7 +89,8 @@ export const getProductById = /*#__PURE__*/function () {
     } catch (error) {
       console.error('Error al obtener el producto por ID:', error);
       res.status(500).json({
-        message: 'Error al obtener el producto'
+        message: 'Error al obtener el producto',
+        error: error.message
       });
     } finally {
       if (client) client.release();
@@ -109,8 +111,6 @@ export const createProduct = /*#__PURE__*/function () {
         stock,
         variations
       } = req.body;
-
-      // Manejo de imágenes: validación explícita
       const defaultPhotoUrl = 'https://example.com/default-image.jpg';
       let photoUrl = defaultPhotoUrl;
       if (req.file && req.file.buffer) {
@@ -124,13 +124,9 @@ export const createProduct = /*#__PURE__*/function () {
         }
       }
       const validatedStock = stock ? parseInt(stock, 10) : 0;
-
-      // Conexión a la base de datos
       client = yield getConnection();
       const result = yield client.query(queries.products.createProduct, [name, description, category, validatedStock, photoUrl]);
       const productId = result.rows[0].product_id;
-
-      // Manejo de variaciones
       if (Array.isArray(variations) && variations.length > 0) {
         for (const variation of variations) {
           const {
@@ -186,14 +182,6 @@ export const updateProduct = /*#__PURE__*/function () {
     try {
       client = yield getConnection();
       const updatedPhotoUrl = photo_url || null;
-      if (!queries.products.updateProduct) {
-        return res.status(500).json({
-          message: 'Error en la consulta SQL'
-        });
-      }
-      if (!queries.products.updateProduct) {
-        throw new Error('La consulta updateProduct no está definida.');
-      }
       const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, parsedProductId]);
       if (result.rowCount === 0) {
         return res.status(404).json({
@@ -212,7 +200,8 @@ export const updateProduct = /*#__PURE__*/function () {
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       res.status(500).json({
-        message: 'Error al actualizar el producto'
+        message: 'Error al actualizar el producto',
+        error: error.message
       });
     } finally {
       if (client) client.release();
@@ -247,7 +236,8 @@ export const deleteProduct = /*#__PURE__*/function () {
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
       res.status(500).json({
-        message: 'Error al eliminar el producto'
+        message: 'Error al eliminar el producto',
+        error: error.message
       });
     } finally {
       if (client) client.release();
@@ -261,8 +251,6 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
   var _ref6 = _asyncToGenerator(function* (req, res) {
     let client;
     const products = req.body;
-
-    // Verificar que el array de productos esté presente y no esté vacío
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
         message: 'Debe proporcionar un array de productos para actualizar.'
@@ -270,40 +258,28 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
     }
     try {
       client = yield getConnection();
-      yield client.query('BEGIN'); // Iniciar transacción
-
+      yield client.query('BEGIN');
       for (const product of products) {
         const {
           product_id,
-          // ID del producto
           name,
           description,
           category,
           stock,
           variations,
-          photo_url = null // Foto, que puede ser nula
+          photo_url = null
         } = product;
-
-        // Validar el ID del producto
         const parsedProductId = parseInt(product_id, 10);
         if (isNaN(parsedProductId)) {
           throw new Error(`ID del producto inválido: ${product_id}`);
         }
-
-        // Validar la consulta de actualización del producto
-        if (!queries.products.updateProduct) {
-          throw new Error('Consulta SQL para actualizar producto no definida.');
-        }
-
-        // Actualizar el producto principal
-        const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, photo_url || null,
-        // Si photo_url es vacío, se envía como null
-        parsedProductId]);
+        const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, photo_url || null, parsedProductId]);
         if (result.rowCount === 0) {
           throw new Error(`Producto con ID: ${product_id} no encontrado.`);
         }
 
-        // Manejar las variaciones del producto, si existen
+        // Función para limpiar y convertir números
+        const cleanNumber = value => parseFloat(String(value).replace('.', '').replace(',', '.')) || 0;
         if (Array.isArray(variations) && variations.length > 0) {
           for (const variation of variations) {
             const {
@@ -316,17 +292,15 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
               price_fruver
             } = variation;
             if (variation_id) {
-              // Actualizar una variación existente
-              yield client.query(queries.products.updateProductVariation, [quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0), variation_id]);
+              // Actualizar variación existente
+              yield client.query(queries.products.updateProductVariation, [quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver), variation_id]);
             } else {
-              // Crear una nueva variación
-              yield client.query(queries.products.createProductVariation, [parsedProductId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0)]);
+              // Crear nueva variación
+              yield client.query(queries.products.createProductVariation, [parsedProductId, quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver)]);
             }
           }
         }
       }
-
-      // Confirmar transacción
       yield client.query('COMMIT');
       res.status(200).json({
         message: 'Productos actualizados exitosamente.'
@@ -334,14 +308,14 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
     } catch (error) {
       console.error('Error al actualizar los productos:', error);
       if (client) {
-        yield client.query('ROLLBACK'); // Revertir transacción en caso de error
+        yield client.query('ROLLBACK');
       }
       res.status(500).json({
         message: 'Error al actualizar los productos.',
         error: error.message
       });
     } finally {
-      if (client) client.release(); // Liberar cliente
+      if (client) client.release();
     }
   });
   return function updateMultipleProducts(_x11, _x12) {

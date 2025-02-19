@@ -1,31 +1,19 @@
-import express from 'express';
-import { getAdvertisements, createAdvertisement, updateAdvertisement, updatePhotos } from '../controllers/advertisements.controller.js';
-import { handleMulterError, parseMultipartData } from '../middlewares/validateData.js';
-import { optimizeImage } from '../middlewares/imageMiddleware.js';
-
-// Rutas de publicidad
-const router = express.Router();
-
-// Middleware para manejar múltiples "imágenes" simuladas como texto
-const uploadMultipleImages = (req, res, next) => {
-  const {
-    photos
-  } = req.body;
-  if (!photos || !Array.isArray(photos)) {
-    return res.status(400).json({
-      message: 'Debe proporcionar un arreglo de fotos.'
-    });
+import express from "express";
+import multer from "multer";
+import { getAdvertisements, createAdvertisement, updateAdvertisement, deleteAdvertisement } from "../controllers/advertisements.controller.js";
+import { handleMulterError } from "../middlewares/validateData.middleware.js";
+import { optimizeImage } from "../middlewares/image.middleware.js";
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024
   }
-
-  // Simular proceso de subida
-  req.files = photos.map((photo, index) => ({
-    originalname: `photo_${index}`,
-    buffer: Buffer.from(photo, 'base64')
-  }));
-  next();
-};
-router.get('/api/publicidad', getAdvertisements);
-router.post('/api/publicidad', uploadMultipleImages, handleMulterError, optimizeImage, parseMultipartData, createAdvertisement);
-router.put('/api/publicidad/categoria/:id', updateAdvertisement);
-router.put('/api/publicidad/categoria/photo/:id', uploadMultipleImages, handleMulterError, optimizeImage, parseMultipartData, updatePhotos);
+});
+const router = express.Router();
+router.use(express.json());
+router.get("/api/publicidad", getAdvertisements);
+router.post("/api/publicidad", upload.single("photo_url"), handleMulterError, optimizeImage, createAdvertisement);
+router.put("/api/publicidad/:id", upload.single("photo_url"), handleMulterError, optimizeImage, updateAdvertisement);
+router.delete("/api/publicidad/:id", deleteAdvertisement);
 export default router;

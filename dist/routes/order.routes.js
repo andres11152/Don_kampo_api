@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { placeOrder, getOrders, getOrdersById, createOrders, updateOrders, deleteOrders, updateOrderStatus } from '../controllers/orders.controller.js';
+import { placeOrder, getOrders, getOrdersById, createOrders, updateOrders, deleteOrders, updateOrderStatus, updateOrderPrices } from '../controllers/orders.controller.js';
 const router = Router();
 router.post('/api/orders/placeOrder', placeOrder);
 router.get('/api/orders', getOrders);
@@ -8,4 +8,5 @@ router.post('/api/createorders', createOrders);
 router.put('/api/updateorders/:orderId', updateOrders);
 router.delete('/api/deleteorders/:orderId', deleteOrders);
 router.put('/api/updatestatus/:id/:status_id', updateOrderStatus);
+router.put('/api/orders/updatePrices', updateOrderPrices);
 export default router;

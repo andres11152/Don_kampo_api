@@ -90,4 +90,20 @@ CREATE TABLE   products (
    updated_at   timestamp without time zone,
    photo  bytea,
 )
+
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public';
+
+
+ALTER TABLE orders ADD COLUMN user_type VARCHAR(255);
 */
+
+CREATE TABLE minimum_orders (
+    id SERIAL PRIMARY KEY,
+    customer_type VARCHAR(50) NOT NULL, -- Tipo de cliente (hogar, restaurante, etc.)
+    minimum_order_amount NUMERIC(10, 2) NOT NULL, -- Pedido mínimo en valor
+    created_at TIMESTAMP DEFAULT NOW(), -- Fecha de creación
+    updated_at TIMESTAMP DEFAULT NOW() -- Fecha de última actualización
+);

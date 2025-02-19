@@ -6,16 +6,19 @@ import { queries } from '../database/queries.interface.js';
 // Obtener todos los usuarios
 export const getUsers = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (req, res) {
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       const result = yield client.query(queries.users.getUsers);
-      client.release();
-      return res.status(200).json(result.rows);
+      res.status(200).json(result.rows);
     } catch (error) {
-      console.error('Error al obtener los usuarios:', error);
-      return res.status(500).json({
-        msg: 'Error al obtener los usuarios'
+      console.error('Error al obtener los usuarios:', error.message);
+      res.status(500).json({
+        msg: 'Error al obtener los usuarios',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function getUsers(_x, _x2) {
@@ -34,11 +37,11 @@ export const getUsersById = /*#__PURE__*/function () {
         msg: 'Por favor proporciona un ID válido.'
       });
     }
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       const userResult = yield client.query(queries.users.getUsersById, [id]);
       if (userResult.rows.length === 0) {
-        client.release();
         return res.status(404).json({
           msg: 'Usuario no encontrado.'
         });
@@ -46,16 +49,18 @@ export const getUsersById = /*#__PURE__*/function () {
       const userData = userResult.rows[0];
       const ordersResult = yield client.query(queries.users.getUserOrdersById, [id]);
       const userOrders = ordersResult.rows;
-      client.release();
-      return res.status(200).json({
+      res.status(200).json({
         user: userData,
         orders: userOrders
       });
     } catch (error) {
-      console.error('Error al obtener usuario:', error);
-      return res.status(500).json({
-        msg: 'Error interno del servidor.'
+      console.error('Error al obtener usuario:', error.message);
+      res.status(500).json({
+        msg: 'Error interno del servidor.',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function getUsersById(_x3, _x4) {
@@ -82,26 +87,28 @@ export const createUsers = /*#__PURE__*/function () {
         msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
       });
     }
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       const emailCheck = yield client.query('SELECT * FROM users WHERE email = $1', [email]);
       if (emailCheck.rowCount > 0) {
-        client.release();
         return res.status(400).json({
           msg: 'El correo electrónico ya está registrado.'
         });
       }
       const hashedPassword = yield bcrypt.hash(user_password, 10);
       yield client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
-      client.release();
-      return res.status(201).json({
+      res.status(201).json({
         msg: 'Usuario creado exitosamente.'
       });
     } catch (error) {
-      console.error('Error al crear usuario:', error);
-      return res.status(500).json({
-        msg: 'Error interno del servidor, intente nuevamente.'
+      console.error('Error al crear usuario:', error.message);
+      res.status(500).json({
+        msg: 'Error interno del servidor, intente nuevamente.',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function createUsers(_x5, _x6) {
@@ -131,8 +138,9 @@ export const updateUsers = /*#__PURE__*/function () {
         msg: 'ID del usuario es obligatorio.'
       });
     }
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       const updates = [];
       const values = [];
       let paramIndex = 1;
@@ -181,20 +189,22 @@ export const updateUsers = /*#__PURE__*/function () {
       RETURNING *;
     `;
       const result = yield client.query(query, values);
-      client.release();
       if (result.rowCount === 0) {
         return res.status(404).json({
           msg: 'Usuario no encontrado.'
         });
       }
-      return res.status(200).json({
+      res.status(200).json({
         msg: 'Usuario actualizado exitosamente.'
       });
     } catch (error) {
-      console.error('Error al actualizar usuario:', error);
-      return res.status(500).json({
-        msg: 'Error interno del servidor.'
+      console.error('Error al actualizar usuario:', error.message);
+      res.status(500).json({
+        msg: 'Error interno del servidor.',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function updateUsers(_x7, _x8) {
@@ -213,23 +223,26 @@ export const deleteUsers = /*#__PURE__*/function () {
         msg: 'Por favor proporciona un ID válido.'
       });
     }
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       const result = yield client.query(queries.users.deleteUsers, [id]);
-      client.release();
       if (result.rowCount === 0) {
         return res.status(404).json({
           msg: 'Usuario no encontrado.'
         });
       }
-      return res.status(200).json({
+      res.status(200).json({
         msg: 'Usuario eliminado exitosamente.'
       });
     } catch (error) {
-      console.error('Error al eliminar usuario:', error);
-      return res.status(500).json({
-        msg: 'Error interno del servidor.'
+      console.error('Error al eliminar usuario:', error.message);
+      res.status(500).json({
+        msg: 'Error interno del servidor.',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function deleteUsers(_x9, _x10) {
@@ -249,18 +262,21 @@ export const updateUserStatus = /*#__PURE__*/function () {
         msg: 'Por favor proporciona un ID de usuario y un nuevo estado válido.'
       });
     }
+    let client;
     try {
-      const client = yield getConnection();
+      client = yield getConnection();
       yield client.query(queries.users.updateUserStatus, [id, status_id]);
-      client.release();
-      return res.status(200).json({
+      res.status(200).json({
         msg: 'Estado del usuario actualizado exitosamente.'
       });
     } catch (error) {
-      console.error('Error al actualizar el estado del usuario:', error);
-      return res.status(500).json({
-        msg: 'Error interno del servidor.'
+      console.error('Error al actualizar el estado del usuario:', error.message);
+      res.status(500).json({
+        msg: 'Error interno del servidor.',
+        error: error.message
       });
+    } finally {
+      if (client) client.release();
     }
   });
   return function updateUserStatus(_x11, _x12) {

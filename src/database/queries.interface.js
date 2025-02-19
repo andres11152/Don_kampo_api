@@ -31,7 +31,7 @@ export const queries = {
       WHERE id = $1;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
-    getUserByEmail: 'SELECT id FROM users WHERE email = $1',
+    getUserByEmail: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
     updateUserResetToken: `
       UPDATE users 
       SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
@@ -74,7 +74,8 @@ export const queries = {
       o.total, 
       o.requires_electronic_billing, 
       o.company_name, 
-      o.nit 
+      o.nit,
+      o.user_type
     FROM orders o
   `,
   getOrdersById: `
@@ -144,18 +145,18 @@ export const queries = {
     WHERE si.order_id = ANY($1)
   `,
     createOrder: `
-      INSERT INTO orders (
-        customer_id, 
-        order_date, 
-        status_id, 
-        total, 
-        requires_electronic_billing, 
-        company_name, 
-        nit
-      ) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING id
-    `,
+    INSERT INTO orders (
+      customer_id, 
+      order_date, 
+      status_id, 
+      total, 
+      requires_electronic_billing, 
+      company_name, 
+      nit
+    ) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7) 
+    RETURNING id
+  `,
     updateOrders: `
       UPDATE orders
       SET 
@@ -350,6 +351,43 @@ advertisements: {
     DELETE FROM advertisements WHERE advertisement_id = $1
   `,
 },
+minimumOrders: {
+  // Obtener todos los pedidos mínimos
+  getAll: `
+    SELECT 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at 
+    FROM minimum_orders
+    ORDER BY customer_type
+  `,
 
+  // Crear o actualizar un pedido mínimo
+  createOrUpdate: `
+    INSERT INTO minimum_orders (customer_type, minimum_order_amount)
+    VALUES ($1, $2)
+    ON CONFLICT (customer_type)
+    DO UPDATE SET 
+      minimum_order_amount = $2, 
+      updated_at = NOW()
+    RETURNING 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at
+  `,
+
+  // Eliminar un pedido mínimo
+  delete: `
+    DELETE FROM minimum_orders 
+    WHERE id = $1
+    RETURNING 
+      id, 
+      customer_type
+  `,
+},
 };
 

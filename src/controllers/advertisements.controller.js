@@ -17,7 +17,7 @@ export const getAdvertisements = async (req, res) => {
       photo_url: row.photo_url || 'https://www.donkampo.com/images/1.png',
       related_product_id: row.related_product_id || null, // Relación con el producto
     }));
-
+    res.setHeader("Content-Type", "application/json");
     res.json(advertisements);
   } catch (error) {
     console.error('Error en getAdvertisements:', error.message);

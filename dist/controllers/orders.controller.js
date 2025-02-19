@@ -2,6 +2,8 @@ import _asyncToGenerator from "@babel/runtime/helpers/asyncToGenerator";
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
 import crypto from 'crypto';
+
+/*  Crea un nuevo pedido compleo */
 export const placeOrder = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (req, res) {
     const {
@@ -49,9 +51,7 @@ export const placeOrder = /*#__PURE__*/function () {
           invalidProducts
         });
       }
-      const orderResult = yield client.query(queries.orders.createOrder, [userId, new Date(), 1, total, needsElectronicInvoice,
-      // Incluimos la lógica de la factura electrónica aquí
-      companyName || null, companyNit || null]);
+      const orderResult = yield client.query(queries.orders.createOrder, [userId, new Date(), 1, total, needsElectronicInvoice, companyName || null, companyNit || null]);
       const orderId = orderResult.rows[0].id;
 
       // Luego guardas el user_data en una tabla separada
@@ -102,10 +102,10 @@ export const getOrders = /*#__PURE__*/function () {
 
       // Obtener información de user_data para todos los pedidos
       const userDataResult = yield client.query(`
-      SELECT order_id, user_data
-      FROM user_data
-      WHERE order_id = ANY($1);
-    `, [orderIds]);
+        SELECT order_id, user_data
+        FROM user_data
+        WHERE order_id = ANY($1);
+      `, [orderIds]);
       const userDataMap = userDataResult.rows.reduce((acc, {
         order_id,
         user_data
@@ -115,41 +115,59 @@ export const getOrders = /*#__PURE__*/function () {
       }, {});
 
       // Obtener variaciones de los productos (usando variation_id)
-      const variationIds = orderItems.map(item => item.product_variation_id); // Asumiendo que tienes un campo product_variation_id
-
+      const variationIds = orderItems.map(item => item.product_variation_id);
       const variationsResult = yield client.query(`
-      SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
-      FROM product_variations
-      WHERE variation_id = ANY($1);
-    `, [variationIds]);
+        SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+        FROM product_variations
+        WHERE variation_id = ANY($1);
+      `, [variationIds]);
 
       // Mapeo de las variaciones por variation_id
       const variationsMap = variationsResult.rows.reduce((acc, {
         variation_id,
         ...variation
       }) => {
-        acc[variation_id] = variation;
+        acc[variation_id] = {
+          ...variation,
+          price_home: parseFloat(variation.price_home),
+          // Convertir a número
+          price_supermarket: parseFloat(variation.price_supermarket),
+          price_restaurant: parseFloat(variation.price_restaurant),
+          price_fruver: parseFloat(variation.price_fruver)
+        };
         return acc;
       }, {});
       client.release();
 
       // Estructurar la respuesta consolidando la información
       const ordersWithDetails = orders.map(order => {
+        const items = orderItems.filter(item => item.order_id === order.id).map(item => ({
+          ...item,
+          price: parseFloat(item.price),
+          // Asegurar que el precio es un número
+          variation: {
+            ...variationsMap[item.product_variation_id]
+          }
+        }));
+
+        // Calcular el total del pedido sin formatearlo
+        const total = parseFloat(order.total); // Convertir a número
+
         return {
-          order,
+          order: {
+            ...order,
+            total // Enviar como número
+          },
           userData: userDataMap[order.id] || null,
-          items: orderItems.filter(item => item.order_id === order.id).map(item => ({
-            ...item,
-            variation: variationsMap[item.product_variation_id] || null // Obtener variaciones usando product_variation_id
-          })),
+          items,
           shippingInfo: shippingInfo.find(info => info.order_id === order.id) || null
         };
       });
       res.status(200).json(ordersWithDetails);
     } catch (error) {
-      console.error('Error al obtener los pedidos:', error);
+      console.error("Error al obtener los pedidos:", error);
       res.status(500).json({
-        msg: 'Error al obtener los pedidos.'
+        msg: "Error al obtener los pedidos."
       });
     }
   });
@@ -164,6 +182,8 @@ export const getOrdersById = /*#__PURE__*/function () {
         orderId
       } = req.params;
       const client = yield getConnection();
+
+      // Obtener información del pedido
       const orderResult = yield client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
         client.release();
@@ -171,17 +191,61 @@ export const getOrdersById = /*#__PURE__*/function () {
           msg: 'Pedido no encontrado.'
         });
       }
-      const orderData = orderResult.rows[0];
+      const order = orderResult.rows[0];
+
+      // Obtener productos del pedido
       const itemsResult = yield client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
       const orderItems = itemsResult.rows;
+
+      // Obtener información de envío del pedido
       const shippingResult = yield client.query(queries.orders.getShippingInfoByOrderId, [orderId]);
       const shippingInfo = shippingResult.rows.length > 0 ? shippingResult.rows[0] : null;
+
+      // Obtener información de user_data del pedido
+      const userDataResult = yield client.query(`SELECT user_data FROM user_data WHERE order_id = $1;`, [orderId]);
+      const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
+
+      // Obtener variaciones de los productos (usando product_variation_id)
+      const variationIds = orderItems.map(item => item.product_variation_id);
+      const variationsResult = yield client.query(`SELECT variation_id, product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver
+              FROM product_variations
+              WHERE variation_id = ANY($1);`, [variationIds]);
+
+      // Mapeo de las variaciones por variation_id
+      const variationsMap = variationsResult.rows.reduce((acc, {
+        variation_id,
+        ...variation
+      }) => {
+        acc[variation_id] = {
+          ...variation,
+          // Ahora los precios son enteros, los manejamos directamente
+          price_home: variation.price_home || 0,
+          price_supermarket: variation.price_supermarket || 0,
+          price_restaurant: variation.price_restaurant || 0,
+          price_fruver: variation.price_fruver || 0
+        };
+        return acc;
+      }, {});
       client.release();
-      res.status(200).json({
-        order: orderData,
-        items: orderItems,
+
+      // Estructurar la respuesta consolidando la información
+      const orderWithDetails = {
+        order: {
+          ...order,
+          total: order.total // Total es un entero
+        },
+        userData,
+        items: orderItems.map(item => ({
+          ...item,
+          price: item.price,
+          // Precio del producto como entero
+          variation: {
+            ...variationsMap[item.product_variation_id]
+          }
+        })),
         shippingInfo
-      });
+      };
+      res.status(200).json(orderWithDetails);
     } catch (error) {
       console.error('Error al obtener el pedido:', error);
       res.status(500).json({
@@ -203,7 +267,10 @@ export const createOrders = /*#__PURE__*/function () {
       customer_id,
       order_date,
       status_id,
-      total
+      total,
+      requires_electronic_billing,
+      company_name,
+      nit
     } = req.body;
     if (!customer_id || !order_date || !status_id || !total) {
       return res.status(400).json({
@@ -212,7 +279,7 @@ export const createOrders = /*#__PURE__*/function () {
     }
     try {
       const client = yield getConnection();
-      yield client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total]);
+      yield client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total, requires_electronic_billing, company_name, nit]);
       client.release();
       res.status(201).json({
         msg: 'Pedido creado exitosamente.'
@@ -303,36 +370,154 @@ export const updateOrderStatus = /*#__PURE__*/function () {
  */
 export const deleteOrders = /*#__PURE__*/function () {
   var _ref7 = _asyncToGenerator(function* (req, res) {
-    const {
-      orderId
-    } = req.params;
-    if (!orderId) {
-      return res.status(400).json({
-        msg: 'ID del pedido no proporcionado.'
-      });
-    }
     try {
+      const {
+        orderId
+      } = req.params; // Asegúrate de usar "orderId" aquí
+      console.log('ID recibido:', orderId); // Log para depuración
+
       const client = yield getConnection();
-      const orderCheck = yield client.query('SELECT id FROM orders WHERE id = $1', [orderId]);
-      if (orderCheck.rowCount === 0) {
+
+      // Validar que el ID sea un número válido
+      const numericId = parseInt(orderId, 10);
+      if (isNaN(numericId)) {
+        return res.status(400).json({
+          msg: 'El ID proporcionado no es válido.'
+        });
+      }
+
+      // Verificar si el pedido existe
+      const checkOrder = yield client.query('SELECT * FROM orders WHERE id = $1', [numericId]);
+      if (checkOrder.rows.length === 0) {
         client.release();
+        return res.status(404).json({
+          msg: 'Pedido no encontrado en la base de datos.'
+        });
+      }
+
+      // Eliminar dependencias en user_data
+      yield client.query('DELETE FROM user_data WHERE order_id = $1', [numericId]);
+
+      // Eliminar el pedido
+      const result = yield client.query('DELETE FROM orders WHERE id = $1', [numericId]);
+      client.release();
+      if (result.rowCount === 0) {
         return res.status(404).json({
           msg: 'Pedido no encontrado.'
         });
       }
-      yield client.query(queries.orders.deleteOrders, [orderId]);
-      client.release();
       res.status(200).json({
         msg: 'Pedido eliminado exitosamente.'
       });
     } catch (error) {
       console.error('Error al eliminar el pedido:', error);
       res.status(500).json({
-        msg: 'Error interno del servidor.'
+        msg: 'Error al eliminar el pedido.'
       });
     }
   });
   return function deleteOrders(_x13, _x14) {
     return _ref7.apply(this, arguments);
+  };
+}();
+
+/**
+ * Actualiza los precios de los productos en las órdenes en base a los precios actuales de los productos y variaciones.
+ */
+export const updateOrderPrices = /*#__PURE__*/function () {
+  var _ref8 = _asyncToGenerator(function* (req, res) {
+    const client = yield getConnection();
+    try {
+      yield client.query("BEGIN");
+
+      // 1. Obtener todas las órdenes con estado pendiente (status_id = 1)
+      const ordersResult = yield client.query(`
+      SELECT id
+      FROM orders
+      WHERE status_id = 1;
+    `);
+      const orderIds = ordersResult.rows.map(order => order.id);
+      if (orderIds.length === 0) {
+        yield client.query("COMMIT");
+        return res.status(200).json({
+          msg: "No hay órdenes pendientes para actualizar."
+        });
+      }
+
+      // 2. Obtener los ítems de las órdenes pendientes
+      const itemsResult = yield client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
+      const orderItems = itemsResult.rows;
+      if (orderItems.length === 0) {
+        yield client.query("COMMIT");
+        return res.status(200).json({
+          msg: "No hay ítems en las órdenes pendientes para actualizar."
+        });
+      }
+
+      // 3. Obtener las variaciones asociadas a los productos
+      const productIds = orderItems.map(item => item.product_id); // Usar product_id
+      const variationsResult = yield client.query(`
+      SELECT product_id, price_home
+      FROM product_variations
+      WHERE product_id = ANY($1);
+    `, [productIds]);
+
+      // Crear un mapa de variaciones
+      const variationsMap = variationsResult.rows.reduce((acc, {
+        product_id,
+        price_home
+      }) => {
+        acc[product_id] = parseFloat(price_home); // Convertir directamente a número
+        return acc;
+      }, {});
+
+      // 4. Actualizar los precios de los ítems
+      for (const item of orderItems) {
+        const newPrice = variationsMap[item.product_id]; // Usar product_id en lugar de product_variation_id
+        if (newPrice) {
+          yield client.query(`
+          UPDATE order_items
+          SET price = $1
+          WHERE order_id = $2 AND product_id = $3;
+        `, [newPrice, item.order_id, item.product_id]);
+        }
+      }
+
+      // 5. Recalcular y actualizar el total de cada orden
+      for (const orderId of orderIds) {
+        const updatedItemsResult = yield client.query(`
+        SELECT quantity, price
+        FROM order_items
+        WHERE order_id = $1;
+      `, [orderId]);
+        const updatedItems = updatedItemsResult.rows;
+
+        // Calcular el total asegurando precios válidos
+        const newTotal = updatedItems.reduce((sum, item) => {
+          const itemTotal = parseFloat(item.quantity) * parseFloat(item.price);
+          return sum + (isNaN(itemTotal) ? 0 : itemTotal); // Validar números válidos
+        }, 0);
+        yield client.query(`
+        UPDATE orders
+        SET total = $1
+        WHERE id = $2;
+      `, [newTotal, orderId]);
+      }
+      yield client.query("COMMIT");
+      res.status(200).json({
+        msg: "Precios y totales de las órdenes actualizados exitosamente."
+      });
+    } catch (error) {
+      yield client.query("ROLLBACK");
+      console.error("Error al actualizar los precios de las órdenes:", error);
+      res.status(500).json({
+        msg: "Error interno del servidor."
+      });
+    } finally {
+      client.release();
+    }
+  });
+  return function updateOrderPrices(_x15, _x16) {
+    return _ref8.apply(this, arguments);
   };
 }();
