@@ -16,7 +16,7 @@ dotenv.config();
 const app = express();
 
 const allowedOrigins = [
-  'https://donkampo.com',  // dominio sin www
+  'http://localhost:3000',  // dominio sin www
   'https://www.donkampo.com' ,'http://localhost:3000',  // dominio con www
 ];
 

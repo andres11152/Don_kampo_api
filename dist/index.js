@@ -13,7 +13,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 dotenv.config();
 const app = express();
-const allowedOrigins = ['https://donkampo.com',
+const allowedOrigins = ['http://localhost:3000',
 // dominio sin www
 'https://www.donkampo.com', 'http://localhost:3000' // dominio con www
 ];

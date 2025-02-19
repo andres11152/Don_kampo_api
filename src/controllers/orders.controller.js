@@ -112,6 +112,7 @@ import crypto from 'crypto';
     const orderIds = orders.map(order => order.id);
     const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
     const orderItems = itemsResult.rows;
+    console.log(orderItems);
     
     // Obtener información de envío de todos los pedidos
     const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
