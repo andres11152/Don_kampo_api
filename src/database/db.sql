@@ -36,7 +36,7 @@ CREATE TABLE shipping_statuses (
    status_name   character varying(50)   NOT NULL
 )
 
-CREATE TABLE   products (
+CREATE TABLE products (
    product_id   integer   NOT NULL   PRIMARY KEY,
    name   character varying(100)   NOT NULL,
    description   text,
@@ -44,7 +44,8 @@ CREATE TABLE   products (
    stock   integer,
    created_at   timestamp without time zone,
    updated_at   timestamp without time zone,
-   photo   bytea,
+   photo_url   text,
+   active   boolean
 )
 
 CREATE TABLE orders (
@@ -69,16 +70,16 @@ CREATE TABLE order_items (
 )
 
 CREATE TABLE product_variations (
-    variation_id SERIAL PRIMARY KEY,
-    product_id INTEGER REFERENCES products(product_id) ON DELETE CASCADE,
-    quality VARCHAR(50),  
-    quantity VARCHAR(50),  
-    price_home NUMERIC(10,2),
-    price_supermarket NUMERIC(10,2),
-    price_restaurant NUMERIC(10,2),
-    price_fruver NUMERIC(10,2),
-    UNIQUE(product_id, quality, quantity)  
-);
+   variation_id   integer   NOT NULL   PRIMARY KEY,
+   product_id   integer   REFERENCES products(product_id) ON DELETE CASCADE,
+   quality   character varying(50),
+   quantity   character varying(50),
+   price_home   integer,
+   price_supermarket   integer,
+   price_restaurant   integer,
+   price_fruver   integer,
+   active   boolean
+)
 
 CREATE TABLE   products (
    product_id   integer   NOT NULL   PRIMARY KEY,

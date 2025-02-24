@@ -240,89 +240,98 @@ export const queries = {
   },
   products: {
     getProducts: `
-    SELECT 
-      p.product_id, 
-      p.name, 
-      p.description, 
-      p.category, 
-      p.stock, 
-      p.photo_url,
-      v.variation_id,
-      v.quality,
-      v.quantity,
-      v.price_home,
-      v.price_supermarket,
-      v.price_restaurant,
-      v.price_fruver
-    FROM products p
-    LEFT JOIN product_variations v ON p.product_id = v.product_id
-    ORDER BY p.created_at DESC
-    LIMIT $2 OFFSET $1;
-  `,
-  getProductById: `
-    SELECT 
-      p.product_id, 
-      p.name, 
-      p.description, 
-      p.category, 
-      p.stock, 
-      p.photo_url
-    FROM products p
-    WHERE p.product_id = $1;
-  `,
-
-  createProduct: `
-    INSERT INTO products (name, description, category, stock, photo_url)
-    VALUES ($1, $2, $3, $4, $5) RETURNING product_id;
-  `,
-
-  createProductVariation: `
-    INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver)
-    VALUES ($1, $2, $3, $4, $5, $6, $7);
-  `,
-
-  updateProduct: `
-    UPDATE products
-    SET 
-      name = $1, 
-      description = $2, 
-      category = $3, 
-      stock = $4, 
-      photo_url = COALESCE($5, photo_url), 
-      updated_at = CURRENT_TIMESTAMP
-    WHERE product_id = $6
-    RETURNING product_id;
-  `,
-  updateProductVariation: `
-    UPDATE product_variations
-    SET 
-      quality = $1, 
-      quantity = $2, 
-      price_home = $3, 
-      price_supermarket = $4, 
-      price_restaurant = $5, 
-      price_fruver = $6
-    WHERE variation_id = $7;
-  `,
-  getProductVariations: `
-    SELECT 
-      v.variation_id, 
-      v.quality, 
-      v.quantity, 
-      v.price_home, 
-      v.price_supermarket, 
-      v.price_restaurant, 
-      v.price_fruver
-    FROM product_variations v
-    WHERE v.product_id = $1;
-  `,
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo_url,
+        p.active,
+        v.variation_id,
+        v.quality,
+        v.quantity,
+        v.price_home,
+        v.price_supermarket,
+        v.price_restaurant,
+        v.price_fruver,
+        v.active AS variation_active
+      FROM products p
+      LEFT JOIN product_variations v ON p.product_id = v.product_id
+      ORDER BY p.created_at DESC
+      LIMIT $2 OFFSET $1;
+    `,
+    getProductById: `
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.stock, 
+        p.photo_url,
+        p.active
+      FROM products p
+      WHERE p.product_id = $1;
+    `,
   
-  deleteProduct: `
-    DELETE FROM products WHERE product_id = $1;
-  `,
-  deleteProductVariation: `
-    DELETE FROM product_variations WHERE product_id = $1;
-  `
+    createProduct: `
+      INSERT INTO products (name, description, category, stock, photo_url, active)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING product_id;
+    `,
+  
+    createProductVariation: `
+      INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+    `,
+  
+    updateProduct: `
+      UPDATE products
+      SET 
+        name = $1, 
+        description = $2, 
+        category = $3, 
+        stock = $4, 
+        photo_url = COALESCE($5, photo_url),
+        active = $6,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE product_id = $7
+      RETURNING product_id;
+    `,
+  
+    updateProductVariation: `
+      UPDATE product_variations
+      SET 
+        quality = $1, 
+        quantity = $2, 
+        price_home = $3, 
+        price_supermarket = $4, 
+        price_restaurant = $5, 
+        price_fruver = $6,
+        active = $7
+      WHERE variation_id = $8;
+    `,
+  
+    getProductVariations: `
+      SELECT 
+        v.variation_id, 
+        v.quality, 
+        v.quantity, 
+        v.price_home, 
+        v.price_supermarket, 
+        v.price_restaurant, 
+        v.price_fruver,
+        v.active
+      FROM product_variations v
+      WHERE v.product_id = $1;
+    `,
+    
+    deleteProduct: `
+      DELETE FROM products WHERE product_id = $1;
+    `,
+    
+    deleteProductVariation: `
+      DELETE FROM product_variations WHERE product_id = $1;
+    `  
 },
 advertisements: {
   getAll: `

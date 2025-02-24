@@ -9,7 +9,6 @@ export const getProducts = async (req, res) => {
   let client;
   try {
     client = await getConnection();
-
     const productsResult = await client.query(queries.products.getProducts, [offset, limit]);
 
     if (productsResult.rows.length === 0) {
@@ -23,16 +22,21 @@ export const getProducts = async (req, res) => {
         (product) => product.product_id === row.product_id
       );
 
+      const variationData = row.variation_id
+        ? {
+            variation_id: row.variation_id,
+            quality: row.quality,
+            quantity: row.quantity,
+            price_home: row.price_home,
+            price_supermarket: row.price_supermarket,
+            price_restaurant: row.price_restaurant,
+            price_fruver: row.price_fruver,
+            active: row.variation_active
+          }
+        : null;
+
       if (existingProduct) {
-        existingProduct.variations.push({
-          variation_id: row.variation_id,
-          quality: row.quality,
-          quantity: row.quantity,
-          price_home: row.price_home,
-          price_supermarket: row.price_supermarket,
-          price_restaurant: row.price_restaurant,
-          price_fruver: row.price_fruver,
-        });
+        if (variationData) existingProduct.variations.push(variationData);
       } else {
         productsWithVariations.push({
           product_id: row.product_id,
@@ -41,19 +45,8 @@ export const getProducts = async (req, res) => {
           category: row.category,
           stock: row.stock,
           photo_url: row.photo_url,
-          variations: row.variation_id
-            ? [
-                {
-                  variation_id: row.variation_id,
-                  quality: row.quality,
-                  quantity: row.quantity,
-                  price_home: row.price_home,
-                  price_supermarket: row.price_supermarket,
-                  price_restaurant: row.price_restaurant,
-                  price_fruver: row.price_fruver,
-                },
-              ]
-            : [],
+          active: row.active,
+          variations: variationData ? [variationData] : []
         });
       }
     });
@@ -69,11 +62,9 @@ export const getProducts = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   const { id } = req.params;
-
   let client;
   try {
     client = await getConnection();
-
     const productResult = await client.query(queries.products.getProductById, [id]);
 
     if (productResult.rows.length === 0) {
@@ -81,10 +72,9 @@ export const getProductById = async (req, res) => {
     }
 
     const variationsResult = await client.query(queries.products.getProductVariations, [id]);
-
     const productWithVariations = {
       ...productResult.rows[0],
-      variations: variationsResult.rows,
+      variations: variationsResult.rows
     };
 
     res.status(200).json(productWithVariations);
@@ -98,13 +88,13 @@ export const getProductById = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   let client;
-
   try {
-    const { name, description, category, stock, variations } = req.body;
+    const { name, description, category, stock, variations, active } = req.body;
+    // Si no se envía el estado, lo dejamos activo por defecto
+    const productActive = typeof active !== 'undefined' ? active : true;
 
     const defaultPhotoUrl = 'https://example.com/default-image.jpg';
     let photoUrl = defaultPhotoUrl;
-
     if (req.file && req.file.buffer) {
       try {
         photoUrl = await uploadImage(req.file.buffer, req.file.originalname);
@@ -113,9 +103,7 @@ export const createProduct = async (req, res) => {
         return res.status(500).json({ message: 'Error al subir la imagen a S3' });
       }
     }
-
     const validatedStock = stock ? parseInt(stock, 10) : 0;
-
     client = await getConnection();
 
     const result = await client.query(queries.products.createProduct, [
@@ -124,8 +112,8 @@ export const createProduct = async (req, res) => {
       category,
       validatedStock,
       photoUrl,
+      productActive
     ]);
-
     const productId = result.rows[0].product_id;
 
     if (Array.isArray(variations) && variations.length > 0) {
@@ -137,10 +125,11 @@ export const createProduct = async (req, res) => {
           price_supermarket,
           price_restaurant,
           price_fruver,
+          active: variationActive
         } = variation;
-
         if (!quality || !quantity) continue;
-
+        const variationStatus =
+          typeof variationActive !== 'undefined' ? variationActive : true;
         await client.query(queries.products.createProductVariation, [
           productId,
           quality,
@@ -149,13 +138,14 @@ export const createProduct = async (req, res) => {
           parseFloat(price_supermarket || 0),
           parseFloat(price_restaurant || 0),
           parseFloat(price_fruver || 0),
+          variationStatus
         ]);
       }
     }
 
     res.status(201).json({
       message: 'Producto creado exitosamente',
-      product_id: productId,
+      product_id: productId
     });
   } catch (error) {
     console.error('Error en createProduct:', error.message);
@@ -168,9 +158,8 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;
-
-  const { name, description, category, stock, photo_url, variations } = req.body;
-
+  const { name, description, category, stock, photo_url, variations, active } = req.body;
+  const productActive = typeof active !== 'undefined' ? active : true;
   const parsedProductId = parseInt(id, 10);
 
   if (isNaN(parsedProductId)) {
@@ -180,14 +169,14 @@ export const updateProduct = async (req, res) => {
   try {
     client = await getConnection();
     const updatedPhotoUrl = photo_url || null;
-
     const result = await client.query(queries.products.updateProduct, [
       name,
       description,
       category,
       stock,
       updatedPhotoUrl,
-      parsedProductId,
+      productActive,
+      parsedProductId
     ]);
 
     if (result.rowCount === 0) {
@@ -195,17 +184,31 @@ export const updateProduct = async (req, res) => {
     }
 
     if (Array.isArray(variations) && variations.length > 0) {
+      // Eliminar todas las variaciones actuales del producto
       await client.query(queries.products.deleteProductVariation, [parsedProductId]);
 
       for (const variation of variations) {
+        const {
+          quality,
+          quantity,
+          price_home,
+          price_supermarket,
+          price_restaurant,
+          price_fruver,
+          active: variationActive
+        } = variation;
+        if (!quality || !quantity) continue;
+        const variationStatus =
+          typeof variationActive !== 'undefined' ? variationActive : true;
         await client.query(queries.products.createProductVariation, [
           parsedProductId,
-          variation.quality,
-          variation.quantity,
-          parseFloat(variation.price_home || 0),
-          parseFloat(variation.price_supermarket || 0),
-          parseFloat(variation.price_restaurant || 0),
-          parseFloat(variation.price_fruver || 0),
+          quality,
+          quantity,
+          parseFloat(price_home || 0),
+          parseFloat(price_supermarket || 0),
+          parseFloat(price_restaurant || 0),
+          parseFloat(price_fruver || 0),
+          variationStatus
         ]);
       }
     }
@@ -222,7 +225,6 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   const { id } = req.params;
   let client;
-
   if (!id) {
     return res.status(400).json({ message: 'El ID del producto es requerido' });
   }
@@ -230,11 +232,9 @@ export const deleteProduct = async (req, res) => {
   try {
     client = await getConnection();
     const result = await client.query(queries.products.deleteProduct, [id]);
-
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Producto no encontrado o ya eliminado' });
     }
-
     res.status(200).json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     console.error('Error al eliminar el producto:', error);
@@ -265,20 +265,21 @@ export const updateMultipleProducts = async (req, res) => {
         stock,
         variations,
         photo_url = null,
+        active: productActive
       } = product;
-
       const parsedProductId = parseInt(product_id, 10);
       if (isNaN(parsedProductId)) {
         throw new Error(`ID del producto inválido: ${product_id}`);
       }
-
+      const updatedActive = typeof productActive !== 'undefined' ? productActive : true;
       const result = await client.query(queries.products.updateProduct, [
         name,
         description,
         category,
         stock,
         photo_url || null,
-        parsedProductId,
+        updatedActive,
+        parsedProductId
       ]);
 
       if (result.rowCount === 0) {
@@ -299,7 +300,10 @@ export const updateMultipleProducts = async (req, res) => {
             price_supermarket,
             price_restaurant,
             price_fruver,
+            active: variationActive
           } = variation;
+          const variationStatus =
+            typeof variationActive !== 'undefined' ? variationActive : true;
 
           if (variation_id) {
             // Actualizar variación existente
@@ -310,7 +314,8 @@ export const updateMultipleProducts = async (req, res) => {
               cleanNumber(price_supermarket),
               cleanNumber(price_restaurant),
               cleanNumber(price_fruver),
-              variation_id,
+              variationStatus,
+              variation_id
             ]);
           } else {
             // Crear nueva variación
@@ -322,6 +327,7 @@ export const updateMultipleProducts = async (req, res) => {
               cleanNumber(price_supermarket),
               cleanNumber(price_restaurant),
               cleanNumber(price_fruver),
+              variationStatus
             ]);
           }
         }
@@ -332,11 +338,7 @@ export const updateMultipleProducts = async (req, res) => {
     res.status(200).json({ message: 'Productos actualizados exitosamente.' });
   } catch (error) {
     console.error('Error al actualizar los productos:', error);
-
-    if (client) {
-      await client.query('ROLLBACK');
-    }
-
+    if (client) await client.query('ROLLBACK');
     res.status(500).json({ message: 'Error al actualizar los productos.', error: error.message });
   } finally {
     if (client) client.release();
