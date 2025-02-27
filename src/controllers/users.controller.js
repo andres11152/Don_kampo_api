@@ -53,7 +53,7 @@ export const getUsersById = async (req, res) => {
 
 // Crear un nuevo usuario
 export const createUsers = async (req, res) => {
-  const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;
+  const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;z
 
   if (!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
     return res.status(400).json({
