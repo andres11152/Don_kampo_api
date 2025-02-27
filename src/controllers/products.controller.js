@@ -46,6 +46,7 @@ export const getProducts = async (req, res) => {
           stock: row.stock,
           photo_url: row.photo_url,
           active: row.active,
+          promocionar: row.promocionar, // nuevo campo
           variations: variationData ? [variationData] : []
         });
       }
@@ -89,9 +90,12 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   let client;
   try {
-    const { name, description, category, stock, variations, active } = req.body;
+    const { name, description, category, stock, variations, active, promocionar } = req.body;
     // Si no se envía el estado, lo dejamos activo por defecto
     const productActive = typeof active !== 'undefined' ? active : true;
+    // Definir un valor por defecto para promocionar (por ejemplo, false)
+    const productPromocionar = (typeof promocionar === 'boolean') ? promocionar : false;
+
 
     const defaultPhotoUrl = 'https://example.com/default-image.jpg';
     let photoUrl = defaultPhotoUrl;
@@ -106,13 +110,15 @@ export const createProduct = async (req, res) => {
     const validatedStock = stock ? parseInt(stock, 10) : 0;
     client = await getConnection();
 
+    // Se pasa el parámetro adicional "productPromocionar"
     const result = await client.query(queries.products.createProduct, [
       name,
       description,
       category,
       validatedStock,
       photoUrl,
-      productActive
+      productActive,
+      productPromocionar
     ]);
     const productId = result.rows[0].product_id;
 
@@ -158,8 +164,10 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;
-  const { name, description, category, stock, photo_url, variations, active } = req.body;
+  // Se extrae promocionar del body
+  const { name, description, category, stock, photo_url, variations, active, promocionar } = req.body;
   const productActive = typeof active !== 'undefined' ? active : true;
+  const productPromocionar = typeof promocionar !== 'undefined' ? promocionar : false;
   const parsedProductId = parseInt(id, 10);
 
   if (isNaN(parsedProductId)) {
@@ -169,6 +177,7 @@ export const updateProduct = async (req, res) => {
   try {
     client = await getConnection();
     const updatedPhotoUrl = photo_url || null;
+    // Se actualiza pasando el nuevo parámetro "productPromocionar"
     const result = await client.query(queries.products.updateProduct, [
       name,
       description,
@@ -176,6 +185,7 @@ export const updateProduct = async (req, res) => {
       stock,
       updatedPhotoUrl,
       productActive,
+      productPromocionar,
       parsedProductId
     ]);
 
@@ -257,6 +267,7 @@ export const updateMultipleProducts = async (req, res) => {
     await client.query('BEGIN');
 
     for (const product of products) {
+      // Se extrae también el campo "promocionar"
       const {
         product_id,
         name,
@@ -265,13 +276,15 @@ export const updateMultipleProducts = async (req, res) => {
         stock,
         variations,
         photo_url = null,
-        active: productActive
+        active: productActive,
+        promocionar
       } = product;
       const parsedProductId = parseInt(product_id, 10);
       if (isNaN(parsedProductId)) {
         throw new Error(`ID del producto inválido: ${product_id}`);
       }
       const updatedActive = typeof productActive !== 'undefined' ? productActive : true;
+      const productPromocionar = typeof promocionar !== 'undefined' ? promocionar : false;
       const result = await client.query(queries.products.updateProduct, [
         name,
         description,
@@ -279,6 +292,7 @@ export const updateMultipleProducts = async (req, res) => {
         stock,
         photo_url || null,
         updatedActive,
+        productPromocionar,
         parsedProductId
       ]);
 
