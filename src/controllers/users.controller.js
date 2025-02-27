@@ -55,7 +55,10 @@ export const getUsersById = async (req, res) => {
 export const createUsers = async (req, res) => {
   const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;
 
-  if (!user_name || !lastname || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
+  // Se asigna un valor por defecto a lastname si no se proporciona
+  const safeLastname = lastname || '';
+
+  if (!user_name || !email || !phone || !city || !address || !neighborhood || !user_password || !user_type) {
     return res.status(400).json({
       msg: 'No se permiten campos vacíos. Asegúrate de que todos los campos obligatorios estén completos.'
     });
@@ -71,7 +74,7 @@ export const createUsers = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(user_password, 10);
-    await client.query(queries.users.createUsers, [user_name, lastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
+    await client.query(queries.users.createUsers, [user_name, safeLastname, email, phone, city, address, neighborhood, hashedPassword, user_type]);
 
     res.status(201).json({ msg: 'Usuario creado exitosamente.' });
   } catch (error) {
@@ -81,6 +84,7 @@ export const createUsers = async (req, res) => {
     if (client) client.release();
   }
 };
+
 
 // Actualizar la información de un usuario
 export const updateUsers = async (req, res) => {
