@@ -91,6 +91,8 @@ export const createProduct = async (req, res) => {
   let client;
   try {
     const { name, description, category, stock, variations, active, promocionar } = req.body;
+
+
     // Si no se envía el estado, lo dejamos activo por defecto
     const productActive = typeof active !== 'undefined' ? active : true;
     // Definir un valor por defecto para promocionar (por ejemplo, false)
@@ -122,8 +124,10 @@ export const createProduct = async (req, res) => {
     ]);
     const productId = result.rows[0].product_id;
 
-    if (Array.isArray(variations) && variations.length > 0) {
-      for (const variation of variations) {
+    const parsedVariations = JSON.parse(variations);
+    
+    if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
+      for (const variation of parsedVariations) {        
         const {
           quality,
           quantity,
