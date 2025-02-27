@@ -248,6 +248,7 @@ export const queries = {
         p.stock, 
         p.photo_url,
         p.active,
+        p.promocionar,  -- Nueva columna agregada
         v.variation_id,
         v.quality,
         v.quantity,
@@ -269,14 +270,15 @@ export const queries = {
         p.category, 
         p.stock, 
         p.photo_url,
-        p.active
+        p.active,
+        p.promocionar  -- Nueva columna agregada
       FROM products p
       WHERE p.product_id = $1;
     `,
   
     createProduct: `
-      INSERT INTO products (name, description, category, stock, photo_url, active)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING product_id;
+      INSERT INTO products (name, description, category, stock, photo_url, active, promocionar)  -- Nueva columna agregada
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING product_id;
     `,
   
     createProductVariation: `
@@ -293,8 +295,9 @@ export const queries = {
         stock = $4, 
         photo_url = COALESCE($5, photo_url),
         active = $6,
+        promocionar = $7,  -- Nueva columna agregada
         updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $7
+      WHERE product_id = $8
       RETURNING product_id;
     `,
   
@@ -331,7 +334,7 @@ export const queries = {
     
     deleteProductVariation: `
       DELETE FROM product_variations WHERE product_id = $1;
-    `  
+    `
 },
 advertisements: {
   getAll: `
