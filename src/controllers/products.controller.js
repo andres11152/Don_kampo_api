@@ -86,7 +86,7 @@ export const getProductById = async (req, res) => {
     if (client) client.release();
   }
 };
-
+// Se añade el campo "promocionar" en la consulta
 export const createProduct = async (req, res) => {
   let client;
   try {
