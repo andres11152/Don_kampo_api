@@ -271,7 +271,7 @@ export const queries = {
         p.stock, 
         p.photo_url,
         p.active,
-        p.promocionar  -- Nueva columna agregada
+        p.promocionar  
       FROM products p
       WHERE p.product_id = $1;
     `,
