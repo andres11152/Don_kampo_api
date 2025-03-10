@@ -21,7 +21,7 @@ const allowedOrigins = [
   'https://donkampo.com',
   'https://www.donkampo.com',
   'http://localhost:3000',
-];
+];  
 
 const corsOptions = {
   origin: (origin, callback) => {
