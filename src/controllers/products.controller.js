@@ -2,7 +2,7 @@ import { getConnection } from '../database/connection.js';
 import { uploadImage } from '../helpers/uploadImage.js';
 import { queries } from '../database/queries.interface.js';
 
-// Se añade el campo "promocionar" en la consulta
+// pruba 2, se añade el campo "promocionar" en la consulta
 export const getProducts = async (req, res) => {
   const { page = 1, limit = 9 } = req.query;
   const offset = (page - 1) * limit;
