@@ -2,6 +2,8 @@ import _asyncToGenerator from "@babel/runtime/helpers/asyncToGenerator";
 import { getConnection } from '../database/connection.js';
 import { uploadImage } from '../helpers/uploadImage.js';
 import { queries } from '../database/queries.interface.js';
+
+// pruba 2, se añade el campo "promocionar" en la consulta
 export const getProducts = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* (req, res) {
     const {
@@ -21,16 +23,18 @@ export const getProducts = /*#__PURE__*/function () {
       const productsWithVariations = [];
       productsResult.rows.forEach(row => {
         const existingProduct = productsWithVariations.find(product => product.product_id === row.product_id);
+        const variationData = row.variation_id ? {
+          variation_id: row.variation_id,
+          quality: row.quality,
+          quantity: row.quantity,
+          price_home: row.price_home,
+          price_supermarket: row.price_supermarket,
+          price_restaurant: row.price_restaurant,
+          price_fruver: row.price_fruver,
+          active: row.variation_active
+        } : null;
         if (existingProduct) {
-          existingProduct.variations.push({
-            variation_id: row.variation_id,
-            quality: row.quality,
-            quantity: row.quantity,
-            price_home: row.price_home,
-            price_supermarket: row.price_supermarket,
-            price_restaurant: row.price_restaurant,
-            price_fruver: row.price_fruver
-          });
+          if (variationData) existingProduct.variations.push(variationData);
         } else {
           productsWithVariations.push({
             product_id: row.product_id,
@@ -39,15 +43,10 @@ export const getProducts = /*#__PURE__*/function () {
             category: row.category,
             stock: row.stock,
             photo_url: row.photo_url,
-            variations: row.variation_id ? [{
-              variation_id: row.variation_id,
-              quality: row.quality,
-              quantity: row.quantity,
-              price_home: row.price_home,
-              price_supermarket: row.price_supermarket,
-              price_restaurant: row.price_restaurant,
-              price_fruver: row.price_fruver
-            }] : []
+            active: row.active,
+            promocionar: row.promocionar,
+            // nuevo campo
+            variations: variationData ? [variationData] : []
           });
         }
       });
@@ -100,6 +99,7 @@ export const getProductById = /*#__PURE__*/function () {
     return _ref2.apply(this, arguments);
   };
 }();
+// Se añade el campo "promocionar" en la consulta
 export const createProduct = /*#__PURE__*/function () {
   var _ref3 = _asyncToGenerator(function* (req, res) {
     let client;
@@ -109,8 +109,15 @@ export const createProduct = /*#__PURE__*/function () {
         description,
         category,
         stock,
-        variations
+        variations,
+        active,
+        promocionar
       } = req.body;
+
+      // Si no se envía el estado, lo dejamos activo por defecto
+      const productActive = typeof active !== 'undefined' ? active : true;
+      // Definir un valor por defecto para promocionar (por ejemplo, false)
+      const productPromocionar = typeof promocionar === 'boolean' ? promocionar : false;
       const defaultPhotoUrl = 'https://example.com/default-image.jpg';
       let photoUrl = defaultPhotoUrl;
       if (req.file && req.file.buffer) {
@@ -125,20 +132,25 @@ export const createProduct = /*#__PURE__*/function () {
       }
       const validatedStock = stock ? parseInt(stock, 10) : 0;
       client = yield getConnection();
-      const result = yield client.query(queries.products.createProduct, [name, description, category, validatedStock, photoUrl]);
+
+      // Se pasa el parámetro adicional "productPromocionar"
+      const result = yield client.query(queries.products.createProduct, [name, description, category, validatedStock, photoUrl, productActive, productPromocionar]);
       const productId = result.rows[0].product_id;
-      if (Array.isArray(variations) && variations.length > 0) {
-        for (const variation of variations) {
+      const parsedVariations = JSON.parse(variations);
+      if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
+        for (const variation of parsedVariations) {
           const {
             quality,
             quantity,
             price_home,
             price_supermarket,
             price_restaurant,
-            price_fruver
+            price_fruver,
+            active: variationActive
           } = variation;
           if (!quality || !quantity) continue;
-          yield client.query(queries.products.createProductVariation, [productId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0)]);
+          const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
+          yield client.query(queries.products.createProductVariation, [productId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0), variationStatus]);
         }
       }
       res.status(201).json({
@@ -165,14 +177,19 @@ export const updateProduct = /*#__PURE__*/function () {
     const {
       id
     } = req.params;
+    // Se extrae promocionar del body
     const {
       name,
       description,
       category,
       stock,
       photo_url,
-      variations
+      variations,
+      active,
+      promocionar
     } = req.body;
+    const productActive = typeof active !== 'undefined' ? active : true;
+    const productPromocionar = typeof promocionar !== 'undefined' ? promocionar : false;
     const parsedProductId = parseInt(id, 10);
     if (isNaN(parsedProductId)) {
       return res.status(400).json({
@@ -182,16 +199,29 @@ export const updateProduct = /*#__PURE__*/function () {
     try {
       client = yield getConnection();
       const updatedPhotoUrl = photo_url || null;
-      const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, parsedProductId]);
+      // Se actualiza pasando el nuevo parámetro "productPromocionar"
+      const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, productActive, productPromocionar, parsedProductId]);
       if (result.rowCount === 0) {
         return res.status(404).json({
           message: 'Producto no encontrado'
         });
       }
       if (Array.isArray(variations) && variations.length > 0) {
+        // Eliminar todas las variaciones actuales del producto
         yield client.query(queries.products.deleteProductVariation, [parsedProductId]);
         for (const variation of variations) {
-          yield client.query(queries.products.createProductVariation, [parsedProductId, variation.quality, variation.quantity, parseFloat(variation.price_home || 0), parseFloat(variation.price_supermarket || 0), parseFloat(variation.price_restaurant || 0), parseFloat(variation.price_fruver || 0)]);
+          const {
+            quality,
+            quantity,
+            price_home,
+            price_supermarket,
+            price_restaurant,
+            price_fruver,
+            active: variationActive
+          } = variation;
+          if (!quality || !quantity) continue;
+          const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
+          yield client.query(queries.products.createProductVariation, [parsedProductId, quality, quantity, parseFloat(price_home || 0), parseFloat(price_supermarket || 0), parseFloat(price_restaurant || 0), parseFloat(price_fruver || 0), variationStatus]);
         }
       }
       res.status(200).json({
@@ -260,6 +290,7 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
       client = yield getConnection();
       yield client.query('BEGIN');
       for (const product of products) {
+        // Se extrae también el campo "promocionar"
         const {
           product_id,
           name,
@@ -267,13 +298,17 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
           category,
           stock,
           variations,
-          photo_url = null
+          photo_url = null,
+          active: productActive,
+          promocionar
         } = product;
         const parsedProductId = parseInt(product_id, 10);
         if (isNaN(parsedProductId)) {
           throw new Error(`ID del producto inválido: ${product_id}`);
         }
-        const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, photo_url || null, parsedProductId]);
+        const updatedActive = typeof productActive !== 'undefined' ? productActive : true;
+        const productPromocionar = typeof promocionar !== 'undefined' ? promocionar : false;
+        const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, photo_url || null, updatedActive, productPromocionar, parsedProductId]);
         if (result.rowCount === 0) {
           throw new Error(`Producto con ID: ${product_id} no encontrado.`);
         }
@@ -289,14 +324,16 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
               price_home,
               price_supermarket,
               price_restaurant,
-              price_fruver
+              price_fruver,
+              active: variationActive
             } = variation;
+            const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
             if (variation_id) {
               // Actualizar variación existente
-              yield client.query(queries.products.updateProductVariation, [quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver), variation_id]);
+              yield client.query(queries.products.updateProductVariation, [quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver), variationStatus, variation_id]);
             } else {
               // Crear nueva variación
-              yield client.query(queries.products.createProductVariation, [parsedProductId, quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver)]);
+              yield client.query(queries.products.createProductVariation, [parsedProductId, quality, quantity, cleanNumber(price_home), cleanNumber(price_supermarket), cleanNumber(price_restaurant), cleanNumber(price_fruver), variationStatus]);
             }
           }
         }
@@ -307,9 +344,7 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
       });
     } catch (error) {
       console.error('Error al actualizar los productos:', error);
-      if (client) {
-        yield client.query('ROLLBACK');
-      }
+      if (client) yield client.query('ROLLBACK');
       res.status(500).json({
         message: 'Error al actualizar los productos.',
         error: error.message

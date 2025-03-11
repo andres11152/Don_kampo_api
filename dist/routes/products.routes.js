@@ -14,7 +14,7 @@ const router = express.Router();
 router.use(express.json());
 
 // Rutas
-router.post('/api/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, parseMultipartData, createProduct);
+router.post('/api/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, createProduct);
 router.get('/api/products', getProducts);
 router.get('/api/getproduct/:id', getProductById);
 router.put('/api/updateproduct/:id', handleMulterError, updateProduct);
