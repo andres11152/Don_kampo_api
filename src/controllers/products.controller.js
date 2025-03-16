@@ -169,7 +169,6 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;
-  // Se extrae promocionar del body
   const { name, description, category, stock, photo_url, variations, active, promocionar } = req.body;
   const productActive = typeof active !== 'undefined' ? active : true;
   const productPromocionar = typeof promocionar !== 'undefined' ? promocionar : false;
@@ -181,8 +180,20 @@ export const updateProduct = async (req, res) => {
 
   try {
     client = await getConnection();
-    const updatedPhotoUrl = photo_url || null;
-    // Se actualiza pasando el nuevo parámetro "productPromocionar"
+
+    let updatedPhotoUrl = photo_url || null;
+
+    // Si se sube una nueva imagen, la procesamos y subimos a S3
+    if (req.file && req.file.buffer) {
+      try {
+        updatedPhotoUrl = await uploadImage(req.file.buffer, req.file.originalname);
+      } catch (error) {
+        console.error('Error al subir la imagen:', error.message);
+        return res.status(500).json({ message: 'Error al subir la imagen a S3' });
+      }
+    }
+
+    // Se actualiza el producto incluyendo la nueva URL de la imagen si se subió una nueva
     const result = await client.query(queries.products.updateProduct, [
       name,
       description,
