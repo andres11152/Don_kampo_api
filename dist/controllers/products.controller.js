@@ -177,7 +177,6 @@ export const updateProduct = /*#__PURE__*/function () {
     const {
       id
     } = req.params;
-    // Se extrae promocionar del body
     const {
       name,
       description,
@@ -198,8 +197,21 @@ export const updateProduct = /*#__PURE__*/function () {
     }
     try {
       client = yield getConnection();
-      const updatedPhotoUrl = photo_url || null;
-      // Se actualiza pasando el nuevo parámetro "productPromocionar"
+      let updatedPhotoUrl = photo_url || null;
+
+      // Si se sube una nueva imagen, la procesamos y subimos a S3
+      if (req.file && req.file.buffer) {
+        try {
+          updatedPhotoUrl = yield uploadImage(req.file.buffer, req.file.originalname);
+        } catch (error) {
+          console.error('Error al subir la imagen:', error.message);
+          return res.status(500).json({
+            message: 'Error al subir la imagen a S3'
+          });
+        }
+      }
+
+      // Se actualiza el producto incluyendo la nueva URL de la imagen si se subió una nueva
       const result = yield client.query(queries.products.updateProduct, [name, description, category, stock, updatedPhotoUrl, productActive, productPromocionar, parsedProductId]);
       if (result.rowCount === 0) {
         return res.status(404).json({
