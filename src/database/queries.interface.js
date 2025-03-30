@@ -95,32 +95,35 @@ export const queries = {
     WHERE o.id = $1
   `,
   getOrderItemsByOrderId: `
-    SELECT 
+      SELECT 
       oi.order_id, 
       oi.product_id, 
       oi.quantity, 
       oi.price,
       p.name AS product_name, 
       p.description AS product_description,
-      pv.variation_id AS product_variation_id
+      MAX(pv.variation_id) AS product_variation_id
     FROM order_items oi
     LEFT JOIN products p ON oi.product_id = p.product_id
     LEFT JOIN product_variations pv ON p.product_id = pv.product_id
     WHERE oi.order_id = $1
+    GROUP BY oi.order_id, oi.product_id, oi.quantity, oi.price, p.name, p.description
   `,
   getOrderItemsByOrderIds: `
-    SELECT 
-      oi.order_id, 
-      oi.product_id, 
-      oi.quantity, 
-      oi.price,
-      p.name AS product_name, 
-      p.description AS product_description,
-      pv.variation_id AS product_variation_id
-    FROM order_items oi
-    LEFT JOIN products p ON oi.product_id = p.product_id
-    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-    WHERE oi.order_id = ANY($1)
+      SELECT 
+    oi.order_id, 
+    oi.product_id, 
+    oi.quantity, 
+    oi.price,
+    p.name AS product_name, 
+    p.description AS product_description,
+    MAX(pv.variation_id) AS product_variation_id
+  FROM order_items oi
+  LEFT JOIN products p ON oi.product_id = p.product_id
+  LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+  WHERE oi.order_id = ANY($1)
+  GROUP BY oi.order_id, oi.product_id, oi.quantity, oi.price, p.name, p.description
+
   `,
   getShippingInfoByOrderId: `
     SELECT 
