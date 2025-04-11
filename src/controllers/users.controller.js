@@ -85,7 +85,6 @@ export const createUsers = async (req, res) => {
   }
 };
 
-
 // Actualizar la información de un usuario
 export const updateUsers = async (req, res) => {
   const { id } = req.params;

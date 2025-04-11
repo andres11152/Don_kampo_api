@@ -78,75 +78,76 @@ export const queries = {
       o.user_type
     FROM orders o
   `,
-  getOrdersById: `
-    SELECT 
-      o.id, 
-      o.customer_id, 
-      o.order_date, 
-      o.status_id, 
-      o.total, 
-      o.requires_electronic_billing, 
-      o.company_name, 
-      o.nit,
-      u.user_name AS customer_name, 
-      u.email AS customer_email
-    FROM orders o
-    LEFT JOIN users u ON o.customer_id = u.id
-    WHERE o.id = $1
-  `,
-  getOrderItemsByOrderId: `
+    getOrdersById: `
       SELECT 
-      oi.order_id, 
-      oi.product_id, 
-      oi.quantity, 
-      oi.price,
-      p.name AS product_name, 
-      p.description AS product_description,
-      MAX(pv.variation_id) AS product_variation_id
-    FROM order_items oi
-    LEFT JOIN products p ON oi.product_id = p.product_id
-    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-    WHERE oi.order_id = $1
-    GROUP BY oi.order_id, oi.product_id, oi.quantity, oi.price, p.name, p.description
-  `,
-  getOrderItemsByOrderIds: `
+        o.id, 
+        o.customer_id, 
+        o.order_date, 
+        o.status_id, 
+        o.total, 
+        o.requires_electronic_billing, 
+        o.company_name, 
+        o.nit,
+        u.user_name AS customer_name, 
+        u.email AS customer_email
+      FROM orders o
+      LEFT JOIN users u ON o.customer_id = u.id
+      WHERE o.id = $1
+    `,
+    getOrderItemsByOrderId: `
       SELECT 
-    oi.order_id, 
-    oi.product_id, 
-    oi.quantity, 
-    oi.price,
-    p.name AS product_name, 
-    p.description AS product_description,
-    MAX(pv.variation_id) AS product_variation_id
-  FROM order_items oi
-  LEFT JOIN products p ON oi.product_id = p.product_id
-  LEFT JOIN product_variations pv ON p.product_id = pv.product_id
-  WHERE oi.order_id = ANY($1)
-  GROUP BY oi.order_id, oi.product_id, oi.quantity, oi.price, p.name, p.description
-
-  `,
-  getShippingInfoByOrderId: `
+        oi.order_id, 
+        oi.product_id, 
+        oi.quantity, 
+        oi.price,
+        oi.variation_id,
+        oi.quality,
+        oi.presentation,
+        oi.presentation_id,
+        p.name AS product_name, 
+        p.description AS product_description
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      WHERE oi.order_id = $1
+    `,
+    getOrderItemsByOrderIds: `
     SELECT 
-      si.order_id,
-      si.shipping_method, 
-      si.tracking_number, 
-      si.estimated_delivery,
-      si.actual_delivery, 
-      si.shipping_status_id
-    FROM shipping_info si
-    WHERE si.order_id = $1
-  `,
-  getShippingInfoByOrderIds: `
-    SELECT 
-      si.order_id,
-      si.shipping_method, 
-      si.tracking_number, 
-      si.estimated_delivery,
-      si.actual_delivery, 
-      si.shipping_status_id
-    FROM shipping_info si
-    WHERE si.order_id = ANY($1)
-  `,
+        oi.order_id, 
+        oi.product_id, 
+        oi.quantity, 
+        oi.price,
+        oi.variation_id,
+        oi.quality,
+        oi.presentation,
+        oi.presentation_id,
+        p.name AS product_name, 
+        p.description AS product_description
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      WHERE oi.order_id = ANY($1)
+    `,
+    getShippingInfoByOrderId: `
+      SELECT 
+        si.order_id,
+        si.shipping_method, 
+        si.tracking_number, 
+        si.estimated_delivery,
+        si.actual_delivery, 
+        si.shipping_status_id
+      FROM shipping_info si
+      WHERE si.order_id = $1
+    `,
+    getShippingInfoByOrderIds: `
+      SELECT 
+        si.order_id,
+        si.shipping_method, 
+        si.tracking_number, 
+        si.estimated_delivery,
+        si.actual_delivery, 
+        si.shipping_status_id
+      FROM shipping_info si
+      WHERE si.order_id = ANY($1)
+    `,
     createOrder: `
     INSERT INTO orders (
       customer_id, 
@@ -155,9 +156,10 @@ export const queries = {
       total, 
       requires_electronic_billing, 
       company_name, 
-      nit
+      nit,
+      user_type
     ) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
     RETURNING id
   `,
     updateOrders: `
@@ -186,12 +188,16 @@ export const queries = {
         order_id, 
         product_id, 
         quantity, 
-        price
+        price,
+        variation_id,
+        quality,
+        presentation,
+        presentation_id
       ) 
-      VALUES ($1, $2, $3, $4)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+
     `  
   },
-
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
     getOrderStatusesById: "SELECT * FROM order_statuses WHERE id = $1",
@@ -206,7 +212,6 @@ export const queries = {
     `,
     deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1",
   },
-
   shipping_statuses: {
     getShippingStatuses: "SELECT * FROM shipping_statuses",
     getShippingStatusesById: "SELECT * FROM shipping_statuses WHERE id = $1",
@@ -221,7 +226,6 @@ export const queries = {
     `,
     deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1",
   },
-
   shipping_info: {
     getShippingInfo: "SELECT * FROM shipping_info",
     getShippingInfoById: "SELECT * FROM shipping_info WHERE id = $1",
@@ -248,17 +252,12 @@ export const queries = {
         p.name, 
         p.description, 
         p.category, 
-        p.stock, 
         p.photo_url,
         p.active,
-        p.promocionar,  -- Nueva columna agregada
+        p.promocionar,  
         v.variation_id,
         v.quality,
-        v.quantity,
-        v.price_home,
-        v.price_supermarket,
-        v.price_restaurant,
-        v.price_fruver,
+        v.presentations,  -- IDs de presentaciones
         v.active AS variation_active
       FROM products p
       LEFT JOIN product_variations v ON p.product_id = v.product_id
@@ -271,74 +270,108 @@ export const queries = {
         p.name, 
         p.description, 
         p.category, 
-        p.stock, 
         p.photo_url,
         p.active,
-        p.promocionar  
+        p.promocionar,
+        v.variation_id,
+        v.quality,
+        v.presentations,  -- IDs de presentaciones
+        v.active AS variation_active
       FROM products p
+      LEFT JOIN product_variations v ON p.product_id = v.product_id
       WHERE p.product_id = $1;
     `,
-  
     createProduct: `
-      INSERT INTO products (name, description, category, stock, photo_url, active, promocionar)  -- Nueva columna agregada
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING product_id;
+      INSERT INTO products (name, description, category, photo_url, active, promocionar)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING product_id;
     `,
-  
     createProductVariation: `
-      INSERT INTO product_variations (product_id, quality, quantity, price_home, price_supermarket, price_restaurant, price_fruver, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+      INSERT INTO product_variations (product_id, quality, presentations, active)
+      VALUES ($1, $2, $3, $4) RETURNING variation_id;
     `,
-  
+    createProductPresentation: `
+      INSERT INTO product_presentations 
+      (variation_id, presentation, price_home, price_supermarket, price_restaurant, price_fruver, stock)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING presentation_id;
+    `,
+    getProductPresentations: `
+    SELECT 
+      presentation_id,
+      variation_id,
+      presentation,
+      price_home,
+      price_supermarket,
+      price_restaurant,
+      price_fruver,
+      stock
+    FROM product_presentations
+    WHERE variation_id = ANY($1);
+  `,
     updateProduct: `
       UPDATE products
       SET 
         name = $1, 
         description = $2, 
         category = $3, 
-        stock = $4, 
-        photo_url = COALESCE($5, photo_url),
-        active = $6,
-        promocionar = $7,  -- Nueva columna agregada
+        photo_url = COALESCE($4, photo_url),
+        active = $5,
+        promocionar = $6,  
         updated_at = CURRENT_TIMESTAMP
-      WHERE product_id = $8
+      WHERE product_id = $7
       RETURNING product_id;
     `,
-  
     updateProductVariation: `
-      UPDATE product_variations
-      SET 
-        quality = $1, 
-        quantity = $2, 
-        price_home = $3, 
-        price_supermarket = $4, 
-        price_restaurant = $5, 
-        price_fruver = $6,
-        active = $7
-      WHERE variation_id = $8;
+    UPDATE product_variations
+    SET 
+      quality = $1,
+      active = $2
+    WHERE variation_id = $3;
     `,
-  
+    updateProductPresentation: `
+      UPDATE product_presentations
+      SET
+        variation_id = $1,
+        presentation = $2,
+        stock = $3,
+        price_home = $4,
+        price_supermarket = $5,
+        price_restaurant = $6,
+        price_fruver = $7
+      WHERE presentation_id = $8;
+    `,
     getProductVariations: `
       SELECT 
         v.variation_id, 
         v.quality, 
-        v.quantity, 
-        v.price_home, 
-        v.price_supermarket, 
-        v.price_restaurant, 
-        v.price_fruver,
-        v.active
+        v.active,
+        json_agg(
+          json_build_object(
+            'presentation_id', pp.presentation_id,
+            'presentation', pp.presentation,
+            'price_home', pp.price_home,
+            'price_supermarket', pp.price_supermarket,
+            'price_restaurant', pp.price_restaurant,
+            'price_fruver', pp.price_fruver,
+            'stock', pp.stock  -- <-- aquí agregas el stock
+          )
+        ) AS presentations
       FROM product_variations v
-      WHERE v.product_id = $1;
-    `,
-    
+      LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
+      WHERE v.product_id = $1
+      GROUP BY v.variation_id, v.quality, v.active;
+  `,
     deleteProduct: `
       DELETE FROM products WHERE product_id = $1;
     `,
-    
     deleteProductVariation: `
-      DELETE FROM product_variations WHERE product_id = $1;
+      DELETE FROM product_variations WHERE variation_id = $1;
+    `,
+    deletePresentationsByVariation: `
+      DELETE FROM product_presentations WHERE variation_id = $1;
     `
-},
+
+  },  
 advertisements: {
   getAll: `
     SELECT 
@@ -405,4 +438,3 @@ minimumOrders: {
   `,
 },
 };
-
