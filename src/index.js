@@ -63,7 +63,9 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
 
-process.on('SIGINT', () => {
-  console.log('Cerrando servidor...');
-  process.exit(0);
+process.on("SIGINT", () => {
+  server.close(() => {
+    console.log("Servidor cerrado correctamente");
+    process.exit(0);
+  });
 });
