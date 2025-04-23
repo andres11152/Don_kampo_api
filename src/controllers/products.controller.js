@@ -189,6 +189,7 @@ export const updateProduct = async (req, res) => {
   let client;
   const { id } = req.params;
   const { name, description, category, photo_url, variations, active, promocionar } = req.body;
+
   let parsedVariations;
   try {
     parsedVariations = typeof variations === 'string' ? JSON.parse(variations) : variations;
@@ -219,6 +220,8 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    console.log(parsedVariations)
+    console.log(name, description, category, updatedPhotoUrl, productActive, productPromocionar, parsedProductId)
     // Se actualiza el producto incluyendo la nueva URL de la imagen si se subió una nueva
     const result = await client.query(queries.products.updateProduct, [
       name,

@@ -19,11 +19,13 @@ export const placeOrder = async (req, res) => {
       `SELECT id, user_type FROM users WHERE id = $1`,
       [userId]
     );
-    if (userResult.rows.length === 0) {
+
+    // Si el usuario no se encuentra y es distinto a los usuarios por default
+    if (!userResult.rows.length && userId !== '0f8fc459-571f-4e15-b653-4eb4558c6450') {
       client.release();
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
-    const userType = userResult.rows[0].user_type;
+    const userType = userResult.rows.length ? userResult.rows[0].user_type : 'home';
     const user_type = userType === 'admin' ? 'fruver' : userType
     const isRestaurant = user_type === 'restaurante';
     const needsElectronicInvoice = isRestaurant || false;
@@ -101,15 +103,25 @@ export const placeOrder = async (req, res) => {
         shippingStatusId,
         orderId,
       ]);
+      
+      // Creamos los items de la orden
+      for (const item of cartDetails) {
+          await client.query(queries.orders.createOrderItem, [
+              orderId,
+              item.productId,
+              item.quantity,
+              item.price,
+          ]);
+      }
     }
-
+    
     client.release();
     res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId });
   } catch (error) {
     console.error('Error al realizar el pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
   }
-};
+}
 
 export const getOrders = async (req, res) => {
   try {
@@ -124,9 +136,6 @@ export const getOrders = async (req, res) => {
     const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
 
     const orderItems = itemsResult.rows;
-
-
-    console.log(JSON.stringify(orderItems))
     // Obtener información de envío de todos los pedidos
     const shippingResult = await client.query(queries.orders.getShippingInfoByOrderIds, [orderIds]);
     const shippingInfo = shippingResult.rows;
@@ -180,7 +189,6 @@ export const getOrders = async (req, res) => {
 
     client.release();
 
-    console.log(JSON.stringify(variationsMap))    
     const ordersWithDetails = orders.map((order) => {
       // Filtrar los items que pertenecen a esta orden:
       const itemsForOrder = orderItems.filter((item) => item.order_id === order.id);
@@ -201,8 +209,8 @@ export const getOrders = async (req, res) => {
       const aggregatedItemsArray = Object.values(aggregatedItems).map(item => {
         const variation = variationsMap[item.variation_id];
         // Buscar la presentación seleccionada según el campo "presentation"
-        console.log(variation)
-        const selectedPresentation = variation.presentations.find(p => p.presentation_id === item.presentation_id);
+
+        const selectedPresentation = variation.presentations.find(p => p.presentation === item.presentation);
         return {
           ...item,
           price: parseFloat(item.price),
@@ -239,7 +247,6 @@ export const getOrdersById = async (req, res) => {
   try {
       const { orderId } = req.params;
       const client = await getConnection();
-
       // Obtener información del pedido
       const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
@@ -421,7 +428,6 @@ export const deleteOrders = async (req, res) => {
   
 export const updateOrderPrices = async (req, res) => {
   const client = await getConnection();
-
   try {
     await client.query("BEGIN");
 
@@ -504,4 +510,3 @@ export const updateOrderPrices = async (req, res) => {
     client.release();
   }
 };
-  
