@@ -484,19 +484,24 @@ export const updateOrderPrices = async (req, res) => {
     for (const item of orderItems) {
       const userType = ordersResult.rows.find(({ id }) => id === item.order_id).user_type
       const variation = variationsMap[item.product_id].find(({ variation_id }) => variation_id === item.variation_id)
-      const presentation = variation.presentations.find(({ presentation_id }) => presentation_id === item.presentation_id)
-      const newPrice = presentation[`price_${userType}`]; 
-      if (newPrice) {
-        await client.query(
-          `
-          UPDATE order_items
-          SET price = $1
-          WHERE order_id = $2
-            AND product_id = $3
-            AND variation_id = $4;
-          `,
-          [newPrice, item.order_id, item.product_id, item.variation_id]
-        );
+      if (variation) {
+        const presentation = variation.presentations.find(({ presentation_id }) => presentation_id === item.presentation_id)
+        
+        if (presentation) {
+          const newPrice = presentation[`price_${userType}`]; 
+          if (newPrice) {
+            await client.query(
+              `
+              UPDATE order_items
+              SET price = $1
+              WHERE order_id = $2
+                AND product_id = $3
+                AND variation_id = $4;
+              `,
+              [newPrice, item.order_id, item.product_id, item.variation_id]
+            );
+          }
+        }
       }
     }
 
