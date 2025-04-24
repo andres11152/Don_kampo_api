@@ -77,11 +77,6 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
-    const variationsResult = await client.query(queries.products.getProductVariations, [id]);
-
-    variationsResult.rows.map(variation => {
-      console.log(variation.presentations)
-    })
     const productWithVariations = {
       ...productResult.rows[0],
       variations: variationsResult.rows.map((variation) => ({
@@ -220,8 +215,6 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    console.log(parsedVariations)
-    console.log(name, description, category, updatedPhotoUrl, productActive, productPromocionar, parsedProductId)
     // Se actualiza el producto incluyendo la nueva URL de la imagen si se subió una nueva
     const result = await client.query(queries.products.updateProduct, [
       name,
@@ -237,22 +230,68 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
-    if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
-      // Eliminar todas las variaciones actuales del producto
-      await client.query(queries.products.deleteProductVariation, [parsedProductId]);
+    if (!Array.isArray(parsedVariations) && !parsedVariations.length) {
+      return res.status(404).json({ message: "No hay variaciones" })
+    }
 
-      for (const variation of parsedVariations) {
-        const {
-          variation_id,  // ID de la variación (para actualizar)
+    const variationsResult = await client.query(queries.products.getProductVariations, [id]);
+
+    await Promise.all(
+      variationsResult.rows.map(async variation => {
+        const indexVariation = parsedVariations.findIndex(v => v.variation_id === variation.variation_id)
+        if (indexVariation === -1) {
+          // Eliminar todas las variaciones actuales del producto
+          await client.query(queries.products.deleteProductVariation, [variation.variation_id]);
+        } else {
+          variation.presentations.map(async presentation => {
+            const indexPresentation = parsedVariations[indexVariation].presentations
+              .findIndex(p => p.presentation_id === presentation.presentation_id)
+
+            if (indexPresentation === -1) {
+              // Eliminar todas las variaciones actuales del producto
+              await client.query(queries.products.deletePresentation, [presentation.presentation_id]);
+            }
+          })
+        }
+      })
+    )
+
+    for (const variation of parsedVariations) {
+      const {
+        variation_id,  // ID de la variación (para actualizar)
+        quality,
+        presentations,  // Esto ahora es un array de presentaciones
+        active: variationActive
+      } = variation;
+
+      if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
+
+      const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
+
+      // Si no existe la variacion la crea, de lo contrario la actualiza
+      if (!variation_id) {
+        // Crear la variación del producto
+        const variationResult = await client.query(queries.products.createProductVariation, [
+          parsedProductId,
           quality,
-          presentations,  // Esto ahora es un array de presentaciones
-          active: variationActive
-        } = variation;
+          JSON.stringify(presentations),
+          variationStatus
+        ]);
+        const variationId = variationResult.rows[0].variation_id;
 
-        if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
-
-        const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
-
+        // Insertar las presentaciones asociadas con esta variación
+        for (const presentation of presentations) {
+          await client.query(queries.products.createProductPresentation, [
+            variationId,
+            presentation.presentation,
+            parseInt(presentation.stock),
+            presentation.price_home,
+            presentation.price_supermarket,
+            presentation.price_restaurant,
+            presentation.price_fruver,
+          ]);
+        }
+      } else {
         // Se actualiza la variación
         await client.query(queries.products.updateProductVariation, [
           quality,
@@ -265,7 +304,7 @@ export const updateProduct = async (req, res) => {
           // Verificar si la presentación ya existe
           const existingPresentation = await client.query(
             `SELECT presentation_id FROM product_presentations 
-             WHERE variation_id = $1 AND presentation_id = $2`,
+            WHERE variation_id = $1 AND presentation_id = $2`,
             [variation_id, presentation.presentation_id]
           );
 
@@ -280,6 +319,16 @@ export const updateProduct = async (req, res) => {
               presentation.price_restaurant,
               presentation.price_fruver,
               presentation.presentation_id
+            ]);
+          } else {
+            await client.query(queries.products.createProductPresentation, [
+              variation_id,
+              presentation.presentation,
+              parseInt(presentation.stock),
+              presentation.price_home,
+              presentation.price_supermarket,
+              presentation.price_restaurant,
+              presentation.price_fruver,
             ]);
           }
         }

@@ -86,10 +86,6 @@ export const getProductById = /*#__PURE__*/function () {
           message: 'Producto no encontrado'
         });
       }
-      const variationsResult = yield client.query(queries.products.getProductVariations, [id]);
-      variationsResult.rows.map(variation => {
-        console.log(variation.presentations);
-      });
       const productWithVariations = {
         ...productResult.rows[0],
         variations: variationsResult.rows.map(variation => ({
@@ -238,8 +234,7 @@ export const updateProduct = /*#__PURE__*/function () {
           });
         }
       }
-      console.log(parsedVariations);
-      console.log(name, description, category, updatedPhotoUrl, productActive, productPromocionar, parsedProductId);
+
       // Se actualiza el producto incluyendo la nueva URL de la imagen si se subió una nueva
       const result = yield client.query(queries.products.updateProduct, [name, description, category, updatedPhotoUrl, productActive, productPromocionar, parsedProductId]);
       if (result.rowCount === 0) {
@@ -247,21 +242,60 @@ export const updateProduct = /*#__PURE__*/function () {
           message: 'Producto no encontrado'
         });
       }
-      if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
-        // Eliminar todas las variaciones actuales del producto
-        yield client.query(queries.products.deleteProductVariation, [parsedProductId]);
-        for (const variation of parsedVariations) {
-          const {
-            variation_id,
-            // ID de la variación (para actualizar)
-            quality,
-            presentations,
-            // Esto ahora es un array de presentaciones
-            active: variationActive
-          } = variation;
-          if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
-          const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
+      if (!Array.isArray(parsedVariations) && !parsedVariations.length) {
+        return res.status(404).json({
+          message: "No hay variaciones"
+        });
+      }
+      const variationsResult = yield client.query(queries.products.getProductVariations, [id]);
+      yield Promise.all(variationsResult.rows.map(/*#__PURE__*/function () {
+        var _ref5 = _asyncToGenerator(function* (variation) {
+          const indexVariation = parsedVariations.findIndex(v => v.variation_id === variation.variation_id);
+          if (indexVariation === -1) {
+            // Eliminar todas las variaciones actuales del producto
+            yield client.query(queries.products.deleteProductVariation, [variation.variation_id]);
+          } else {
+            variation.presentations.map(/*#__PURE__*/function () {
+              var _ref6 = _asyncToGenerator(function* (presentation) {
+                const indexPresentation = parsedVariations[indexVariation].presentations.findIndex(p => p.presentation_id === presentation.presentation_id);
+                if (indexPresentation === -1) {
+                  // Eliminar todas las variaciones actuales del producto
+                  yield client.query(queries.products.deletePresentation, [presentation.presentation_id]);
+                }
+              });
+              return function (_x10) {
+                return _ref6.apply(this, arguments);
+              };
+            }());
+          }
+        });
+        return function (_x9) {
+          return _ref5.apply(this, arguments);
+        };
+      }()));
+      for (const variation of parsedVariations) {
+        const {
+          variation_id,
+          // ID de la variación (para actualizar)
+          quality,
+          presentations,
+          // Esto ahora es un array de presentaciones
+          active: variationActive
+        } = variation;
+        if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
+        const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
 
+        // Si no existe la variacion la crea, de lo contrario la actualiza
+        if (!variation_id) {
+          // Crear la variación del producto
+          const variationResult = yield client.query(queries.products.createProductVariation, [parsedProductId, quality, JSON.stringify(presentations), variationStatus]);
+          const variationId = variationResult.rows[0].variation_id;
+
+          // Insertar las presentaciones asociadas con esta variación
+          for (const presentation of presentations) {
+            yield client.query(queries.products.createProductPresentation, [variationId, presentation.presentation, parseInt(presentation.stock), presentation.price_home, presentation.price_supermarket, presentation.price_restaurant, presentation.price_fruver]);
+          }
+        } else {
           // Se actualiza la variación
           yield client.query(queries.products.updateProductVariation, [quality, variationStatus, variation_id // ID de la variación para actualizar
           ]);
@@ -270,10 +304,12 @@ export const updateProduct = /*#__PURE__*/function () {
           for (const presentation of presentations) {
             // Verificar si la presentación ya existe
             const existingPresentation = yield client.query(`SELECT presentation_id FROM product_presentations 
-             WHERE variation_id = $1 AND presentation_id = $2`, [variation_id, presentation.presentation_id]);
+            WHERE variation_id = $1 AND presentation_id = $2`, [variation_id, presentation.presentation_id]);
             if (existingPresentation.rows.length > 0) {
               // Si la presentación ya existe, actualízala
               yield client.query(queries.products.updateProductPresentation, [variation_id, presentation.presentation, parseInt(presentation.stock), presentation.price_home, presentation.price_supermarket, presentation.price_restaurant, presentation.price_fruver, presentation.presentation_id]);
+            } else {
+              yield client.query(queries.products.createProductPresentation, [variation_id, presentation.presentation, parseInt(presentation.stock), presentation.price_home, presentation.price_supermarket, presentation.price_restaurant, presentation.price_fruver]);
             }
           }
         }
@@ -296,7 +332,7 @@ export const updateProduct = /*#__PURE__*/function () {
   };
 }();
 export const deleteProduct = /*#__PURE__*/function () {
-  var _ref5 = _asyncToGenerator(function* (req, res) {
+  var _ref7 = _asyncToGenerator(function* (req, res) {
     const {
       id
     } = req.params;
@@ -327,12 +363,12 @@ export const deleteProduct = /*#__PURE__*/function () {
       if (client) client.release();
     }
   });
-  return function deleteProduct(_x9, _x10) {
-    return _ref5.apply(this, arguments);
+  return function deleteProduct(_x11, _x12) {
+    return _ref7.apply(this, arguments);
   };
 }();
 export const updateMultipleProducts = /*#__PURE__*/function () {
-  var _ref6 = _asyncToGenerator(function* (req, res) {
+  var _ref8 = _asyncToGenerator(function* (req, res) {
     let client;
     const products = req.body;
     if (!Array.isArray(products) || products.length === 0) {
@@ -444,7 +480,7 @@ export const updateMultipleProducts = /*#__PURE__*/function () {
       if (client) client.release();
     }
   });
-  return function updateMultipleProducts(_x11, _x12) {
-    return _ref6.apply(this, arguments);
+  return function updateMultipleProducts(_x13, _x14) {
+    return _ref8.apply(this, arguments);
   };
 }();
