@@ -77,6 +77,8 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
 
+    const variationsResult = await client.query(queries.products.getProductVariations, [id]);
+
     const productWithVariations = {
       ...productResult.rows[0],
       variations: variationsResult.rows.map((variation) => ({

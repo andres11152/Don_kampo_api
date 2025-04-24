@@ -103,16 +103,6 @@ export const placeOrder = async (req, res) => {
         shippingStatusId,
         orderId,
       ]);
-      
-      // Creamos los items de la orden
-      for (const item of cartDetails) {
-          await client.query(queries.orders.createOrderItem, [
-              orderId,
-              item.productId,
-              item.quantity,
-              item.price,
-          ]);
-      }
     }
     
     client.release();
@@ -207,21 +197,8 @@ export const getOrders = async (req, res) => {
 
       // Convertir el objeto agrupado en un array:
       const aggregatedItemsArray = Object.values(aggregatedItems).map(item => {
-        const variation = variationsMap[item.variation_id];
-        // Buscar la presentación seleccionada según el campo "presentation"
-
-        const selectedPresentation = variation.presentations.find(p => p.presentation === item.presentation);
         return {
           ...item,
-          price: parseFloat(item.price),
-          quantity: item.quantity,
-          variation: {
-            variation_id: variation.variation_id,
-            product_id: variation.product_id,
-            quality: variation.quality,
-            // Usamos un array con el item de presentación seleccionado
-            presentations: selectedPresentation ? [selectedPresentation] : [],
-          },
         };
       });
 
@@ -308,20 +285,8 @@ export const getOrdersById = async (req, res) => {
           },
           userData,
           items: orderItems.map(item => {
-            const variation = variationsMap[item.variation_id];
-        
-            // Buscar la presentación seleccionada según el campo "presentation"
-            const selectedPresentation = variation.presentations.find(p => p.presentation === item.presentation);
-        
             return {
               ...item,
-              price: parseFloat(item.price),
-              variation: {
-                variation_id: variation.variation_id,
-                product_id: variation.product_id,
-                quality: variation.quality,
-                presentations: selectedPresentation ? [selectedPresentation] : [],
-              },
             };
           }),
           shippingInfo,

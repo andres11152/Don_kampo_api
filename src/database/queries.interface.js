@@ -367,77 +367,74 @@ export const queries = {
     deleteProductVariation: `
       DELETE FROM product_variations WHERE variation_id = $1;
     `,
-    deletePresentation: `
-    DELETE FROM product_presentations WHERE presentation_id = $1;
-  `,
     deletePresentationsByVariation: `
       DELETE FROM product_presentations WHERE variation_id = $1;
     `
 
   },  
-  advertisements: {
-    getAll: `
-      SELECT 
-        a.advertisement_id, 
-        a.title, 
-        a.description, 
-        a.category, 
-        a.photo_url, 
-        a.related_product_id,
-        p.name AS related_product_name 
-      FROM advertisements a
-      LEFT JOIN products p ON a.related_product_id = p.product_id
-    `,
-    createAdvertisement: `
-      INSERT INTO advertisements (title, description, category, photo_url, related_product_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING advertisement_id
-    `,
-    updateAdvertisement: `
-      UPDATE advertisements 
-      SET title = $1, description = $2, category = $3, photo_url = $4, related_product_id = $5
-      WHERE advertisement_id = $6
-    `,
-    deleteAdvertisement: `
-      DELETE FROM advertisements WHERE advertisement_id = $1
-    `,
-  },
-  minimumOrders: {
-    // Obtener todos los pedidos mínimos
-    getAll: `
-      SELECT 
-        id, 
-        customer_type, 
-        minimum_order_amount, 
-        created_at, 
-        updated_at 
-      FROM minimum_orders
-      ORDER BY customer_type
-    `,
+advertisements: {
+  getAll: `
+    SELECT 
+      a.advertisement_id, 
+      a.title, 
+      a.description, 
+      a.category, 
+      a.photo_url, 
+      a.related_product_id,
+      p.name AS related_product_name 
+    FROM advertisements a
+    LEFT JOIN products p ON a.related_product_id = p.product_id
+  `,
+  createAdvertisement: `
+    INSERT INTO advertisements (title, description, category, photo_url, related_product_id)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING advertisement_id
+  `,
+  updateAdvertisement: `
+    UPDATE advertisements 
+    SET title = $1, description = $2, category = $3, photo_url = $4, related_product_id = $5
+    WHERE advertisement_id = $6
+  `,
+  deleteAdvertisement: `
+    DELETE FROM advertisements WHERE advertisement_id = $1
+  `,
+},
+minimumOrders: {
+  // Obtener todos los pedidos mínimos
+  getAll: `
+    SELECT 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at 
+    FROM minimum_orders
+    ORDER BY customer_type
+  `,
 
-    // Crear o actualizar un pedido mínimo
-    createOrUpdate: `
-      INSERT INTO minimum_orders (customer_type, minimum_order_amount)
-      VALUES ($1, $2)
-      ON CONFLICT (customer_type)
-      DO UPDATE SET 
-        minimum_order_amount = $2, 
-        updated_at = NOW()
-      RETURNING 
-        id, 
-        customer_type, 
-        minimum_order_amount, 
-        created_at, 
-        updated_at
-    `,
+  // Crear o actualizar un pedido mínimo
+  createOrUpdate: `
+    INSERT INTO minimum_orders (customer_type, minimum_order_amount)
+    VALUES ($1, $2)
+    ON CONFLICT (customer_type)
+    DO UPDATE SET 
+      minimum_order_amount = $2, 
+      updated_at = NOW()
+    RETURNING 
+      id, 
+      customer_type, 
+      minimum_order_amount, 
+      created_at, 
+      updated_at
+  `,
 
-    // Eliminar un pedido mínimo..
-    delete: `
-      DELETE FROM minimum_orders 
-      WHERE id = $1
-      RETURNING 
-        id, 
-        customer_type
-    `,
-  },
+  // Eliminar un pedido mínimo
+  delete: `
+    DELETE FROM minimum_orders 
+    WHERE id = $1
+    RETURNING 
+      id, 
+      customer_type
+  `,
+},
 };
