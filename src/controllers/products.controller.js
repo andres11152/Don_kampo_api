@@ -460,7 +460,7 @@ export const updateMultipleProducts = async (req, res) => {
         }
       }
     }
-
+    // Commit the transaction
     await client.query('COMMIT');
     res.status(200).json({ message: 'Productos actualizados exitosamente.' });
   } catch (error) {
