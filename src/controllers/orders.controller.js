@@ -449,6 +449,7 @@ export const updateOrderPrices = async (req, res) => {
     for (const item of orderItems) {
       const userType = ordersResult.rows.find(({ id }) => id === item.order_id).user_type
       const variation = variationsMap[item.product_id].find(({ variation_id }) => variation_id === item.variation_id)
+    
       if (variation) {
         const presentation = variation.presentations.find(({ presentation_id }) => presentation_id === item.presentation_id)
         
