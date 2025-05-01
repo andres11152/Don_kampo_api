@@ -99,7 +99,7 @@ WHERE table_schema = 'public';
 
 
 ALTER TABLE orders ADD COLUMN user_type VARCHAR(255);
-*/
+
 
 CREATE TABLE minimum_orders (
     id SERIAL PRIMARY KEY,
@@ -108,3 +108,5 @@ CREATE TABLE minimum_orders (
     created_at TIMESTAMP DEFAULT NOW(), -- Fecha de creación
     updated_at TIMESTAMP DEFAULT NOW() -- Fecha de última actualización
 );
+
+*/

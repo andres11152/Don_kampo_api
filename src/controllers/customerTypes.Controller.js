@@ -49,8 +49,6 @@ export const updateAllShippingCosts = async (req, res) => {
         .json({ msg: 'Por favor proporciona todos los costos de envío como valores numéricos.' });
     }
 
-    console.log('Hogar:', hogar, 'Fruver:', fruver, 'Supermercado:', supermercado, 'Restaurante:', restaurante);
-
     // Conexión y ejecución de la consulta
     client = await getConnection();
     await client.query(queries.customerTypes.updateAllShippingCosts, [

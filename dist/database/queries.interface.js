@@ -48,13 +48,13 @@ export const queries = {
       UPDATE users 
       SET user_password = $1, reset_password_token = NULL, reset_password_expires = NULL 
       WHERE id = $2
-    `,
+    `
   },
   customerTypes: {
     getAllCustomerTypes: `
     SELECT * FROM customer_types;
   `,
-  updateAllShippingCosts: `
+    updateAllShippingCosts: `
    UPDATE customer_types
     SET shipping_cost = CASE 
       WHEN type_name = 'Hogar' THEN $1::numeric
@@ -62,8 +62,8 @@ export const queries = {
       WHEN type_name = 'Supermercado' THEN $3::numeric
       WHEN type_name = 'Restaurante' THEN $4::numeric
   END;
-  `,
-  }, 
+  `
+  },
   orders: {
     getOrders: `
     SELECT 
@@ -196,7 +196,7 @@ export const queries = {
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 
-    `  
+    `
   },
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
@@ -210,7 +210,7 @@ export const queries = {
       SET status_name = $1
       WHERE id = $2
     `,
-    deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1",
+    deleteOrderStatuses: "DELETE FROM order_statuses WHERE id = $1"
   },
   shipping_statuses: {
     getShippingStatuses: "SELECT * FROM shipping_statuses",
@@ -224,7 +224,7 @@ export const queries = {
       SET status_name = $1
       WHERE id = $2
     `,
-    deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1",
+    deleteShippingStatuses: "DELETE FROM shipping_statuses WHERE id = $1"
   },
   shipping_info: {
     getShippingInfo: "SELECT * FROM shipping_info",
@@ -243,7 +243,7 @@ export const queries = {
         shipping_status_id = $5
       WHERE id = $6
     `,
-    deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
+    deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1"
   },
   products: {
     getProducts: `
@@ -372,8 +372,7 @@ export const queries = {
     deletePresentationsByVariation: `
       DELETE FROM product_presentations WHERE variation_id = $1;
     `
-
-  },  
+  },
   advertisements: {
     getAll: `
       SELECT 
@@ -399,7 +398,7 @@ export const queries = {
     `,
     deleteAdvertisement: `
       DELETE FROM advertisements WHERE advertisement_id = $1
-    `,
+    `
   },
   minimumOrders: {
     // Obtener todos los pedidos mínimos
@@ -413,7 +412,6 @@ export const queries = {
       FROM minimum_orders
       ORDER BY customer_type
     `,
-
     // Crear o actualizar un pedido mínimo
     createOrUpdate: `
       INSERT INTO minimum_orders (customer_type, minimum_order_amount)
@@ -429,7 +427,6 @@ export const queries = {
         created_at, 
         updated_at
     `,
-
     // Eliminar un pedido mínimo
     delete: `
       DELETE FROM minimum_orders 
@@ -437,6 +434,6 @@ export const queries = {
       RETURNING 
         id, 
         customer_type
-    `,
-  },
+    `
+  }
 };
