@@ -183,6 +183,12 @@ export const queries = {
       DELETE FROM orders 
       WHERE id = $1
     `,
+    updateBulkOrderStatus: `
+      UPDATE orders 
+      SET status_id = $1 
+      WHERE id = ANY($2)
+      RETURNING *
+    `,
     createOrderItem: `
       INSERT INTO order_items (
         order_id, 
