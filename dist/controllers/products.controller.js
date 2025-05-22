@@ -7,51 +7,44 @@ export const getProducts = /*#__PURE__*/function () {
     let client;
     try {
       client = yield getConnection();
+
+      // 1. Obtener todos los productos
       const productsResult = yield client.query(queries.products.getProducts);
       if (productsResult.rows.length === 0) {
         return res.status(404).json({
           message: 'No hay productos disponibles'
         });
       }
-      const productsWithVariations = [];
+      const productIds = productsResult.rows.map(p => p.product_id);
 
-      // Iterar sobre los productos para agregar las variaciones
-      for (const row of productsResult.rows) {
-        const existingProduct = productsWithVariations.find(product => product.product_id === row.product_id);
-        // Traer las variaciones de cada producto
-        const variationsResult = yield client.query(queries.products.getProductVariations, [row.product_id]);
+      // 2. Obtener todas las variaciones y presentaciones para esos productos en una sola consulta
+      const variationsResult = yield client.query(queries.products.getProductVariations, [productIds]);
 
-        // Filtrar y agrupar las variaciones para evitar duplicaciones
-        const variationData = variationsResult.rows.map(variation => ({
+      // 3. Agrupar variaciones por product_id
+      const variationsByProductId = {};
+      for (const variation of variationsResult.rows) {
+        if (!variationsByProductId[variation.product_id]) {
+          variationsByProductId[variation.product_id] = [];
+        }
+        variationsByProductId[variation.product_id].push({
           variation_id: variation.variation_id,
           quality: variation.quality,
           active: variation.active,
-          presentations: variation.presentations // Las presentaciones ya estarán completas
-        }));
-
-        // Si el producto ya existe, agregamos las variaciones sin duplicar
-        if (existingProduct) {
-          variationData.forEach(variation => {
-            // Si la variación no está ya agregada, la agregamos
-            const existingVariation = existingProduct.variations.find(v => v.variation_id === variation.variation_id);
-            if (!existingVariation) {
-              existingProduct.variations.push(variation);
-            }
-          });
-        } else {
-          // Si el producto no existe, lo agregamos con las variaciones
-          productsWithVariations.push({
-            product_id: row.product_id,
-            name: row.name,
-            description: row.description,
-            category: row.category,
-            photo_url: row.photo_url,
-            active: row.active,
-            promocionar: row.promocionar,
-            variations: variationData
-          });
-        }
+          presentations: variation.presentations
+        });
       }
+
+      // 4. Mapear productos y agregar variaciones
+      const productsWithVariations = productsResult.rows.map(product => ({
+        product_id: product.product_id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        photo_url: product.photo_url,
+        active: product.active,
+        promocionar: product.promocionar,
+        variations: variationsByProductId[product.product_id] || []
+      }));
       res.status(200).json(productsWithVariations);
     } catch (error) {
       console.error('Error al obtener los productos:', error);

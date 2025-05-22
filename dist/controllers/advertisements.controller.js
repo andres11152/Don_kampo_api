@@ -38,14 +38,15 @@ export const getAdvertisements = /*#__PURE__*/function () {
 // Crear una publicidad
 export const createAdvertisement = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(function* (req, res) {
-    let connection;
     try {
       var _result$rows$;
       const {
         title,
         description,
-        category
+        category,
+        related_product_id
       } = req.body;
+
       // Manejo de imágenes: validación explícita
       const defaultPhotoUrl = 'https://www.donkampo.com/images/1.png'; // Imagen predeterminada
       let photoUrl = defaultPhotoUrl;
@@ -61,7 +62,7 @@ export const createAdvertisement = /*#__PURE__*/function () {
       }
 
       // Conexión a la base de datos
-      connection = yield getConnection();
+      const connection = yield getConnection();
       const result = yield connection.query(queries.advertisements.createAdvertisement, [title, description, category, photoUrl, related_product_id || null // Si no se proporciona, se establece como null
       ]);
       const advertisementId = (_result$rows$ = result.rows[0]) === null || _result$rows$ === void 0 ? void 0 : _result$rows$.advertisement_id;
@@ -69,14 +70,13 @@ export const createAdvertisement = /*#__PURE__*/function () {
         message: 'Publicidad creada exitosamente',
         advertisement_id: advertisementId
       });
+      connection.release();
     } catch (error) {
       console.error('Error al crear la publicidad:', error.message);
       res.status(500).json({
         message: 'Error al crear la publicidad',
         error: error.message
       });
-    } finally {
-      if (connection) connection.release();
     }
   });
   return function createAdvertisement(_x3, _x4) {

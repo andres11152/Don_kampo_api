@@ -253,21 +253,17 @@ export const queries = {
   },
   products: {
     getProducts: `
-      SELECT 
-        p.product_id, 
-        p.name, 
-        p.description, 
-        p.category, 
-        p.photo_url,
-        p.active,
-        p.promocionar,  
-        v.variation_id,
-        v.quality,
-        v.presentations,  -- IDs de presentaciones
-        v.active AS variation_active
-      FROM products p
-      LEFT JOIN product_variations v ON p.product_id = v.product_id
-      ORDER BY p.created_at DESC;
+     SELECT 
+      p.product_id, 
+      p.name, 
+      p.description, 
+      p.category, 
+      p.photo_url,
+      p.active,
+      p.promocionar
+    FROM products p
+    ORDER BY p.created_at DESC;
+
     `,
     getProductById: `
       SELECT 
@@ -347,6 +343,7 @@ export const queries = {
     `,
     getProductVariations: `
       SELECT 
+        v.product_id,
         v.variation_id, 
         v.quality, 
         v.active,
@@ -358,13 +355,14 @@ export const queries = {
             'price_supermarket', pp.price_supermarket,
             'price_restaurant', pp.price_restaurant,
             'price_fruver', pp.price_fruver,
-            'stock', pp.stock  -- <-- aquí agregas el stock
+            'stock', pp.stock
           )
         ) AS presentations
       FROM product_variations v
       LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
-      WHERE v.product_id = $1
-      GROUP BY v.variation_id, v.quality, v.active;
+      WHERE v.product_id = ANY($1)
+      GROUP BY v.product_id, v.variation_id, v.quality, v.active;
+
   `,
     deleteProduct: `
       DELETE FROM products WHERE product_id = $1;

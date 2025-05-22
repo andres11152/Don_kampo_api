@@ -532,3 +532,63 @@ export const updateOrderPrices = /*#__PURE__*/function () {
     return _ref8.apply(this, arguments);
   };
 }();
+export const updateBulkOrders = /*#__PURE__*/function () {
+  var _ref9 = _asyncToGenerator(function* (req, res) {
+    const {
+      orderIds,
+      newStatus
+    } = req.body;
+    if (!orderIds || !Array.isArray(orderIds)) {
+      return res.status(400).json({
+        success: false,
+        msg: 'Se requiere un array de orderIds'
+      });
+    }
+    if (!newStatus || ![1, 2, 3, 4, 5].includes(Number(newStatus))) {
+      return res.status(400).json({
+        success: false,
+        msg: 'Estado inválido. Valores permitidos: 1-5'
+      });
+    }
+    const client = yield getConnection();
+    try {
+      yield client.query("BEGIN");
+
+      // Convertir a números (según tu estructura de IDs)
+      const numericIds = orderIds.map(id => Number(id));
+
+      // Verificar existencia de órdenes
+      const checkResult = yield client.query(`SELECT id FROM orders WHERE id = ANY($1)`, [numericIds]);
+      if (checkResult.rowCount !== orderIds.length) {
+        const existingIds = checkResult.rows.map(r => r.id);
+        const missingIds = orderIds.filter(id => !existingIds.includes(Number(id)));
+        return res.status(404).json({
+          success: false,
+          msg: 'Algunas órdenes no existen',
+          missingIds
+        });
+      }
+
+      // Actualización masiva
+      const updateResult = yield client.query(queries.orders.updateBulkOrderStatus, [newStatus, numericIds]);
+      yield client.query("COMMIT");
+      res.status(200).json({
+        success: true,
+        msg: `${updateResult.rowCount} órdenes actualizadas`,
+        updatedCount: updateResult.rowCount
+      });
+    } catch (error) {
+      yield client.query("ROLLBACK");
+      console.error('Error en actualización masiva:', error);
+      res.status(500).json({
+        success: false,
+        msg: 'Error al actualizar órdenes'
+      });
+    } finally {
+      client.release();
+    }
+  });
+  return function updateBulkOrders(_x17, _x18) {
+    return _ref9.apply(this, arguments);
+  };
+}();
