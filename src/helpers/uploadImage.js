@@ -12,7 +12,6 @@ const s3Client = new S3Client({
 
 export const uploadImage = async (buffer, fileName) => {
   try {
- 
     const mimeType = lookup(fileName) || 'application/octet-stream';
     const uniqueFileName = `${nanoid()}-${fileName}`;
     const uploadParams = {

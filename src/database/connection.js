@@ -7,21 +7,36 @@ const pool = new Pool(dbSettings);
 // Función para obtener una conexión del pool
 export const getConnection = async () => {
   let client;
-  try {
-    client = await pool.connect();
-    return client; // Retorna el cliente para su uso
-  } catch (error) {
-    console.error('Error al obtener la conexión:', error.message);
-    throw error; // Lanza el error para que el controlador lo gestione
+  let attempts = 0;
+  const maxRetries = 5; 
+  const retryDelay = 5000;
+
+  while (attempts < maxRetries) {
+    try {
+      client = await pool.connect();
+      console.log('Conexión exitosa a la base de datos');
+      return client;  
+    } catch (error) {
+      attempts++;
+      console.error(`Intento ${attempts} fallido: ${error.message}`);
+
+      if (attempts < maxRetries) {
+        console.log(`Reintentando en ${retryDelay / 1000} segundos...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      } else {
+        console.error('No se pudo establecer la conexión después de varios intentos');
+        throw error; 
+      }
+    }
   }
 };
 
 // Prueba inicial de conexión a la base de datos
 export const testConnection = async () => {
   try {
-    const client = await pool.connect();
+    const client = await getConnection();
     console.log('Conexión exitosa a la base de datos');
-    client.release(); // Libera la conexión después de usarla
+    client.release(); 
   } catch (error) {
     console.error('Error al probar la conexión:', error.message);
   }

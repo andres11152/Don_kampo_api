@@ -33,6 +33,15 @@ app.use(express.json());
 app.use(express.urlencoded({
   extended: true
 }));
+
+// app.set('view engine', 'ejs');
+
+// app.use(express.json());
+
+// app.use(express.json({ limit: '50mb' })); // Ajusta el límite según lo necesites
+// app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Rutas del backend
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage
@@ -52,9 +61,7 @@ const port = process.env.PORT || 8080;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
-process.on("SIGINT", () => {
-  server.close(() => {
-    console.log("Servidor cerrado correctamente");
-    process.exit(0);
-  });
+process.on('SIGINT', () => {
+  console.log('Cerrando servidor...');
+  process.exit(0);
 });

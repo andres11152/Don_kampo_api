@@ -10,12 +10,25 @@ const pool = new Pool(dbSettings);
 export const getConnection = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(function* () {
     let client;
-    try {
-      client = yield pool.connect();
-      return client; // Retorna el cliente para su uso
-    } catch (error) {
-      console.error('Error al obtener la conexión:', error.message);
-      throw error; // Lanza el error para que el controlador lo gestione
+    let attempts = 0;
+    const maxRetries = 5;
+    const retryDelay = 5000;
+    while (attempts < maxRetries) {
+      try {
+        client = yield pool.connect();
+        console.log('Conexión exitosa a la base de datos');
+        return client;
+      } catch (error) {
+        attempts++;
+        console.error(`Intento ${attempts} fallido: ${error.message}`);
+        if (attempts < maxRetries) {
+          console.log(`Reintentando en ${retryDelay / 1000} segundos...`);
+          yield new Promise(resolve => setTimeout(resolve, retryDelay));
+        } else {
+          console.error('No se pudo establecer la conexión después de varios intentos');
+          throw error;
+        }
+      }
     }
   });
   return function getConnection() {
@@ -27,9 +40,9 @@ export const getConnection = /*#__PURE__*/function () {
 export const testConnection = /*#__PURE__*/function () {
   var _ref2 = _asyncToGenerator(function* () {
     try {
-      const client = yield pool.connect();
+      const client = yield getConnection();
       console.log('Conexión exitosa a la base de datos');
-      client.release(); // Libera la conexión después de usarla
+      client.release();
     } catch (error) {
       console.error('Error al probar la conexión:', error.message);
     }

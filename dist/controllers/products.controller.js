@@ -8,41 +8,36 @@ export const getProducts = /*#__PURE__*/function () {
     try {
       client = yield getConnection();
 
-      // 1. Obtener todos los productos
+      // 1. Obtener todos los productos (1 query)
       const productsResult = yield client.query(queries.products.getProducts);
       if (productsResult.rows.length === 0) {
         return res.status(404).json({
           message: 'No hay productos disponibles'
         });
       }
+
+      // Extraer IDs de productos para la siguiente query
       const productIds = productsResult.rows.map(p => p.product_id);
 
-      // 2. Obtener todas las variaciones y presentaciones para esos productos en una sola consulta
-      const variationsResult = yield client.query(queries.products.getProductVariations, [productIds]);
+      // 2. Obtener todas las variaciones y presentaciones en una sola query (¡Optimización clave!)
+      const variationsResult = yield client.query(queries.products.getProductVariations, [productIds] // Usa ANY($1) en la query
+      );
 
-      // 3. Agrupar variaciones por product_id
-      const variationsByProductId = {};
-      for (const variation of variationsResult.rows) {
-        if (!variationsByProductId[variation.product_id]) {
-          variationsByProductId[variation.product_id] = [];
-        }
-        variationsByProductId[variation.product_id].push({
+      // 3. Agrupar variaciones por product_id en un objeto
+      const variationsByProductId = variationsResult.rows.reduce((acc, variation) => {
+        if (!acc[variation.product_id]) acc[variation.product_id] = [];
+        acc[variation.product_id].push({
           variation_id: variation.variation_id,
           quality: variation.quality,
           active: variation.active,
           presentations: variation.presentations
         });
-      }
+        return acc;
+      }, {});
 
-      // 4. Mapear productos y agregar variaciones
+      // 4. Combinar productos con sus variaciones
       const productsWithVariations = productsResult.rows.map(product => ({
-        product_id: product.product_id,
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        photo_url: product.photo_url,
-        active: product.active,
-        promocionar: product.promocionar,
+        ...product,
         variations: variationsByProductId[product.product_id] || []
       }));
       res.status(200).json(productsWithVariations);
@@ -256,7 +251,7 @@ export const updateProducts = /*#__PURE__*/function () {
         // 5) Traer las variaciones actuales para comparar
         const {
           rows: existingVariations
-        } = yield client.query(queries.products.getProductVariations, [product_id]);
+        } = yield client.query(queries.products.getProductVariations, [[product_id]]);
 
         // 6) Eliminar variaciones y presentaciones que ya no existen
         yield Promise.all(existingVariations.map(/*#__PURE__*/function () {

@@ -81,17 +81,6 @@ CREATE TABLE product_variations (
    active   boolean
 )
 
-CREATE TABLE   products (
-   product_id   integer   NOT NULL   PRIMARY KEY,
-   name   character varying(100)   NOT NULL,
-   description   text,
-   category   character varying(50),
-   stock   integer,
-   created_at   timestamp without time zone,
-   updated_at   timestamp without time zone,
-   photo  bytea,
-)
-
 
 SELECT table_name
 FROM information_schema.tables
@@ -99,14 +88,12 @@ WHERE table_schema = 'public';
 
 
 ALTER TABLE orders ADD COLUMN user_type VARCHAR(255);
-
-
-CREATE TABLE minimum_orders (
-    id SERIAL PRIMARY KEY,
-    customer_type VARCHAR(50) NOT NULL, -- Tipo de cliente (hogar, restaurante, etc.)
-    minimum_order_amount NUMERIC(10, 2) NOT NULL, -- Pedido mínimo en valor
-    created_at TIMESTAMP DEFAULT NOW(), -- Fecha de creación
-    updated_at TIMESTAMP DEFAULT NOW() -- Fecha de última actualización
-);
-
 */
+
+-- CREATE TABLE minimum_orders (
+--     id SERIAL PRIMARY KEY,
+--     customer_type VARCHAR(50) NOT NULL, -- Tipo de cliente (hogar, restaurante, etc.)
+--     minimum_order_amount NUMERIC(10, 2) NOT NULL, -- Pedido mínimo en valor
+--     created_at TIMESTAMP DEFAULT NOW(), -- Fecha de creación
+--     updated_at TIMESTAMP DEFAULT NOW() -- Fecha de última actualización
+-- );

@@ -362,7 +362,6 @@ export const queries = {
       LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
       WHERE v.product_id = ANY($1)
       GROUP BY v.product_id, v.variation_id, v.quality, v.active;
-
   `,
     deleteProduct: `
       DELETE FROM products WHERE product_id = $1;
