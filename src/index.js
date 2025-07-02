@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from '../swagger.json' assert { type: 'json' };
+import fs from 'fs';
 
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/user.routes.js';
@@ -19,12 +19,17 @@ dotenv.config();
 
 const app = express();
 
+// Cargar archivo Swagger manualmente
+const swaggerDocument = JSON.parse(
+  fs.readFileSync(new URL('../swagger.json', import.meta.url))
+);
+
 // Configuración de CORS
 const allowedOrigins = [
   'https://donkampo.com',
   'https://www.donkampo.com',
   'http://localhost:3000',
-  'https://don-kampo-api-5vf3.onrender.com'
+  'https://don-kampo-api-5vf3.onrender.com',
 ];
 
 const corsOptions = {
@@ -49,9 +54,9 @@ app.use(express.urlencoded({ extended: true }));
 // Motor de vistas EJS
 app.set('view engine', 'ejs');
 
-// Configuración de multer (para archivos como imágenes)
+// Configuración de multer
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage }).single('photo');
+const upload = multer({ storage }).single('photo');
 
 // Rutas de Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -76,7 +81,7 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`📘 Swagger docs en http://localhost:${port}/api-docs`);
 });
 
-// Manejo de cierre del servidor
+// Manejo de señal para cerrar el servidor
 process.on('SIGINT', () => {
   console.log('Cerrando servidor...');
   process.exit(0);
