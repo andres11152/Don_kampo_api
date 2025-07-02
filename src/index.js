@@ -30,6 +30,7 @@ const allowedOrigins = [
   'https://www.donkampo.com',
   'http://localhost:3000',
   'https://don-kampo-api-5vf3.onrender.com',
+  'https://don-kampo-api-5vf3.onrender.com/api-docs'
 ];
 
 const corsOptions = {
