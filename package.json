@@ -10,7 +10,7 @@
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
   },
-  "author": "Cre8tive Agency",
+  "author": "SkyCode Agency",
   "license": "ISC",
   "dependencies": {
     "@angular/cdk": "^17.3.10",
@@ -33,10 +33,10 @@
     "nanoid": "^5.0.8",
     "nodemailer": "^6.9.16",
     "pg": "^8.12.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.26.4",
     "@babel/cli": "^7.25.9",
     "@babel/core": "^7.26.0",
     "@babel/node": "^7.26.0",
@@ -47,6 +47,7 @@
     "@babel/plugin-transform-runtime": "^7.25.9",
     "@babel/preset-env": "^7.26.7",
     "babel-cli": "^6.26.0",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "swagger-autogen": "^2.23.7"
   }
 }
