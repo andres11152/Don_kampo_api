@@ -22,12 +22,20 @@
               "type": "object",
               "properties": {
                 "email": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Email del usuario"
                 },
                 "user_password": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_password del usuario"
                 }
-              }
+              },
+              "required": [
+                "email",
+                "user_password"
+              ]
             }
           }
         ],
@@ -98,33 +106,62 @@
               "type": "object",
               "properties": {
                 "user_name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_name del usuario"
                 },
                 "lastname": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Lastname del usuario"
                 },
                 "email": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Email del usuario"
                 },
                 "phone": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Phone del usuario"
                 },
                 "city": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "City del usuario"
                 },
                 "address": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Address del usuario"
                 },
                 "neighborhood": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Neighborhood del usuario"
                 },
                 "user_password": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_password del usuario"
                 },
                 "user_type": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_type del usuario"
                 }
-              }
+              },
+              "required": [
+                "user_name",
+                "lastname",
+                "email",
+                "phone",
+                "city",
+                "address",
+                "neighborhood",
+                "user_password",
+                "user_type"
+              ]
             }
           }
         ],
@@ -158,33 +195,62 @@
               "type": "object",
               "properties": {
                 "user_name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_name del usuario"
                 },
                 "lastname": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Lastname del usuario"
                 },
                 "email": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Email del usuario"
                 },
                 "phone": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Phone del usuario"
                 },
                 "city": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "City del usuario"
                 },
                 "address": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Address del usuario"
                 },
                 "neighborhood": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Neighborhood del usuario"
                 },
                 "user_password": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_password del usuario"
                 },
                 "user_type": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "User_type del usuario"
                 }
-              }
+              },
+              "required": [
+                "user_name",
+                "lastname",
+                "email",
+                "phone",
+                "city",
+                "address",
+                "neighborhood",
+                "user_password",
+                "user_type"
+              ]
             }
           }
         ],
@@ -304,12 +370,20 @@
               "type": "object",
               "properties": {
                 "email": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Email del usuario"
                 },
                 "provider": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Provider del usuario"
                 }
-              }
+              },
+              "required": [
+                "email",
+                "provider"
+              ]
             }
           }
         ],
@@ -343,15 +417,26 @@
               "type": "object",
               "properties": {
                 "email": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Email del usuario"
                 },
                 "code": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Code del usuario"
                 },
                 "newPassword": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Newpassword del usuario"
                 }
-              }
+              },
+              "required": [
+                "email",
+                "code",
+                "newPassword"
+              ]
             }
           }
         ],
@@ -379,24 +464,44 @@
               "type": "object",
               "properties": {
                 "name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Name del usuario"
                 },
                 "description": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Description del usuario"
                 },
                 "category": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Category del usuario"
                 },
                 "variations": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Variations del usuario"
                 },
                 "active": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Active del usuario"
                 },
                 "promocionar": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Promocionar del usuario"
                 }
-              }
+              },
+              "required": [
+                "name",
+                "description",
+                "category",
+                "variations",
+                "active",
+                "promocionar"
+              ]
             }
           }
         ],
@@ -467,27 +572,50 @@
               "type": "object",
               "properties": {
                 "variations": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Variations del usuario"
                 },
                 "name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Name del usuario"
                 },
                 "description": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Description del usuario"
                 },
                 "category": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Category del usuario"
                 },
                 "photo_url": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Photo_url del usuario"
                 },
                 "active": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Active del usuario"
                 },
                 "promocionar": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Promocionar del usuario"
                 }
-              }
+              },
+              "required": [
+                "variations",
+                "name",
+                "description",
+                "category",
+                "photo_url",
+                "active",
+                "promocionar"
+              ]
             }
           }
         ],
@@ -515,27 +643,50 @@
               "type": "object",
               "properties": {
                 "variations": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Variations del usuario"
                 },
                 "name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Name del usuario"
                 },
                 "description": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Description del usuario"
                 },
                 "category": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Category del usuario"
                 },
                 "photo_url": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Photo_url del usuario"
                 },
                 "active": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Active del usuario"
                 },
                 "promocionar": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Promocionar del usuario"
                 }
-              }
+              },
+              "required": [
+                "variations",
+                "name",
+                "description",
+                "category",
+                "photo_url",
+                "active",
+                "promocionar"
+              ]
             }
           }
         ],
@@ -590,24 +741,44 @@
               "type": "object",
               "properties": {
                 "shipping_method": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Shipping_method del usuario"
                 },
                 "tracking_number": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Tracking_number del usuario"
                 },
                 "estimated_delivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Estimated_delivery del usuario"
                 },
                 "actual_delivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Actual_delivery del usuario"
                 },
                 "shipping_status_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Shipping_status_id del usuario"
                 },
                 "order_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Order_id del usuario"
                 }
-              }
+              },
+              "required": [
+                "shipping_method",
+                "tracking_number",
+                "estimated_delivery",
+                "actual_delivery",
+                "shipping_status_id",
+                "order_id"
+              ]
             }
           }
         ],
@@ -681,21 +852,38 @@
               "type": "object",
               "properties": {
                 "shipping_method": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Shipping_method del usuario"
                 },
                 "tracking_number": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Tracking_number del usuario"
                 },
                 "estimated_delivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Estimated_delivery del usuario"
                 },
                 "actual_delivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Actual_delivery del usuario"
                 },
                 "shipping_status_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Shipping_status_id del usuario"
                 }
-              }
+              },
+              "required": [
+                "shipping_method",
+                "tracking_number",
+                "estimated_delivery",
+                "actual_delivery",
+                "shipping_status_id"
+              ]
             }
           }
         ],
@@ -753,33 +941,62 @@
               "type": "object",
               "properties": {
                 "userId": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Userid del usuario"
                 },
                 "cartDetails": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Cartdetails del usuario"
                 },
                 "shippingMethod": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Shippingmethod del usuario"
                 },
                 "estimatedDelivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Estimateddelivery del usuario"
                 },
                 "actualDelivery": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Actualdelivery del usuario"
                 },
                 "total": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Total del usuario"
                 },
                 "userData": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Userdata del usuario"
                 },
                 "companyName": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Companyname del usuario"
                 },
                 "companyNit": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Companynit del usuario"
                 }
-              }
+              },
+              "required": [
+                "userId",
+                "cartDetails",
+                "shippingMethod",
+                "estimatedDelivery",
+                "actualDelivery",
+                "total",
+                "userData",
+                "companyName",
+                "companyNit"
+              ]
             }
           }
         ],
@@ -847,27 +1064,50 @@
               "type": "object",
               "properties": {
                 "customer_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Customer_id del usuario"
                 },
                 "order_date": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Order_date del usuario"
                 },
                 "status_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Status_id del usuario"
                 },
                 "total": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Total del usuario"
                 },
                 "requires_electronic_billing": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Requires_electronic_billing del usuario"
                 },
                 "company_name": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Company_name del usuario"
                 },
                 "nit": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Nit del usuario"
                 }
-              }
+              },
+              "required": [
+                "customer_id",
+                "order_date",
+                "status_id",
+                "total",
+                "requires_electronic_billing",
+                "company_name",
+                "nit"
+              ]
             }
           }
         ],
@@ -901,21 +1141,38 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Id del usuario"
                 },
                 "customer_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Customer_id del usuario"
                 },
                 "order_date": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Order_date del usuario"
                 },
                 "status_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Status_id del usuario"
                 },
                 "total": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Total del usuario"
                 }
-              }
+              },
+              "required": [
+                "id",
+                "customer_id",
+                "order_date",
+                "status_id",
+                "total"
+              ]
             }
           }
         ],
@@ -1013,12 +1270,20 @@
               "type": "object",
               "properties": {
                 "orderIds": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Orderids del usuario"
                 },
                 "newStatus": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Newstatus del usuario"
                 }
-              }
+              },
+              "required": [
+                "orderIds",
+                "newStatus"
+              ]
             }
           }
         ],
@@ -1065,18 +1330,32 @@
               "type": "object",
               "properties": {
                 "hogar": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Hogar del usuario"
                 },
                 "fruver": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Fruver del usuario"
                 },
                 "supermercado": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Supermercado del usuario"
                 },
                 "restaurante": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Restaurante del usuario"
                 }
-              }
+              },
+              "required": [
+                "hogar",
+                "fruver",
+                "supermercado",
+                "restaurante"
+              ]
             }
           }
         ],
@@ -1118,18 +1397,32 @@
               "type": "object",
               "properties": {
                 "title": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Title del usuario"
                 },
                 "description": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Description del usuario"
                 },
                 "category": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Category del usuario"
                 },
                 "related_product_id": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Related_product_id del usuario"
                 }
-              }
+              },
+              "required": [
+                "title",
+                "description",
+                "category",
+                "related_product_id"
+              ]
             }
           }
         ],
@@ -1160,18 +1453,32 @@
               "type": "object",
               "properties": {
                 "title": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Title del usuario"
                 },
                 "description": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Description del usuario"
                 },
                 "category": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Category del usuario"
                 },
                 "photo_url": {
-                  "example": "any"
+                  "example": "any",
+                  "type": "string",
+                  "description": "Photo_url del usuario"
                 }
-              }
+              },
+              "required": [
+                "title",
+                "description",
+                "category",
+                "photo_url"
+              ]
             }
           }
         ],
