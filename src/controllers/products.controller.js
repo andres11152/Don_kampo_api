@@ -386,3 +386,328 @@ export const deleteProduct = async (req, res) => {
     if (client) client.release();
   }
 };
+
+/**
+ * Crea productos masivamente desde datos de Excel
+ * Optimizado para alto rendimiento con transacciones y batch inserts
+ */
+export const createProductsBulk = async (req, res) => {
+  let client;
+  const startTime = Date.now();
+  
+  try {
+    const { products, validateOnly = false } = req.body;
+    
+    // Validación inicial
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ 
+        message: 'Se requiere un array de productos válido',
+        success: false 
+      });
+    }
+
+    // Límite de seguridad para evitar sobrecarga
+    if (products.length > 1000) {
+      return res.status(400).json({
+        message: 'Máximo 1000 productos por lote para mantener el rendimiento',
+        success: false
+      });
+    }
+
+    client = await getConnection();
+    
+    // 1. VALIDACIÓN MASIVA - Verificar datos antes de procesar
+    const validationResult = await validateBulkProducts(client, products);
+    
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        message: 'Errores de validación encontrados',
+        success: false,
+        errors: validationResult.errors,
+        validProducts: validationResult.validCount,
+        totalProducts: products.length
+      });
+    }
+
+    // Si solo es validación, retornar resultado
+    if (validateOnly) {
+      return res.status(200).json({
+        message: 'Validación completada exitosamente',
+        success: true,
+        validProducts: validationResult.validCount,
+        totalProducts: products.length,
+        validationTime: Date.now() - startTime
+      });
+    }
+
+    // 2. INICIAR TRANSACCIÓN PARA CREACIÓN MASIVA
+    await client.query('BEGIN');
+
+    const results = {
+      created: [],
+      failed: [],
+      totalProcessed: 0,
+      startTime: new Date().toISOString()
+    };
+
+    // 3. PROCESAR EN LOTES PARA OPTIMIZAR MEMORIA
+    const BATCH_SIZE = 50; // Procesar de 50 en 50 para balance memoria/velocidad
+    
+    for (let i = 0; i < products.length; i += BATCH_SIZE) {
+      const batch = products.slice(i, i + BATCH_SIZE);
+      const batchResult = await processBatch(client, batch, i);
+      
+      results.created.push(...batchResult.created);
+      results.failed.push(...batchResult.failed);
+      results.totalProcessed += batch.length;
+      
+      // Log de progreso para lotes grandes
+      if (products.length > 100) {
+        console.log(`Procesado lote ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(products.length/BATCH_SIZE)} - ${results.totalProcessed}/${products.length} productos`);
+      }
+    }
+
+    // 4. COMMIT DE TODA LA TRANSACCIÓN
+    await client.query('COMMIT');
+    
+    const processingTime = Date.now() - startTime;
+    
+    // 5. RESPUESTA DETALLADA
+    return res.status(201).json({
+      message: 'Procesamiento masivo completado',
+      success: true,
+      summary: {
+        totalProducts: products.length,
+        created: results.created.length,
+        failed: results.failed.length,
+        processingTime: `${processingTime}ms`,
+        averageTimePerProduct: `${(processingTime / products.length).toFixed(2)}ms`
+      },
+      results: {
+        created: results.created,
+        failed: results.failed
+      },
+      performance: {
+        batchSize: BATCH_SIZE,
+        totalBatches: Math.ceil(products.length / BATCH_SIZE),
+        startTime: results.startTime,
+        endTime: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    // ROLLBACK en caso de error
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error en rollback:', rollbackError);
+      }
+    }
+    
+    console.error('Error en createProductsBulk:', error);
+    return res.status(500).json({
+      message: 'Error en la creación masiva de productos',
+      success: false,
+      error: error.message,
+      processingTime: Date.now() - startTime
+    });
+  } finally {
+    if (client) client.release();
+  }
+};
+
+/**
+ * Valida masivamente los productos antes de crear
+ */
+async function validateBulkProducts(client, products) {
+  const errors = [];
+  let validCount = 0;
+  
+  // Obtener todas las categorías existentes de una vez
+  const categoriesResult = await client.query('SELECT DISTINCT category FROM products WHERE category IS NOT NULL');
+  const existingCategories = new Set(categoriesResult.rows.map(row => row.category.toLowerCase()));
+  
+  // Obtener nombres de productos existentes para detectar duplicados
+  const existingProductsResult = await client.query('SELECT name FROM products');
+  const existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
+  
+  // Validar cada producto
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
+    const productErrors = [];
+    
+    // Validaciones básicas
+    if (!product.name || typeof product.name !== 'string' || product.name.trim().length < 2) {
+      productErrors.push('Nombre requerido (mínimo 2 caracteres)');
+    } else if (existingProductNames.has(product.name.toLowerCase())) {
+      productErrors.push('Producto con este nombre ya existe');
+    }
+    
+    if (!product.description || typeof product.description !== 'string' || product.description.trim().length < 10) {
+      productErrors.push('Descripción requerida (mínimo 10 caracteres)');
+    }
+    
+    if (!product.category || typeof product.category !== 'string') {
+      productErrors.push('Categoría requerida');
+    }
+    
+    // Validar variaciones
+    if (!product.variations || !Array.isArray(product.variations) || product.variations.length === 0) {
+      productErrors.push('Al menos una variación es requerida');
+    } else {
+      product.variations.forEach((variation, vIndex) => {
+        if (!variation.quality || typeof variation.quality !== 'string') {
+          productErrors.push(`Variación ${vIndex + 1}: Calidad requerida`);
+        }
+        
+        if (!variation.presentations || !Array.isArray(variation.presentations) || variation.presentations.length === 0) {
+          productErrors.push(`Variación ${vIndex + 1}: Al menos una presentación requerida`);
+        } else {
+          variation.presentations.forEach((presentation, pIndex) => {
+            if (!presentation.presentation || typeof presentation.presentation !== 'string') {
+              productErrors.push(`Variación ${vIndex + 1}, Presentación ${pIndex + 1}: Nombre de presentación requerido`);
+            }
+            
+            // Validar precios (deben ser números >= 0)
+            const priceFields = ['price_home', 'price_supermarket', 'price_restaurant', 'price_fruver'];
+            priceFields.forEach(field => {
+              const price = parseFloat(presentation[field]);
+              if (isNaN(price) || price < 0) {
+                productErrors.push(`Variación ${vIndex + 1}, Presentación ${pIndex + 1}: ${field} debe ser un número >= 0`);
+              }
+            });
+            
+            // Validar stock
+            const stock = parseInt(presentation.stock);
+            if (isNaN(stock) || stock < 0) {
+              productErrors.push(`Variación ${vIndex + 1}, Presentación ${pIndex + 1}: Stock debe ser un número >= 0`);
+            }
+          });
+        }
+      });
+    }
+    
+    if (productErrors.length > 0) {
+      errors.push({
+        productIndex: i + 1,
+        productName: product.name || 'Sin nombre',
+        errors: productErrors
+      });
+    } else {
+      validCount++;
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    validCount,
+    totalCount: products.length
+  };
+}
+
+/**
+ * Procesa un lote de productos
+ */
+async function processBatch(client, batch, startIndex) {
+  const created = [];
+  const failed = [];
+  
+  for (let i = 0; i < batch.length; i++) {
+    try {
+      const product = batch[i];
+      const globalIndex = startIndex + i + 1;
+      
+      // Valores por defecto
+      const productActive = typeof product.active !== 'undefined' ? product.active : true;
+      const productPromocionar = typeof product.promocionar === 'boolean' ? product.promocionar : false;
+      const defaultPhotoUrl = 'https://example.com/default-image.jpg';
+      
+      // Crear producto principal
+      const productResult = await client.query(queries.products.createProduct, [
+        product.name.trim(),
+        product.description.trim(),
+        product.category.trim(),
+        product.photo_url || defaultPhotoUrl,
+        productActive,
+        productPromocionar
+      ]);
+      
+      const productId = productResult.rows[0].product_id;
+      
+      // Crear variaciones y presentaciones
+      for (const variation of product.variations) {
+        const variationStatus = typeof variation.active !== 'undefined' ? variation.active : true;
+        
+        // Formatear presentaciones
+        const formattedPresentations = variation.presentations.map(presentation => ({
+          presentation: presentation.presentation.trim(),
+          price_home: parseFloat(presentation.price_home || 0),
+          price_supermarket: parseFloat(presentation.price_supermarket || 0),
+          price_restaurant: parseFloat(presentation.price_restaurant || 0),
+          price_fruver: parseFloat(presentation.price_fruver || 0),
+          stock: parseInt(presentation.stock || 0)
+        }));
+        
+        // Crear variación
+        const variationResult = await client.query(queries.products.createProductVariation, [
+          productId,
+          variation.quality.trim(),
+          JSON.stringify(formattedPresentations),
+          variationStatus
+        ]);
+        
+        const variationId = variationResult.rows[0].variation_id;
+        
+        // Crear presentaciones
+        for (const presentation of formattedPresentations) {
+          await client.query(queries.products.createProductPresentation, [
+            variationId,
+            presentation.presentation,
+            presentation.price_home,
+            presentation.price_supermarket,
+            presentation.price_restaurant,
+            presentation.price_fruver,
+            presentation.stock
+          ]);
+        }
+      }
+      
+      created.push({
+        index: globalIndex,
+        productId: productId,
+        name: product.name,
+        variationsCount: product.variations.length,
+        presentationsCount: product.variations.reduce((total, v) => total + v.presentations.length, 0)
+      });
+      
+    } catch (error) {
+      failed.push({
+        index: startIndex + i + 1,
+        name: batch[i].name || 'Sin nombre',
+        error: error.message
+      });
+    }
+  }
+  
+  return { created, failed };
+}
+
+/**
+ * Endpoint para validar productos sin crearlos
+ */
+export const validateProductsBulk = async (req, res) => {
+  try {
+    // Reutilizar la función principal con validateOnly = true
+    req.body.validateOnly = true;
+    return await createProductsBulk(req, res);
+  } catch (error) {
+    console.error('Error en validateProductsBulk:', error);
+    return res.status(500).json({
+      message: 'Error en la validación de productos',
+      success: false,
+      error: error.message
+    });
+  }
+};

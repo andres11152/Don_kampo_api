@@ -52,32 +52,32 @@ export const queries = {
   },
   customerTypes: {
     getAllCustomerTypes: `
-    SELECT * FROM customer_types;
-  `,
-  updateAllShippingCosts: `
-   UPDATE customer_types
-    SET shipping_cost = CASE 
-      WHEN type_name = 'Hogar' THEN $1::numeric
-      WHEN type_name = 'Fruver' THEN $2::numeric
-      WHEN type_name = 'Supermercado' THEN $3::numeric
-      WHEN type_name = 'Restaurante' THEN $4::numeric
-  END;
-  `,
+      SELECT * FROM customer_types;
+    `,
+    updateAllShippingCosts: `
+      UPDATE customer_types
+      SET shipping_cost = CASE 
+        WHEN type_name = 'Hogar' THEN $1::numeric
+        WHEN type_name = 'Fruver' THEN $2::numeric
+        WHEN type_name = 'Supermercado' THEN $3::numeric
+        WHEN type_name = 'Restaurante' THEN $4::numeric
+      END;
+    `,
   }, 
   orders: {
     getOrders: `
-    SELECT 
-      o.id, 
-      o.customer_id, 
-      o.order_date, 
-      o.status_id, 
-      o.total, 
-      o.requires_electronic_billing, 
-      o.company_name, 
-      o.nit,
-      o.user_type
-    FROM orders o
-  `,
+      SELECT 
+        o.id, 
+        o.customer_id, 
+        o.order_date, 
+        o.status_id, 
+        o.total, 
+        o.requires_electronic_billing, 
+        o.company_name, 
+        o.nit,
+        o.user_type
+      FROM orders o
+    `,
     getOrdersById: `
       SELECT 
         o.id, 
@@ -111,7 +111,7 @@ export const queries = {
       WHERE oi.order_id = $1
     `,
     getOrderItemsByOrderIds: `
-    SELECT 
+      SELECT 
         oi.order_id, 
         oi.product_id, 
         oi.quantity, 
@@ -149,19 +149,19 @@ export const queries = {
       WHERE si.order_id = ANY($1)
     `,
     createOrder: `
-    INSERT INTO orders (
-      customer_id, 
-      order_date, 
-      status_id, 
-      total, 
-      requires_electronic_billing, 
-      company_name, 
-      nit,
-      user_type
-    ) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-    RETURNING id
-  `,
+      INSERT INTO orders (
+        customer_id, 
+        order_date, 
+        status_id, 
+        total, 
+        requires_electronic_billing, 
+        company_name, 
+        nit,
+        user_type
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING id
+    `,
     updateOrders: `
       UPDATE orders
       SET 
@@ -201,8 +201,7 @@ export const queries = {
         presentation_id
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-
-    `  
+    `
   },
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
@@ -253,17 +252,16 @@ export const queries = {
   },
   products: {
     getProducts: `
-     SELECT 
-      p.product_id, 
-      p.name, 
-      p.description, 
-      p.category, 
-      p.photo_url,
-      p.active,
-      p.promocionar
-    FROM products p
-    ORDER BY p.created_at DESC;
-
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.photo_url,
+        p.active,
+        p.promocionar
+      FROM products p
+      ORDER BY p.created_at DESC;
     `,
     getProductById: `
       SELECT 
@@ -297,18 +295,18 @@ export const queries = {
       RETURNING presentation_id;
     `,
     getProductPresentations: `
-    SELECT 
-      presentation_id,
-      variation_id,
-      presentation,
-      price_home,
-      price_supermarket,
-      price_restaurant,
-      price_fruver,
-      stock
-    FROM product_presentations
-    WHERE variation_id = ANY($1);
-  `,
+      SELECT 
+        presentation_id,
+        variation_id,
+        presentation,
+        price_home,
+        price_supermarket,
+        price_restaurant,
+        price_fruver,
+        stock
+      FROM product_presentations
+      WHERE variation_id = ANY($1);
+    `,
     updateProduct: `
       UPDATE products
       SET 
@@ -323,11 +321,11 @@ export const queries = {
       RETURNING product_id;
     `,
     updateProductVariation: `
-    UPDATE product_variations
-    SET 
-      quality = $1,
-      active = $2
-    WHERE variation_id = $3;
+      UPDATE product_variations
+      SET 
+        quality = $1,
+        active = $2
+      WHERE variation_id = $3;
     `,
     updateProductPresentation: `
       UPDATE product_presentations
@@ -362,7 +360,7 @@ export const queries = {
       LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
       WHERE v.product_id = ANY($1)
       GROUP BY v.product_id, v.variation_id, v.quality, v.active;
-  `,
+    `,
     deleteProduct: `
       DELETE FROM products WHERE product_id = $1;
     `,
@@ -370,12 +368,11 @@ export const queries = {
       DELETE FROM product_variations WHERE variation_id = $1;
     `,
     deletePresentation: `
-    DELETE FROM product_presentations WHERE presentation_id = $1;
-  `,
+      DELETE FROM product_presentations WHERE presentation_id = $1;
+    `,
     deletePresentationsByVariation: `
       DELETE FROM product_presentations WHERE variation_id = $1;
     `
-
   },  
   advertisements: {
     getAll: `
@@ -442,4 +439,133 @@ export const queries = {
         customer_type
     `,
   },
+};
+
+// Bulk queries for optimized operations
+export const bulkQueries = {
+  // Query optimizada para verificar productos existentes por nombre
+  checkExistingProductsByName: `
+    SELECT name 
+    FROM products 
+    WHERE LOWER(name) = ANY($1::text[])
+  `,
+  
+  // Query para obtener todas las categorías existentes
+  getAllCategories: `
+    SELECT DISTINCT category 
+    FROM products 
+    WHERE category IS NOT NULL 
+    ORDER BY category
+  `,
+  
+  // Query optimizada para inserción masiva de productos (usando UNNEST)
+  createMultipleProducts: `
+    INSERT INTO products (name, description, category, photo_url, active, promocionar)
+    SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::boolean[], $6::boolean[])
+    RETURNING product_id, name
+  `,
+  
+  // Query para inserción masiva de variaciones
+  createMultipleVariations: `
+    INSERT INTO product_variations (product_id, quality, presentations, active)
+    SELECT * FROM UNNEST($1::integer[], $2::text[], $3::jsonb[], $4::boolean[])
+    RETURNING variation_id, product_id
+  `,
+  
+  // Query para inserción masiva de presentaciones
+  createMultiplePresentations: `
+    INSERT INTO product_presentations (variation_id, presentation, price_home, price_supermarket, price_restaurant, price_fruver, stock)
+    SELECT * FROM UNNEST(
+      $1::integer[], $2::text[], $3::decimal[], $4::decimal[], 
+      $5::decimal[], $6::decimal[], $7::integer[]
+    )
+    RETURNING presentation_id, variation_id
+  `,
+  
+  // Query para verificar integridad de datos después de bulk insert
+  validateBulkIntegrity: `
+    SELECT 
+      p.product_id,
+      p.name,
+      COUNT(DISTINCT pv.variation_id) as variations_count,
+      COUNT(pp.presentation_id) as presentations_count
+    FROM products p
+    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+    LEFT JOIN product_presentations pp ON pv.variation_id = pp.variation_id
+    WHERE p.product_id = ANY($1::integer[])
+    GROUP BY p.product_id, p.name
+  `,
+  
+  // Query para limpiar datos huérfanos en caso de error
+  cleanOrphanedData: `
+    WITH deleted_presentations AS (
+      DELETE FROM product_presentations pp
+      WHERE NOT EXISTS (
+        SELECT 1 FROM product_variations pv WHERE pv.variation_id = pp.variation_id
+      )
+      RETURNING variation_id
+    ),
+    deleted_variations AS (
+      DELETE FROM product_variations pv
+      WHERE NOT EXISTS (
+        SELECT 1 FROM products p WHERE p.product_id = pv.product_id
+      )
+      RETURNING product_id
+    )
+    SELECT 
+      (SELECT COUNT(*) FROM deleted_presentations) as presentations_cleaned,
+      (SELECT COUNT(*) FROM deleted_variations) as variations_cleaned
+  `
+};
+
+// Statistics queries for monitoring
+export const statsQueries = {
+  // Estadísticas generales de productos
+  getProductStats: `
+    SELECT 
+      COUNT(*) as total_products,
+      COUNT(*) FILTER (WHERE active = true) as active_products,
+      COUNT(*) FILTER (WHERE promocionar = true) as promoted_products,
+      COUNT(DISTINCT category) as categories_count
+    FROM products
+  `,
+  
+  // Estadísticas de rendimiento por categoría
+  getPerformanceByCategory: `
+    SELECT 
+      p.category,
+      COUNT(p.product_id) as products_count,
+      COUNT(pv.variation_id) as variations_count,
+      COUNT(pp.presentation_id) as presentations_count,
+      AVG(pp.stock) as avg_stock
+    FROM products p
+    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+    LEFT JOIN product_presentations pp ON pv.variation_id = pp.variation_id
+    GROUP BY p.category
+    ORDER BY products_count DESC
+  `,
+  
+  // Query para detectar productos con problemas de integridad
+  findIntegrityIssues: `
+    SELECT 
+      'products_without_variations' as issue_type,
+      p.product_id,
+      p.name,
+      'No variations found' as description
+    FROM products p
+    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
+    WHERE pv.variation_id IS NULL
+    
+    UNION ALL
+    
+    SELECT 
+      'variations_without_presentations' as issue_type,
+      pv.product_id,
+      p.name,
+      'Variation without presentations: ' || pv.quality as description
+    FROM product_variations pv
+    JOIN products p ON pv.product_id = p.product_id
+    LEFT JOIN product_presentations pp ON pv.variation_id = pp.variation_id
+    WHERE pp.presentation_id IS NULL
+  `
 };

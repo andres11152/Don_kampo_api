@@ -29,8 +29,8 @@ const allowedOrigins = [
   'https://donkampo.com',
   'https://www.donkampo.com',
   'http://localhost:3000',
-  'https://don-kampo-api-5vf3.onrender.com',
-  'https://don-kampo-api-5vf3.onrender.com/api-docs'
+  'http://localhost:8080',
+  'http://localhost:8080/api-docs'
 ];
 
 const corsOptions = {
@@ -70,6 +70,14 @@ app.use(shippingRoutes);
 app.use(orderRoutes);
 app.use(customerTypesRoutes);
 app.use(advertsimentsRoutes);
+
+// temp debug endpoint
+app.post('/api/products/bulk/validate', (req, res) => {
+  console.log('TEMP /api/products/bulk/validate called - headers:', req.headers);
+  console.log('TEMP body snippet:', JSON.stringify(req.body)?.slice(0,100));
+  return res.status(200).json({ ok: true, from: 'temp-endpoint' });
+});
+
 // app.use(minimumOrderRoutes);
 
 // Soporte para solicitudes preflight
