@@ -5,6 +5,7 @@ import {
   getOrdersById,
   createOrders,
   updateOrders,
+  updateOrderById,        // <-- importado
   deleteOrders,
   updateOrderStatus,
   updateOrderPrices,
@@ -95,6 +96,61 @@ router.get('/api/orders/:orderId', getOrdersById);
 
 /**
  * @swagger
+ * /api/orders/{orderId}:
+ *   put:
+ *     tags:
+ *       - Órdenes
+ *     summary: Actualizar una orden específica (metadatos, items, shipping, userData)
+ *     description: Actualiza metadatos de la orden, permite upsert/eliminar ítems, actualizar user_data y shipping. Recalcula total.
+ *     parameters:
+ *       - name: orderId
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - in: body
+ *         name: datos
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             status_id:
+ *               type: string
+ *             requires_electronic_billing:
+ *               type: boolean
+ *             company_name:
+ *               type: string
+ *             nit:
+ *               type: string
+ *             user_type:
+ *               type: string
+ *             shipping:
+ *               type: object
+ *             userData:
+ *               type: object
+ *             items:
+ *               type: array
+ *               items:
+ *                 type: object
+ *             itemsToRemove:
+ *               type: array
+ *               items:
+ *                 type: object
+ *             shipping_cost:
+ *               type: number
+ *     responses:
+ *       200:
+ *         description: Orden actualizada
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Orden no encontrada
+ *       500:
+ *         description: Error interno
+ */
+router.put('/api/orders/:orderId', updateOrderById); // <-- endpoint agregado
+
+/**
+ * @swagger
  * /api/createorders:
  *   post:
  *     tags:
@@ -135,7 +191,7 @@ router.post('/api/createorders', createOrders);
  *   put:
  *     tags:
  *       - Órdenes
- *     summary: Actualizar orden
+ *     summary: Actualizar orden (método legacy)
  *     parameters:
  *       - name: orderId
  *         in: path

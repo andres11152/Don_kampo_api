@@ -548,3 +548,299 @@ export const updateBulkOrders = async (req, res) => {
     client.release();
   }
 };
+
+export const updateOrderById = async (req, res) => {
+  const { orderId } = req.params;
+  // Body esperado (opcionales): status_id, requires_electronic_billing, company_name, nit, user_type,
+  // shipping (obj), userData (obj), items (array), itemsToRemove (array), shipping_cost, shipping_percentage
+  let {
+    status_id,
+    requires_electronic_billing,
+    company_name,
+    nit,
+    user_type,
+    shipping,        // { shippingMethod, trackingNumber, estimatedDelivery, actualDelivery, shippingStatusId, shipping_cost }
+    userData,
+    items,
+    itemsToRemove,
+    shipping_cost,
+    shipping_percentage
+  } = req.body;
+
+  if (!orderId) {
+    return res.status(400).json({ msg: 'orderId es requerido en params.' });
+  }
+
+  const client = await getConnection();
+
+  try {
+    await client.query('BEGIN');
+
+    // Bloquear la orden para evitar race conditions
+    const orderLock = await client.query(
+      `SELECT id FROM orders WHERE id = $1 FOR UPDATE`,
+      [orderId]
+    );
+
+    if (orderLock.rowCount === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ msg: 'Orden no encontrada.' });
+    }
+
+    // 1) Actualizar metadatos de la orden si se enviaron
+    const fieldsToUpdate = [];
+    const values = [];
+    let idx = 1;
+
+    if (status_id !== undefined) {
+      fieldsToUpdate.push(`status_id = $${idx++}`); values.push(status_id);
+    }
+    if (requires_electronic_billing !== undefined) {
+      fieldsToUpdate.push(`requires_electronic_billing = $${idx++}`); values.push(requires_electronic_billing);
+    }
+    if (company_name !== undefined) {
+      fieldsToUpdate.push(`company_name = $${idx++}`); values.push(company_name);
+    }
+    if (nit !== undefined) {
+      fieldsToUpdate.push(`nit = $${idx++}`); values.push(nit);
+    }
+    if (user_type !== undefined) {
+      fieldsToUpdate.push(`user_type = $${idx++}`); values.push(user_type);
+    }
+
+    if (fieldsToUpdate.length > 0) {
+      values.push(orderId);
+      const updateQuery = `UPDATE orders SET ${fieldsToUpdate.join(', ')} WHERE id = $${idx}`;
+      await client.query(updateQuery, values);
+    }
+
+    // 2) Upsert (update o insert) de items si vienen
+    if (Array.isArray(items) && items.length > 0) {
+      // Validación y normalización previa
+      const normalizedItems = items.map((it, i) => {
+        // permitir productId o product_id, variationId o variation_id, presentationId o presentation_id
+        const productId = it.productId ?? it.product_id ?? null;
+        const variationId = it.variationId ?? it.variation_id ?? null;
+        const presentationId = it.presentationId ?? it.presentation_id ?? null;
+        const price = Math.round(Number(it.price ?? 0) || 0);
+        const quantity = Math.round(Number(it.quantity ?? 0) || 0);
+        const quality = it.quality ?? null;
+        const presentation = it.presentation ?? null;
+
+        return { productId, variationId, presentationId, price, quantity, quality, presentation, originalIndex: i };
+      });
+
+      // Validación mínima por item antes de hacer queries
+      for (const it of normalizedItems) {
+        if (!it.productId || !it.variationId || (it.price === undefined || it.quantity === undefined)) {
+          await client.query('ROLLBACK');
+          client.release();
+          return res.status(400).json({ msg: 'Cada item requiere productId, variationId, price y quantity (valores válidos).' });
+        }
+        if (it.price < 0 || it.quantity < 0) {
+          await client.query('ROLLBACK');
+          client.release();
+          return res.status(400).json({ msg: 'price y quantity deben ser >= 0.' });
+        }
+      }
+
+      // Ejecutar upsert por cada item
+      for (const it of normalizedItems) {
+        const existing = await client.query(
+          `SELECT id FROM order_items
+           WHERE order_id = $1
+             AND product_id = $2
+             AND variation_id = $3
+             AND (presentation_id = $4 OR (presentation_id IS NULL AND $4 IS NULL))
+           LIMIT 1`,
+          [orderId, it.productId, it.variationId, it.presentationId || null]
+        );
+
+        if (existing.rowCount > 0) {
+          await client.query(
+            `UPDATE order_items
+             SET price = $1,
+                 quantity = $2,
+                 quality = $3,
+                 presentation = $4
+             WHERE id = $5`,
+            [it.price, it.quantity, it.quality, it.presentation, existing.rows[0].id]
+          );
+        } else {
+          await client.query(
+            `INSERT INTO order_items
+              (order_id, product_id, variation_id, presentation_id, presentation, price, quantity, quality)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [orderId, it.productId, it.variationId, it.presentationId || null, it.presentation || null, it.price, it.quantity, it.quality || null]
+          );
+        }
+      }
+    }
+
+    // 3) Eliminar items si vienen itemsToRemove
+    if (Array.isArray(itemsToRemove) && itemsToRemove.length > 0) {
+      for (const r of itemsToRemove) {
+        const productId = r.productId ?? r.product_id ?? null;
+        const variationId = r.variationId ?? r.variation_id ?? null;
+        const presentationId = r.presentationId ?? r.presentation_id ?? null;
+        if (!productId || !variationId) continue;
+        await client.query(
+          `DELETE FROM order_items
+           WHERE order_id = $1
+             AND product_id = $2
+             AND variation_id = $3
+             AND (presentation_id = $4 OR (presentation_id IS NULL AND $4 IS NULL))`,
+          [orderId, productId, variationId, presentationId || null]
+        );
+      }
+    }
+
+    // 4) Actualizar user_data (upsert simple)
+    if (userData !== undefined) {
+      // Si hay fila para la orden, actualizar; si no, insertar.
+      const ud = await client.query(`SELECT order_id FROM user_data WHERE order_id = $1`, [orderId]);
+      if (ud.rowCount > 0) {
+        await client.query(`UPDATE user_data SET user_data = $1 WHERE order_id = $2`, [userData, orderId]);
+      } else {
+        await client.query(`INSERT INTO user_data (order_id, user_data) VALUES ($1,$2)`, [orderId, userData]);
+      }
+    }
+
+    // 5) Actualizar o insertar shipping info si se envió shipping
+    if (shipping) {
+      const {
+        shippingMethod,
+        trackingNumber,
+        estimatedDelivery,
+        actualDelivery,
+        shippingStatusId,
+        shipping_cost: shippingCostFromShipping
+      } = shipping;
+
+      const sh = await client.query(`SELECT id FROM shipping_info WHERE order_id = $1`, [orderId]);
+      if (sh.rowCount > 0) {
+        await client.query(
+          `UPDATE shipping_info
+           SET shipping_method = $1,
+               tracking_number = $2,
+               estimated_delivery = $3,
+               actual_delivery = $4,
+               shipping_status_id = $5
+           WHERE order_id = $6`,
+          [shippingMethod || null, trackingNumber || null, estimatedDelivery || null, actualDelivery || null, shippingStatusId || null, orderId]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO shipping_info
+           (shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [shippingMethod || null, trackingNumber || null, estimatedDelivery || null, actualDelivery || null, shippingStatusId || null, orderId]
+        );
+      }
+
+      // Si shipping incluye shipping_cost y no se pasó shipping_cost en root, usamos el de shipping
+      if ((shippingCostFromShipping !== undefined) && (shipping_cost === undefined || shipping_cost === null)) {
+        shipping_cost = Number(shippingCostFromShipping);
+      }
+    }
+
+    // 6) Validar shipping_percentage si viene
+    if (shipping_percentage !== undefined && shipping_percentage !== null) {
+      shipping_percentage = Math.round(Number(shipping_percentage) || 0);
+      if (shipping_percentage < 0 || shipping_percentage > 100) {
+        await client.query('ROLLBACK');
+        client.release();
+        return res.status(400).json({ msg: 'shipping_percentage debe estar entre 0 y 100.' });
+      }
+    }
+
+    // 7) Recalcular total de la orden (sum(price * quantity) de order_items) + shipping_cost (si hay)
+    const totalCalcRes = await client.query(
+      `SELECT COALESCE(SUM(price * quantity), 0) as subtotal
+       FROM order_items
+       WHERE order_id = $1`,
+      [orderId]
+    );
+    const subtotal = Number(totalCalcRes.rows[0].subtotal) || 0;
+
+    // Si no se pasó shipping_cost pero sí shipping_percentage, calcularlo
+    let shippingCostNumber = 0;
+    if (shipping_cost !== undefined && shipping_cost !== null) {
+      shippingCostNumber = Math.round(Number(shipping_cost) || 0);
+    } else if (shipping_percentage !== undefined && shipping_percentage !== null) {
+      shippingCostNumber = Math.round((subtotal * Number(shipping_percentage)) / 100);
+    } else {
+      shippingCostNumber = 0;
+    }
+
+    const newTotal = Math.round(subtotal + shippingCostNumber);
+
+    // -----------------------------
+    // 8) ACTUALIZACIÓN SEGURA EN orders
+    //    — solo actualizamos columnas que realmente existan en la tabla orders
+    // -----------------------------
+
+    // Consultar columnas existentes en orders (para evitar el error 42703)
+    const colRes = await client.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'orders'
+         AND column_name IN ('total', 'shipping_cost', 'shipping_percentage')`
+    );
+    const existingCols = new Set(colRes.rows.map(r => r.column_name));
+
+    // Construimos dinámicamente SET ... y valores
+    const ordersSetParts = [];
+    const ordersValues = [];
+    let placeholderIdx = 1;
+
+    if (existingCols.has('total')) {
+      ordersSetParts.push(`total = $${placeholderIdx++}`);
+      ordersValues.push(newTotal);
+    }
+    if (existingCols.has('shipping_cost')) {
+      ordersSetParts.push(`shipping_cost = $${placeholderIdx++}`);
+      ordersValues.push(shippingCostNumber);
+    }
+    if (existingCols.has('shipping_percentage')) {
+      // si shipping_percentage no vino, guardamos null para no sobrescribir con undefined
+      ordersSetParts.push(`shipping_percentage = $${placeholderIdx++}`);
+      ordersValues.push((shipping_percentage !== undefined && shipping_percentage !== null) ? shipping_percentage : null);
+    }
+
+    if (ordersSetParts.length > 0) {
+      // append orderId as last param
+      ordersValues.push(orderId);
+      const ordersUpdateQuery = `UPDATE orders SET ${ordersSetParts.join(', ')} WHERE id = $${ordersValues.length}`;
+      await client.query(ordersUpdateQuery, ordersValues);
+    } else {
+      // No hay columnas a actualizar en orders (raro, pero posible)
+      // No hacemos nada
+    }
+
+    await client.query('COMMIT');
+
+    // Obtener la orden actualizada
+    const orderFinal = await client.query(`SELECT * FROM orders WHERE id = $1`, [orderId]);
+    const itemsFinal = await client.query(`SELECT * FROM order_items WHERE order_id = $1`, [orderId]);
+    const userDataFinal = await client.query(`SELECT user_data FROM user_data WHERE order_id = $1`, [orderId]);
+    const shippingFinal = await client.query(`SELECT * FROM shipping_info WHERE order_id = $1`, [orderId]);
+
+    client.release();
+
+    return res.status(200).json({
+      msg: 'Orden actualizada correctamente.',
+      order: orderFinal.rows[0],
+      items: itemsFinal.rows,
+      userData: userDataFinal.rows.length ? userDataFinal.rows[0].user_data : null,
+      shippingInfo: shippingFinal.rows.length ? shippingFinal.rows[0] : null
+    });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (e) { /* ignore rollback error */ }
+    client.release();
+    console.error('Error actualizando la orden:', error);
+    // Si quieres enviar más detalle en env de dev, incluye error.message; en prod, mantener mensaje genérico
+    return res.status(500).json({ msg: 'Error interno al actualizar la orden.' });
+  }
+};
