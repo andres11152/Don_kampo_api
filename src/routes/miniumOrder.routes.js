@@ -21,7 +21,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/api/minimum-orders', getMinimumOrders);
+router.get('/minimum-orders', getMinimumOrders);
 
 /**
  * @swagger
@@ -54,7 +54,7 @@ router.get('/api/minimum-orders', getMinimumOrders);
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/api/minimum-orders', createOrUpdateMinimumOrder);
+router.post('/minimum-orders', createOrUpdateMinimumOrder);
 
 /**
  * @swagger
@@ -79,6 +79,6 @@ router.post('/api/minimum-orders', createOrUpdateMinimumOrder);
  *       500:
  *         description: Error interno del servidor
  */
-router.delete('/api/minimum-orders/:id', deleteMinimumOrder);
+router.delete('/minimum-orders/:id', deleteMinimumOrder);
 
 export default router;

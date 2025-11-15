@@ -14,6 +14,12 @@ import {
   verifyCodeAndResetPassword,
 } from '../controllers/resetPassword.controller.js';
 
+// Define las rutas para la gestión de usuarios y perfil.
+// Se utiliza una convención RESTful para el CRUD de usuarios.
+// Adicionalmente, se exponen rutas de acción para funcionalidades específicas como:
+// - `/api/profile`: Obtener los datos del usuario autenticado (protegida).
+// - `/api/request-password-reset`: Iniciar el flujo de recuperación de contraseña.
+// - `/api/verify-code-and-reset-password`: Completar la recuperación de contraseña.
 const router = Router();
 
 /**
@@ -29,7 +35,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/api/users', getUsers);
+router.get('/users', getUsers);
 
 /**
  * @swagger
@@ -51,11 +57,11 @@ router.get('/api/users', getUsers);
  *       500:
  *         description: Error interno
  */
-router.get('/api/users/:id', getUsersById);
+router.get('/users/:id', getUsersById);
 
 /**
  * @swagger
- * /api/createusers:
+ * /api/users:
  *   post:
  *     tags:
  *       - Usuarios
@@ -93,11 +99,11 @@ router.get('/api/users/:id', getUsersById);
  *       500:
  *         description: Error del servidor
  */
-router.post('/api/createusers', createUsers);
+router.post('/users', createUsers);
 
 /**
  * @swagger
- * /api/updateusers/{id}:
+ * /api/users/{id}:
  *   put:
  *     tags:
  *       - Usuarios
@@ -141,11 +147,11 @@ router.post('/api/createusers', createUsers);
  *       500:
  *         description: Error del servidor
  */
-router.put('/api/updateusers/:id', updateUsers);
+router.put('/users/:id', updateUsers);
 
 /**
  * @swagger
- * /api/deleteusers/{id}:
+ * /api/users/{id}:
  *   delete:
  *     tags:
  *       - Usuarios
@@ -163,7 +169,7 @@ router.put('/api/updateusers/:id', updateUsers);
  *       500:
  *         description: Error del servidor
  */
-router.delete('/api/deleteusers/:id', deleteUsers);
+router.delete('/users/:id', deleteUsers);
 
 /**
  * @swagger
@@ -186,11 +192,14 @@ router.delete('/api/deleteusers/:id', deleteUsers);
  *       500:
  *         description: Error del servidor
  */
-router.get('/api/profile', verifyToken, getUserProfile);
+// Ruta de acción para obtener el perfil del usuario actualmente autenticado.
+// Se protege con el middleware `verifyToken` para asegurar que solo el usuario
+// logueado pueda acceder a su propia información, extrayendo su ID desde el token JWT.
+router.get('/profile', verifyToken, getUserProfile);
 
 /**
  * @swagger
- * /api/userstatus/{id}/{status_id}:
+ * /api/users/{id}/status/{status_id}:
  *   put:
  *     tags:
  *       - Usuarios
@@ -212,7 +221,7 @@ router.get('/api/profile', verifyToken, getUserProfile);
  *       500:
  *         description: Error del servidor
  */
-router.put('/api/userstatus/:id/:status_id', updateUserStatus);
+router.put('/users/:id/status/:status_id', updateUserStatus);
 
 /**
  * @swagger
@@ -240,7 +249,7 @@ router.put('/api/userstatus/:id/:status_id', updateUserStatus);
  *       500:
  *         description: Error del servidor
  */
-router.post('/api/request-password-reset', requestPasswordReset);
+router.post('/request-password-reset', requestPasswordReset);
 
 /**
  * @swagger
@@ -270,6 +279,13 @@ router.post('/api/request-password-reset', requestPasswordReset);
  *       500:
  *         description: Error del servidor
  */
-router.post('/api/verify-code-and-reset-password', verifyCodeAndResetPassword);
+router.post('/verify-code-and-reset-password', verifyCodeAndResetPassword);
+
+// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
+router.post('/createusers', createUsers);
+router.put('/updateusers/:id', updateUsers);
+router.delete('/deleteusers/:id', deleteUsers);
+router.put('/userstatus/:id/:status_id', updateUserStatus);
+
 
 export default router;

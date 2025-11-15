@@ -7,13 +7,10 @@ import {
   getProductById,
   createProduct,
   deleteProduct,
-  updateProducts
-} from '../controllers/products.controller.js';
-
-import {
+  updateProducts,
   createProductsBulk,
   validateProductsBulk
-} from '../controllers/products.bulk.controller.js';
+} from '../controllers/products.controller.js';
 
 import { handleMulterError } from '../middlewares/validateData.middleware.js';
 import { optimizeImage } from '../middlewares/image.middleware.js';
@@ -29,67 +26,71 @@ const router = express.Router();
 // Parse JSON bodies for routes that expect JSON
 router.use(express.json());
 
-/**
- * RUTAS INDIVIDUALES
- */
+// --- RUTAS CRUD PARA PRODUCTOS INDIVIDUALES ---
+// Se sigue una convención RESTful. La subida de imágenes se maneja con una cadena
+// de middlewares (multer -> error handler -> image optimizer) para mantener los
+// controladores limpios y enfocados en la lógica de negocio.
 
-// Crear producto (multipart/form-data, con posible foto)
-router.post(
-  '/api/createproduct',
+// POST /api/products - Crear un nuevo producto.
+// Acepta `multipart/form-data` para poder incluir una imagen.
+router.post('/products',
   upload.single('photo_url'),
   handleMulterError,
   optimizeImage,
   createProduct
 );
 
-// Obtener todos los productos
-router.get('/api/products', getProducts);
+// GET /api/products - Obtener todos los productos.
+router.get('/products', getProducts);
 
-// Obtener producto por ID
-router.get('/api/getproduct/:id', getProductById);
+// GET /api/products/:id - Obtener un producto por su ID.
+router.get('/products/:id', getProductById);
 
-// Actualizar producto por ID (multipart/form-data si se envía foto)
-router.put(
-  '/api/updateproduct/:id',
+// PUT /api/products/:id - Actualizar un producto existente.
+// También acepta `multipart/form-data` para permitir la actualización de la imagen.
+router.put('/products/:id',
   upload.single('photo_url'),
   handleMulterError,
   optimizeImage,
   updateProducts
 );
 
-// Actualizar múltiples productos (PUT - cuerpo JSON o array)
-router.put('/api/updatemultipleproducts', updateProducts);
+// DELETE /api/products/:id - Eliminar un producto por su ID.
+router.delete('/products/:id', deleteProduct);
 
-// Eliminar producto
-router.delete('/api/deleteproduct/:id', deleteProduct);
+// --- RUTAS DE CARGA Y VALIDACIÓN MASIVA ---
+// Estos endpoints están diseñados para la gestión de productos en lote desde el panel de administración.
+// Se optó por rutas de acción específicas (/bulk/validate y /bulk) porque la lógica
+// es compleja (parseo de archivos, validación de datos, etc.) y no se ajusta a un CRUD simple.
+//
+// Ambas rutas aceptan dos formatos para máxima flexibilidad:
+// 1. `multipart/form-data` con un campo 'file': Para subir un archivo Excel (.xlsx).
+//    Multer procesa el archivo y lo deja en `req.file` para que el controlador lo lea.
+// 2. `application/json` con un body `{ "products": [...] }`: Para enviar los datos directamente.
 
-/**
- * RUTAS DE CARGA MASIVA (desde frontend)
- *
- * - POST /api/products/bulk/validate  => valida los productos (no persiste)
- * - POST /api/products/bulk           => crea/actualiza masivamente
- *
- * Ambas rutas aceptan:
- *  - form-data con campo 'file' (archivo Excel) OR
- *  - JSON body { products: [...] }
- *
- * Si envías archivo, multer lo pondrá en req.file (buffer) y el controlador lo parseará.
- */
-
-// Validación (no persiste) - acepta file upload
+// POST /api/products/bulk/validate - Valida un lote de productos sin guardarlos.
+// Su propósito es dar feedback al usuario sobre la calidad de los datos antes de la importación final.
 router.post(
-  '/api/products/bulk/validate',
-  upload.single('file'),       // <-- multer: espera campo 'file'
-  handleMulterError,          // captura errores de multer (p. ej. tamaño)
+  '/products/bulk/validate',
+  upload.single('file'),
+  handleMulterError,
   validateProductsBulk
 );
 
-// Crear / actualizar masivo - acepta file upload
+// POST /api/products/bulk - Crea o actualiza productos en lote.
+// Este es el endpoint que persiste los cambios en la base de datos.
 router.post(
-  '/api/products/bulk',
-  upload.single('file'),       // <-- multer: espera campo 'file'
+  '/products/bulk',
+  upload.single('file'),
   handleMulterError,
   createProductsBulk
 );
+
+// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
+router.post('/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, createProduct);
+router.get('/getproduct/:id', getProductById);
+router.put('/updateproduct/:id', upload.single('photo_url'), handleMulterError, optimizeImage, updateProducts);
+router.put('/updatemultipleproducts', updateProducts); // Esta podría ser una ruta /products (PUT) sin ID para bulk update con JSON
+router.delete('/deleteproduct/:id', deleteProduct);
 
 export default router;

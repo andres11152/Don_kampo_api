@@ -1,6 +1,9 @@
 import express from 'express';
 import { loginController } from '../controllers/login.controller.js';
 
+// Este archivo define las rutas relacionadas con la autenticación.
+// Es el punto de entrada para que los usuarios obtengan tokens de acceso (JWT)
+// que les permitirán interactuar con las rutas protegidas de la API.
 const router = express.Router();
 
 /**
@@ -40,6 +43,6 @@ const router = express.Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/api/login', loginController);
+router.post('/login', loginController);
 
 export default router;

@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { getCustomerTypes, updateAllShippingCosts } from '../controllers/customerTypes.Controller.js';
 
+// Define las rutas para gestionar las configuraciones asociadas a los tipos de cliente.
+// El objetivo es centralizar reglas de negocio que varían según el perfil del cliente,
+// como los costos de envío, permitiendo que el frontend las consulte y el backend las administre
+// de forma centralizada.
 const router = Router();
 
 /**
@@ -19,7 +23,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/api/customer-types', getCustomerTypes);
+router.get('/customer-types', getCustomerTypes);
 
 /**
  * @swagger
@@ -58,6 +62,6 @@ router.get('/api/customer-types', getCustomerTypes);
  *       500:
  *         description: Error interno del servidor
  */
-router.put('/api/customer-types/shipping-costs', updateAllShippingCosts);
+router.put('/customer-types/shipping-costs', updateAllShippingCosts);
 
 export default router;

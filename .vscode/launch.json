@@ -8,7 +8,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
+            "url": "https://don-kampo-api-5vf3.onrender.com",
             "webRoot": "${workspaceFolder}"
         }
     ]

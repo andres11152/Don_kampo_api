@@ -12,6 +12,11 @@ import {
   updateBulkOrders
 } from '../controllers/orders.controller.js';
 
+// Este archivo define las rutas para la gestión de órdenes.
+// Se sigue una convención RESTful para las operaciones CRUD básicas (GET, POST, PUT, DELETE).
+// Además, se exponen rutas de "acción" específicas (ej. /placeOrder, /updatePrices)
+// para encapsular lógicas de negocio complejas que no encajan en un CRUD simple,
+// como el procesamiento de un carrito de compras o la actualización masiva de precios.
 const router = Router();
 
 /**
@@ -57,7 +62,11 @@ const router = Router();
  *       500:
  *         description: Error interno
  */
-router.post('/api/orders/placeOrder', placeOrder);
+// Ruta de acción para procesar un carrito de compras y convertirlo en una orden formal.
+// Se utiliza un endpoint específico en lugar de un POST genérico a /api/orders
+// porque la lógica de negocio (validar stock, calcular totales, crear registros asociados)
+// es significativamente más compleja que una simple creación de registro.
+router.post('/orders/placeOrder', placeOrder);
 
 /**
  * @swagger
@@ -72,7 +81,7 @@ router.post('/api/orders/placeOrder', placeOrder);
  *       500:
  *         description: Error interno
  */
-router.get('/api/orders', getOrders);
+router.get('/orders', getOrders);
 
 /**
  * @swagger
@@ -92,7 +101,7 @@ router.get('/api/orders', getOrders);
  *       404:
  *         description: Orden no encontrada
  */
-router.get('/api/orders/:orderId', getOrdersById);
+router.get('/orders/:orderId', getOrdersById);
 
 /**
  * @swagger
@@ -147,7 +156,10 @@ router.get('/api/orders/:orderId', getOrdersById);
  *       500:
  *         description: Error interno
  */
-router.put('/api/orders/:orderId', updateOrderById); // <-- endpoint agregado
+// Endpoint principal y estandarizado para la actualización de órdenes.
+// Centraliza la lógica de modificación de ítems, datos de envío y metadatos,
+// recalculando totales para mantener la consistencia.
+router.put('/orders/:orderId', updateOrderById); // <-- endpoint agregado
 
 /**
  * @swagger
@@ -183,7 +195,9 @@ router.put('/api/orders/:orderId', updateOrderById); // <-- endpoint agregado
  *       400:
  *         description: Datos inválidos
  */
-router.post('/api/createorders', createOrders);
+// DEPRECATED: Esta ruta fue reemplazada por `POST /api/orders` que debería usarse en su lugar.
+// Se mantiene temporalmente por retrocompatibilidad con versiones anteriores del panel de administración.
+router.post('/createorders', createOrders);
 
 /**
  * @swagger
@@ -217,7 +231,9 @@ router.post('/api/createorders', createOrders);
  *       400:
  *         description: Datos inválidos
  */
-router.put('/api/updateorders/:orderId', updateOrders);
+// DEPRECATED: Esta ruta fue reemplazada por `PUT /api/orders/:orderId`.
+// Se mantiene temporalmente por retrocompatibilidad.
+router.put('/updateorders/:orderId', updateOrders);
 
 /**
  * @swagger
@@ -232,7 +248,10 @@ router.put('/api/updateorders/:orderId', updateOrders);
  *       500:
  *         description: Error interno
  */
-router.put('/api/orders/updatePrices', updateOrderPrices);
+// Ruta de acción para recalcular los precios de todas las órdenes pendientes.
+// Es un proceso batch diseñado para ser ejecutado manualmente o de forma programada
+// cuando hay cambios en la lista de precios de los productos.
+router.put('/orders/updatePrices', updateOrderPrices);
 
 /**
  * @swagger
@@ -252,10 +271,12 @@ router.put('/api/orders/updatePrices', updateOrderPrices);
  *       404:
  *         description: No encontrada
  */
-router.delete('/api/deleteorders/:orderId', deleteOrders);
+// DEPRECATED: Esta ruta fue reemplazada por `DELETE /api/orders/:orderId`.
+// Se mantiene temporalmente por retrocompatibilidad.
+router.delete('/deleteorders/:orderId', deleteOrders);
 
 /**
- * @swagger
+ * @swagger 
  * /api/updatestatus/{id}/{status_id}:
  *   put:
  *     tags:
@@ -276,11 +297,14 @@ router.delete('/api/deleteorders/:orderId', deleteOrders);
  *       400:
  *         description: Datos inválidos
  */
-router.put('/api/updatestatus/:id/:status_id', updateOrderStatus);
+// Ruta de acción para una actualización rápida y específica del estado de una orden.
+// Se utiliza en flujos de trabajo donde solo se necesita cambiar el estado (ej. "enviado", "entregado")
+// sin modificar el resto de la orden, optimizando la operación.
+router.put('/orders/:id/status/:status_id', updateOrderStatus);
 
 /**
  * @swagger
- * /api/update-bulk-orders:
+ * /api/orders/bulk-update-status:
  *   put:
  *     tags:
  *       - Órdenes
@@ -304,6 +328,13 @@ router.put('/api/updatestatus/:id/:status_id', updateOrderStatus);
  *       400:
  *         description: Datos inválidos
  */
-router.put('/api/update-bulk-orders', updateBulkOrders);
+// Ruta de acción para la actualización masiva de estados de órdenes.
+// Permite al administrador seleccionar múltiples órdenes y aplicar un cambio de estado
+// en una sola operación, mejorando la eficiencia de la gestión.
+router.put('/orders/bulk-update-status', updateBulkOrders);
+
+// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
+router.put('/updatestatus/:id/:status_id', updateOrderStatus);
+router.put('/update-bulk-orders', updateBulkOrders);
 
 export default router;

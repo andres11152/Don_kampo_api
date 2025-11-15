@@ -24,13 +24,19 @@ const swaggerDocument = JSON.parse(
   fs.readFileSync(new URL('../swagger.json', import.meta.url))
 );
 
-// Configuración de CORS
+// Configuración de la política de Cross-Origin Resource Sharing (CORS).
+// Se define una lista blanca de orígenes para restringir las peticiones a dominios conocidos
+// (producción, desarrollo local y el propio dominio de la API para Swagger UI).
+//
+// Se permiten solicitudes sin `origin` (p. ej., Postman, scripts de servidor) para facilitar las pruebas.
+// `credentials: true` es fundamental para que el frontend pueda enviar cabeceras de `Authorization` (JWT)
+// y mantener la sesión del usuario en las peticiones cross-origin.
 const allowedOrigins = [
   'https://donkampo.com',
   'https://www.donkampo.com',
   'http://localhost:3000',
-  'http://localhost:8080',
-  'http://localhost:8080/api-docs'
+  'https://don-kampo-api-5vf3.onrender.com',
+  'https://don-kampo-api-5vf3.onrender.com/api-docs'
 ];
 
 const corsOptions = {
@@ -63,22 +69,16 @@ const upload = multer({ storage }).single('photo');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rutas de la API
-app.use(authRoutes);
-app.use(usersRoutes);
-app.use(productsRoutes);
-app.use(shippingRoutes);
-app.use(orderRoutes);
-app.use(customerTypesRoutes);
-app.use(advertsimentsRoutes);
-
-// temp debug endpoint
-app.post('/api/products/bulk/validate', (req, res) => {
-  console.log('TEMP /api/products/bulk/validate called - headers:', req.headers);
-  console.log('TEMP body snippet:', JSON.stringify(req.body)?.slice(0,100));
-  return res.status(200).json({ ok: true, from: 'temp-endpoint' });
-});
-
-// app.use(minimumOrderRoutes);
+// Se agrupan todas las rutas bajo el prefijo /api para mantener la consistencia.
+const apiRouter = express.Router();
+apiRouter.use(authRoutes);
+apiRouter.use(usersRoutes);
+apiRouter.use(productsRoutes);
+apiRouter.use(shippingRoutes);
+apiRouter.use(orderRoutes);
+apiRouter.use(customerTypesRoutes);
+apiRouter.use(advertsimentsRoutes);
+app.use('/api', apiRouter);
 
 // Soporte para solicitudes preflight
 app.options('*', cors(corsOptions));

@@ -7,11 +7,15 @@ import {
   deleteShippingInfo
 } from '../controllers/shipping.controller.js';
 
+// Define las rutas para gestionar la información de envío (Shipping) de las órdenes.
+// Se sigue una convención RESTful estricta para las operaciones CRUD.
+// El objetivo es abstraer la lógica de envío en su propio recurso, permitiendo
+// que sea gestionado de forma independiente a la orden principal.
 const router = express.Router();
 
 /**
  * @swagger
- * /api/createshipping:
+ * /api/shipping:
  *   post:
  *     tags:
  *       - Envíos
@@ -43,7 +47,7 @@ const router = express.Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/api/createshipping', createShippingInfo);
+router.post('/shipping', createShippingInfo);
 
 /**
  * @swagger
@@ -58,11 +62,11 @@ router.post('/api/createshipping', createShippingInfo);
  *       500:
  *         description: Error interno
  */
-router.get('/api/shipping', getShippingInfo);
+router.get('/shipping', getShippingInfo);
 
 /**
  * @swagger
- * /api/getshipping/{id}:
+ * /api/shipping/{id}:
  *   get:
  *     tags:
  *       - Envíos
@@ -80,11 +84,11 @@ router.get('/api/shipping', getShippingInfo);
  *       500:
  *         description: Error interno
  */
-router.get('/api/getshipping/:id', getShippingInfoById);
+router.get('/shipping/:id', getShippingInfoById);
 
 /**
  * @swagger
- * /api/updateshipping/{id}:
+ * /api/shipping/{id}:
  *   put:
  *     tags:
  *       - Envíos
@@ -120,11 +124,11 @@ router.get('/api/getshipping/:id', getShippingInfoById);
  *       500:
  *         description: Error interno
  */
-router.put('/api/updateshipping/:id', updateShippingInfo);
+router.put('/shipping/:id', updateShippingInfo);
 
 /**
  * @swagger
- * /api/deleteshipping/{id}:
+ * /api/shipping/{id}:
  *   delete:
  *     tags:
  *       - Envíos
@@ -142,6 +146,13 @@ router.put('/api/updateshipping/:id', updateShippingInfo);
  *       500:
  *         description: Error interno
  */
-router.delete('/api/deleteshipping/:id', deleteShippingInfo);
+router.delete('/shipping/:id', deleteShippingInfo);
+
+// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
+router.post('/createshipping', createShippingInfo);
+router.get('/getshipping/:id', getShippingInfoById);
+router.put('/updateshipping/:id', updateShippingInfo);
+router.delete('/deleteshipping/:id', deleteShippingInfo);
+
 
 export default router;

@@ -20,7 +20,7 @@ router.use(express.json());
 
 /**
  * @swagger
- * /api/publicidad:
+ * /api/advertisements:
  *   get:
  *     summary: Obtener todas las publicidades
  *     tags: [Publicidad]
@@ -30,11 +30,11 @@ router.use(express.json());
  *       500:
  *         description: Error del servidor
  */
-router.get('/api/publicidad', getAdvertisements);
+router.get('/advertisements', getAdvertisements);
 
 /**
  * @swagger
- * /api/publicidad:
+ * /api/advertisements:
  *   post:
  *     summary: Crear una nueva publicidad
  *     tags: [Publicidad]
@@ -70,7 +70,14 @@ router.get('/api/publicidad', getAdvertisements);
  *       500:
  *         description: Error interno
  */
-router.post('/api/publicidad',
+
+// Cadena de middlewares para el manejo de imágenes en las rutas de creación y actualización.
+// El flujo es el siguiente:
+// 1. `upload.single('photo_url')`: Multer procesa la petición `multipart/form-data`. Si hay un archivo, lo carga en memoria (`req.file`).
+// 2. `handleMulterError`: Middleware personalizado que intercepta errores de Multer (p. ej., archivo demasiado grande) y devuelve una respuesta 400 estandarizada.
+// 3. `optimizeImage`: Procesa la imagen (comprime, convierte a WebP), la sube a un almacenamiento en la nube y adjunta la URL pública al `req` para que el controlador la persista.
+// Este enfoque separa responsabilidades, mantiene los controladores limpios y centraliza la lógica de manipulación de archivos.
+router.post('/advertisements',
   upload.single('photo_url'),
   handleMulterError,
   optimizeImage,
@@ -79,7 +86,7 @@ router.post('/api/publicidad',
 
 /**
  * @swagger
- * /api/publicidad/{id}:
+ * /api/advertisements/{id}:
  *   put:
  *     summary: Actualizar una publicidad existente
  *     tags: [Publicidad]
@@ -116,7 +123,7 @@ router.post('/api/publicidad',
  *       500:
  *         description: Error del servidor
  */
-router.put('/api/publicidad/:id',
+router.put('/advertisements/:id',
   upload.single('photo_url'),
   handleMulterError,
   optimizeImage,
@@ -125,7 +132,7 @@ router.put('/api/publicidad/:id',
 
 /**
  * @swagger
- * /api/publicidad/{id}:
+ * /api/advertisements/{id}:
  *   delete:
  *     summary: Eliminar una publicidad
  *     tags: [Publicidad]
@@ -142,6 +149,6 @@ router.put('/api/publicidad/:id',
  *       500:
  *         description: Error del servidor
  */
-router.delete('/api/publicidad/:id', deleteAdvertisement);
+router.delete('/advertisements/:id', deleteAdvertisement);
 
 export default router;
