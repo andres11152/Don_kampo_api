@@ -94,6 +94,8 @@ const port = process.env.PORT || 8080;
 app.listen(port, "0.0.0.0", () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
   console.log(`📘 Swagger docs en http://localhost:${port}/api-docs`);
+  console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`🔧 Trust Proxy: ${app.get("trust proxy")}`);
 });
 
 // Manejo de señal para cerrar el servidor

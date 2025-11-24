@@ -60,6 +60,13 @@ export const loginController = async (req, res) => {
       path: "/",
     });
 
+    console.log("🍪 Cookie establecida con opciones:", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      nodeEnv: process.env.NODE_ENV,
+    });
+
     // Responder con éxito
     return res.status(200).json({
       message: "Inicio de sesión exitoso",
