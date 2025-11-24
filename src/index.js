@@ -19,6 +19,7 @@ import advertsimentsRoutes from "./routes/advertisements.routes.js";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1); // Confiar en el proxy de Render para cookies seguras
 
 // Cargar archivo Swagger manualmente
 const swaggerDocument = JSON.parse(
