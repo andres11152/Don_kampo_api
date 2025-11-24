@@ -1,49 +1,31 @@
 import jwt from 'jsonwebtoken';
+import { authConfig } from '../config/config.js';
 
-const JWT_SECRET = 'Xpto-secret0-key';
-
+/**
+ * Middleware para verificar el token JWT.
+ * Si el token es válido, añade la información del usuario (id, role) a `req.user`.
+ */
 export const verifyToken = (req, res, next) => {
-  try {
-    let token;
+  // Obtener el token de la cookie 'accessToken' o del header 'Authorization'
+  let token = req.cookies?.accessToken || req.headers['x-access-token'] || req.headers['authorization'];
 
-    // 1. Buscar el token en la cookie (nuevo método seguro)
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    // 2. Si no está en la cookie, buscar en el header (método anterior para retrocompatibilidad)
-    const authHeader = req.headers['authorization'];
-    if (!token && authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    }
-
-    // 3. Si no se encontró ningún token, rechazar la petición
-    if (!token) {
-      return res.status(401).json({ message: 'Acceso denegado. No se proporcionó un token.' });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    if (!decoded.id) {
-      console.warn('Token decodificado pero sin ID de usuario:', decoded);
-      return res.status(401).json({ message: 'Token no contiene información válida de usuario.' });
-    }
-
-    req.user = decoded;
-    console.log('Usuario autenticado:', req.user);
-
-    next();
-  } catch (error) {
-    console.error('Error al verificar el token:', error);
-
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'El token ha expirado.' });
-    } else if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Token no válido.' });
-    } else {
-      return res.status(500).json({ message: 'Error al procesar la autenticación.' });
-    }
+  if (!token) {
+    return res.status(403).json({ message: 'No se proporcionó un token. Acceso denegado.' });
   }
+
+  // Si el token viene en el header 'Authorization' como "Bearer <token>", lo extraemos.
+  if (token.startsWith('Bearer ')) {
+    token = token.slice(7, token.length);
+  }
+
+  jwt.verify(token, authConfig.secret, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: 'No autorizado. El token no es válido o ha expirado.' });
+    }
+    // El payload decodificado (que incluye id y role) se adjunta al objeto request.
+    req.user = decoded;
+    next();
+  });
 };
 
 /**
@@ -52,13 +34,11 @@ export const verifyToken = (req, res, next) => {
  */
 export const isAdmin = (req, res, next) => {
   // req.user es establecido por el middleware verifyToken
-  // Soporte retrocompatibilidad: algunos tokens usan `role`, otros `user_type`.
-  const isAdminRole = req.user && (req.user.role === 'admin' || req.user.user_type === 'admin');
-  if (isAdminRole) {
-    return next(); // El usuario es admin, puede continuar.
+  if (req.user && req.user.role === 'admin') {
+    next(); // El usuario es admin, puede continuar.
+  } else {
+    return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
   }
-
-  return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
 };
 
 /**
@@ -66,11 +46,9 @@ export const isAdmin = (req, res, next) => {
  * Debe usarse SIEMPRE DESPUÉS de verifyToken.
  */
 export const isAdminOrOwner = (req, res, next) => {
-  const isAdminRole = req.user && (req.user.role === 'admin' || req.user.user_type === 'admin');
-  const isOwner = req.user && req.user.id == req.params.id; // loose comparison to handle string/number
-  if (isAdminRole || isOwner) {
-    return next();
+  if (req.user && (req.user.role === 'admin' || req.user.id === req.params.id)) {
+    next();
+  } else {
+    res.status(403).send({ message: "Acceso denegado. No eres el propietario ni un administrador." });
   }
-
-  return res.status(403).send({ message: 'Acceso denegado. No eres el propietario ni un administrador.' });
 };

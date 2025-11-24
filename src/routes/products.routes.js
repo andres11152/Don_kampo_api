@@ -25,8 +25,10 @@ const upload = multer({
 const router = express.Router();
 
 // Parse JSON bodies for all routes in this router that expect JSON.
+// A higher limit is required for bulk product operations (large payloads).
 // This needs to be at the top to apply to all subsequent route definitions.
-router.use(express.json());
+router.use(express.json({ limit: '10mb' }));
+router.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // --- RUTAS CRUD PARA PRODUCTOS INDIVIDUALES ---
 // Se sigue una convención RESTful. La subida de imágenes se maneja con una cadena
 // de middlewares (multer -> error handler -> image optimizer) para mantener los
@@ -90,11 +92,5 @@ router.post(
   handleMulterError,
   createProductsBulk
 );
-
-// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
-router.post('/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, createProduct);
-router.get('/getproduct/:id', getProductById);
-router.put('/updateproduct/:id', upload.single('photo_url'), handleMulterError, optimizeImage, updateProducts); // Esta podría ser una ruta /products (PUT) sin ID para bulk update con JSON
-router.delete('/deleteproduct/:id', deleteProduct);
 
 export default router;

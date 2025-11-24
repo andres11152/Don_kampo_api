@@ -13,3 +13,7 @@ export const dbSettings = {
 
 
 export const API_KEY = process.env.API_KEY || '';
+
+export const authConfig = {
+    secret: process.env.JWT_SECRET || 'default-secret-key-change-in-production'
+};

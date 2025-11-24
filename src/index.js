@@ -59,8 +59,9 @@ const corsOptions = {
 app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Aumentar límite de tamaño para JSON y urlencoded (necesario para cargas masivas)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Motor de vistas EJS
 app.set('view engine', 'ejs');
