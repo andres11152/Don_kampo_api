@@ -55,7 +55,7 @@ export const loginController = async (req, res) => {
       // Cambio de 'token' a 'accessToken'
       httpOnly: true, // No accesible desde JavaScript
       secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // strict en prod, lax en dev
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // none en prod para cross-site, lax en dev
       maxAge: 3600000, // 1 hora en milisegundos
       path: "/",
     });
