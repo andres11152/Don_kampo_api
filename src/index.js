@@ -38,8 +38,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'https://don-kampo-api-5vf3.onrender.com',
-  'https://don-kampo-api-5vf3.onrender.com/api-docs'
+  'http://localhost:8080',
+  'http://localhost:8080/api-docs'
 ];
 
 const corsOptions = {

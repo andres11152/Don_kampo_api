@@ -396,6 +396,13 @@ export const createProductsBulk = async (req, res) => {
   
   try {
     const { products, validateOnly = false } = req.body;
+    // DEBUG: log basic info to help diagnosticar 500s
+    console.log('[BulkUpload] validateOnly:', validateOnly, 'products present:', Array.isArray(products), 'products length:', Array.isArray(products) ? products.length : 0);
+    if (!products && req.file) {
+      // Si vino un archivo pero no hay parsing en el cliente, devolver error claro
+      console.warn('[BulkUpload] Se recibió archivo en multipart pero no hay `products` en el body. Parsing de Excel no implementado en servidor.');
+      return res.status(400).json({ message: 'Se recibió archivo pero el servidor espera un JSON con `products`. Por favor sube el Excel desde el cliente que lo convierte a JSON.' , success: false});
+    }
     
     // Validación inicial
     if (!Array.isArray(products) || products.length === 0) {
@@ -420,8 +427,13 @@ export const createProductsBulk = async (req, res) => {
     const inputNames = products.map(p => (p.name || '').toLowerCase()).filter(Boolean);
     let existingProductNames = new Set();
     if (inputNames.length) {
-      const existingProductsResult = await client.query(queries.bulkQueries.checkExistingProductsByName, [inputNames]);
-      existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
+      try {
+        const existingProductsResult = await client.query(queries.bulkQueries.checkExistingProductsByName, [inputNames]);
+        existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
+      } catch (dbErr) {
+        console.error('[BulkUpload] Error ejecutando checkExistingProductsByName:', dbErr);
+        return res.status(500).json({ message: 'Error consultando productos existentes', error: dbErr.message, success: false });
+      }
     }
     const validationResult = await validateBulkProducts(client, products, existingProductNames);
     
@@ -476,6 +488,7 @@ export const createProductsBulk = async (req, res) => {
     // 4. COMMIT DE TODA LA TRANSACCIÓN
     await client.query('COMMIT');
     // 5. RESPUESTA DETALLADA
+    const processingTime = Date.now() - startTime;
     return res.status(201).json({
       message: 'Procesamiento masivo completado',
       success: true,
@@ -698,9 +711,40 @@ async function processBatch(client, batch, startIndex) {
  */
 export const validateProductsBulk = async (req, res) => {
   try {
-    // Reutilizar la función principal con validateOnly = true
-    req.body.validateOnly = true;
-    return await createProductsBulk(req, res);
+    // Extraer productos del body si vienen como JSON
+    const products = req.body?.products;
+    if (!Array.isArray(products) || products.length === 0) {
+      // Si viene como archivo y no como JSON, informar claramente
+      if (req.file) {
+        console.warn('[BulkValidate] Se recibió archivo en multipart pero el cliente debe enviar JSON `products`.');
+        return res.status(400).json({ message: 'Por favor envía un JSON con `products` (el cliente normalmente transforma el Excel a JSON antes de enviarlo).' , success: false });
+      }
+      return res.status(400).json({ message: 'Se requiere un array `products` en el body para validar.', success: false });
+    }
+
+    // Ejecutar validación usando una conexión directa para obtener detalles
+    const client = await getConnection();
+    try {
+      const inputNames = products.map(p => (p.name || '').toLowerCase()).filter(Boolean);
+      let existingProductNames = new Set();
+      if (inputNames.length) {
+        const existingProductsResult = await client.query(queries.bulkQueries.checkExistingProductsByName, [inputNames]);
+        existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
+      }
+      const validationResult = await validateBulkProducts(client, products, existingProductNames);
+      if (!validationResult.isValid) {
+        return res.status(400).json({
+          message: 'Errores de validación encontrados',
+          success: false,
+          errors: validationResult.errors,
+          validProducts: validationResult.validCount,
+          totalProducts: products.length
+        });
+      }
+      return res.status(200).json({ message: 'Validación completada exitosamente', success: true, validProducts: validationResult.validCount, totalProducts: products.length });
+    } finally {
+      if (client) client.release();
+    }
   } catch (error) {
     console.error('Error en validateProductsBulk:', error);
     return res.status(500).json({

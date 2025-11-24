@@ -52,11 +52,13 @@ export const verifyToken = (req, res, next) => {
  */
 export const isAdmin = (req, res, next) => {
   // req.user es establecido por el middleware verifyToken
-  if (req.user && req.user.role === 'admin') {
-    next(); // El usuario es admin, puede continuar.
-  } else {
-    return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
+  // Soporte retrocompatibilidad: algunos tokens usan `role`, otros `user_type`.
+  const isAdminRole = req.user && (req.user.role === 'admin' || req.user.user_type === 'admin');
+  if (isAdminRole) {
+    return next(); // El usuario es admin, puede continuar.
   }
+
+  return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
 };
 
 /**
@@ -64,9 +66,11 @@ export const isAdmin = (req, res, next) => {
  * Debe usarse SIEMPRE DESPUÉS de verifyToken.
  */
 export const isAdminOrOwner = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.id === req.params.id)) {
-    next();
-  } else {
-    res.status(403).send({ message: "Acceso denegado. No eres el propietario ni un administrador." });
+  const isAdminRole = req.user && (req.user.role === 'admin' || req.user.user_type === 'admin');
+  const isOwner = req.user && req.user.id == req.params.id; // loose comparison to handle string/number
+  if (isAdminRole || isOwner) {
+    return next();
   }
+
+  return res.status(403).send({ message: 'Acceso denegado. No eres el propietario ni un administrador.' });
 };
