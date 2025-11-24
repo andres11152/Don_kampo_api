@@ -62,9 +62,9 @@ export const loginController = async (req, res) => {
 
     console.log("🍪 Cookie establecida con opciones:", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      nodeEnv: process.env.NODE_ENV,
+      secure: true, // Forzamos secure para Render
+      sameSite: "none", // Forzamos none para cross-site
+      maxAge: 3600000, // 1 hora en milisegundos.env.NODE_ENV,
     });
 
     // Responder con éxito
