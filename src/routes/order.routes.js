@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import {
+  verifyToken, isAdmin
+} from '../middlewares/auth.middleware.js';
+import {
   placeOrder,
   getOrders,
   getOrdersById,
@@ -66,7 +69,7 @@ const router = Router();
 // Se utiliza un endpoint específico en lugar de un POST genérico a /api/orders
 // porque la lógica de negocio (validar stock, calcular totales, crear registros asociados)
 // es significativamente más compleja que una simple creación de registro.
-router.post('/orders/placeOrder', placeOrder);
+router.post('/orders/placeOrder', verifyToken, placeOrder);
 
 /**
  * @swagger
@@ -81,7 +84,7 @@ router.post('/orders/placeOrder', placeOrder);
  *       500:
  *         description: Error interno
  */
-router.get('/orders', getOrders);
+router.get('/orders', [verifyToken, isAdmin], getOrders);
 
 /**
  * @swagger
@@ -101,7 +104,7 @@ router.get('/orders', getOrders);
  *       404:
  *         description: Orden no encontrada
  */
-router.get('/orders/:orderId', getOrdersById);
+router.get('/orders/:orderId', verifyToken, getOrdersById);
 
 /**
  * @swagger
@@ -159,7 +162,7 @@ router.get('/orders/:orderId', getOrdersById);
 // Endpoint principal y estandarizado para la actualización de órdenes.
 // Centraliza la lógica de modificación de ítems, datos de envío y metadatos,
 // recalculando totales para mantener la consistencia.
-router.put('/orders/:orderId', updateOrderById); // <-- endpoint agregado
+router.put('/orders/:orderId', verifyToken, updateOrderById); // <-- endpoint agregado y protegido
 
 /**
  * @swagger
@@ -197,7 +200,7 @@ router.put('/orders/:orderId', updateOrderById); // <-- endpoint agregado
  */
 // DEPRECATED: Esta ruta fue reemplazada por `POST /api/orders` que debería usarse en su lugar.
 // Se mantiene temporalmente por retrocompatibilidad con versiones anteriores del panel de administración.
-router.post('/createorders', createOrders);
+router.post('/createorders', [verifyToken, isAdmin], createOrders);
 
 /**
  * @swagger
@@ -233,7 +236,7 @@ router.post('/createorders', createOrders);
  */
 // DEPRECATED: Esta ruta fue reemplazada por `PUT /api/orders/:orderId`.
 // Se mantiene temporalmente por retrocompatibilidad.
-router.put('/updateorders/:orderId', updateOrders);
+router.put('/updateorders/:orderId', [verifyToken, isAdmin], updateOrders);
 
 /**
  * @swagger
@@ -251,7 +254,7 @@ router.put('/updateorders/:orderId', updateOrders);
 // Ruta de acción para recalcular los precios de todas las órdenes pendientes.
 // Es un proceso batch diseñado para ser ejecutado manualmente o de forma programada
 // cuando hay cambios en la lista de precios de los productos.
-router.put('/orders/updatePrices', updateOrderPrices);
+router.put('/orders/updatePrices', [verifyToken, isAdmin], updateOrderPrices);
 
 /**
  * @swagger
@@ -273,7 +276,7 @@ router.put('/orders/updatePrices', updateOrderPrices);
  */
 // DEPRECATED: Esta ruta fue reemplazada por `DELETE /api/orders/:orderId`.
 // Se mantiene temporalmente por retrocompatibilidad.
-router.delete('/orders/:orderId', deleteOrders);
+router.delete('/orders/:orderId', [verifyToken, isAdmin], deleteOrders);
 
 /**
  * @swagger 
@@ -300,7 +303,7 @@ router.delete('/orders/:orderId', deleteOrders);
 // Ruta de acción para una actualización rápida y específica del estado de una orden.
 // Se utiliza en flujos de trabajo donde solo se necesita cambiar el estado (ej. "enviado", "entregado")
 // sin modificar el resto de la orden, optimizando la operación.
-router.put('/orders/:id/status/:status_id', updateOrderStatus);
+router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderStatus);
 
 /**
  * @swagger
@@ -331,10 +334,10 @@ router.put('/orders/:id/status/:status_id', updateOrderStatus);
 // Ruta de acción para la actualización masiva de estados de órdenes.
 // Permite al administrador seleccionar múltiples órdenes y aplicar un cambio de estado
 // en una sola operación, mejorando la eficiencia de la gestión.
-router.put('/orders/bulk-update-status', updateBulkOrders);
+router.put('/orders/bulk-update-status', [verifyToken, isAdmin], updateBulkOrders);
 
 // DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
-router.put('/updatestatus/:id/:status_id', updateOrderStatus);
-router.put('/update-bulk-orders', updateBulkOrders);
+router.put('/updatestatus/:id/:status_id', [verifyToken, isAdmin], updateOrderStatus);
+router.put('/update-bulk-orders', [verifyToken, isAdmin], updateBulkOrders);
 
 export default router;

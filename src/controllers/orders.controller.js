@@ -3,11 +3,12 @@ import { queries } from '../database/queries.interface.js';
 import crypto from 'crypto';
 
 export const placeOrder = async (req, res) => {
-  const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit } = req.body;
+  const { cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit } = req.body;
+  const userId = req.user.id; // <-- CORRECCIÓN: Usar el ID del usuario autenticado desde el token.
 
   // --- INICIO DE VALIDACIÓN EN BACKEND (PROMPT 4) ---
   if (!userId || !Array.isArray(cartDetails) || cartDetails.length === 0 || !total || !userData) {
-    return res.status(400).json({ msg: 'Información incompleta para procesar el pedido. Faltan datos esenciales.' });
+    return res.status(400).json({ msg: 'Información incompleta para procesar el pedido. Faltan datos esenciales o el usuario no está autenticado.' });
   }
 
   // Validar userData
