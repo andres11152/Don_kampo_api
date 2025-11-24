@@ -8,8 +8,7 @@ import {
   deleteUsers,
   changePassword, // Importar el nuevo controlador
 } from '../controllers/users.controller.js';
-import { getUserProfile } from '../controllers/profile.controller.js';
-import { verifyToken } from '../middlewares/auth.middleware.js';
+import { verifyToken, isAdmin } from '../middlewares/auth.middleware.js';
 import {
   requestPasswordReset,
   verifyCodeAndResetPassword,
@@ -36,7 +35,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/users', getUsers);
+router.get('/users', [verifyToken, isAdmin], getUsers);
 
 /**
  * @swagger
@@ -58,7 +57,7 @@ router.get('/users', getUsers);
  *       500:
  *         description: Error interno
  */
-router.get('/users/:id', getUsersById);
+router.get('/users/:id', [verifyToken, isAdmin], getUsersById);
 
 /**
  * @swagger
@@ -148,7 +147,7 @@ router.post('/users', createUsers);
  *       500:
  *         description: Error del servidor
  */
-router.put('/users/:id', updateUsers);
+router.put('/users/:id', [verifyToken, isAdmin], updateUsers);
 
 /**
  * @swagger
@@ -195,7 +194,7 @@ router.put('/users/change-password', verifyToken, changePassword);
  *       500:
  *         description: Error del servidor
  */
-router.delete('/users/:id', deleteUsers);
+router.delete('/users/:id', [verifyToken, isAdmin], deleteUsers);
 
 /**
  * @swagger
@@ -222,7 +221,7 @@ router.delete('/users/:id', deleteUsers);
 // Se protege con el middleware `verifyToken` para asegurar que solo el usuario
 // logueado pueda acceder a su propia información, extrayendo su ID desde el token JWT.
 
-/**
+/** 
  * @swagger
  * /api/users/{id}/status/{status_id}:
  *   put:
@@ -246,7 +245,7 @@ router.delete('/users/:id', deleteUsers);
  *       500:
  *         description: Error del servidor
  */
-router.put('/users/:id/status/:status_id', updateUserStatus);
+router.put('/users/:id/status/:status_id', [verifyToken, isAdmin], updateUserStatus);
 
 /**
  * @swagger
@@ -308,9 +307,9 @@ router.post('/verify-code-and-reset-password', verifyCodeAndResetPassword);
 
 // DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
 router.post('/createusers', createUsers);
-router.put('/updateusers/:id', updateUsers);
-router.delete('/deleteusers/:id', deleteUsers);
-router.put('/userstatus/:id/:status_id', updateUserStatus);
+router.put('/updateusers/:id', [verifyToken, isAdmin], updateUsers);
+router.delete('/deleteusers/:id', [verifyToken, isAdmin], deleteUsers);
+router.put('/userstatus/:id/:status_id', [verifyToken, isAdmin], updateUserStatus);
 
 
 export default router;
