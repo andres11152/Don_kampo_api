@@ -27,8 +27,8 @@ export const queries = {
     `,
     updateUserStatus: `
       UPDATE users
-      SET status_id = $2
-      WHERE id = $1;
+      SET status_id = $1
+      WHERE id = $2;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
     getUserByEmail: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
@@ -75,8 +75,17 @@ export const queries = {
         o.requires_electronic_billing, 
         o.company_name, 
         o.nit,
-        o.user_type
+        o.user_type,
+        u.user_name,
+        u.lastname,
+        u.email,
+        u.phone,
+        u.city,
+        u.address,
+        u.neighborhood
       FROM orders o
+      LEFT JOIN users u ON o.customer_id = u.id
+      ORDER BY o.order_date DESC
     `,
     getOrdersById: `
       SELECT 
@@ -306,6 +315,10 @@ export const queries = {
         stock
       FROM product_presentations
       WHERE variation_id = ANY($1);
+    `,
+    getPresentationByVariationAndId: `
+      SELECT presentation_id FROM product_presentations
+      WHERE variation_id = $1 AND presentation_id = $2
     `,
     updateProduct: `
       UPDATE products

@@ -6,6 +6,7 @@ import {
   updateUsers,
   updateUserStatus,
   deleteUsers,
+  changePassword, // Importar el nuevo controlador
 } from '../controllers/users.controller.js';
 import { getUserProfile } from '../controllers/profile.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
@@ -151,6 +152,31 @@ router.put('/users/:id', updateUsers);
 
 /**
  * @swagger
+ * /api/users/change-password:
+ *   put:
+ *     tags:
+ *       - Usuarios
+ *     summary: Cambiar la contraseña del usuario autenticado
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: body
+ *         name: passwordInfo
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             currentPassword:
+ *               type: string
+ *             newPassword:
+ *               type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada
+ */
+router.put('/users/change-password', verifyToken, changePassword);
+/**
+ * @swagger
  * /api/users/{id}:
  *   delete:
  *     tags:
@@ -195,7 +221,6 @@ router.delete('/users/:id', deleteUsers);
 // Ruta de acción para obtener el perfil del usuario actualmente autenticado.
 // Se protege con el middleware `verifyToken` para asegurar que solo el usuario
 // logueado pueda acceder a su propia información, extrayendo su ID desde el token JWT.
-router.get('/profile', verifyToken, getUserProfile);
 
 /**
  * @swagger

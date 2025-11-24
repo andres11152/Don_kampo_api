@@ -170,20 +170,79 @@ export const deleteUsers = async (req, res) => {
 export const updateUserStatus = async (req, res) => {
   const { id, status_id } = req.params;
 
-  if (!id || !status_id) {
+  // Validación robusta de los parámetros
+  if (!id) {
+    return res.status(400).json({ msg: 'Por favor proporciona un ID de usuario.' });
+  }
+
+  const newStatus = parseInt(status_id, 10);
+  if (isNaN(newStatus) || (newStatus !== 0 && newStatus !== 1)) {
     return res.status(400).json({
-      msg: 'Por favor proporciona un ID de usuario y un nuevo estado válido.'
+      msg: 'El estado proporcionado es inválido. Debe ser 0 o 1.'
     });
   }
 
   let client;
   try {
     client = await getConnection();
-    await client.query(queries.users.updateUserStatus, [id, status_id]);
+
+    // CORRECCIÓN: La consulta SQL espera el valor del estado y el ID del usuario.
+    // El nombre del parámetro en la URL (`status_id`) es solo un nombre de variable.
+    // Lo importante es pasar los valores en el orden correcto que la consulta espera.
+    // La consulta es: UPDATE users SET status = $1 WHERE id = $2
+    const result = await client.query(queries.users.updateUserStatus, [newStatus, id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ msg: 'Usuario no encontrado.' });
+    }
 
     res.status(200).json({ msg: 'Estado del usuario actualizado exitosamente.' });
   } catch (error) {
     console.error('Error al actualizar el estado del usuario:', error.message);
+    res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
+  } finally {
+    if (client) client.release();
+  }
+};
+
+// Cambiar la contraseña de un usuario autenticado
+export const changePassword = async (req, res) => {
+  // El ID del usuario se obtiene del token, no del body, para mayor seguridad.
+  const userId = req.user.id;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ msg: 'La contraseña actual y la nueva son requeridas.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ msg: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  let client;
+  try {
+    client = await getConnection();
+
+    // 1. Obtener el hash de la contraseña actual del usuario
+    const userResult = await client.query('SELECT user_password FROM users WHERE id = $1', [userId]);
+    if (userResult.rowCount === 0) {
+      return res.status(404).json({ msg: 'Usuario no encontrado.' });
+    }
+    const storedPasswordHash = userResult.rows[0].user_password;
+
+    // 2. Comparar la contraseña actual proporcionada con el hash almacenado
+    const isMatch = await bcrypt.compare(currentPassword, storedPasswordHash);
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'La contraseña actual es incorrecta.' });
+    }
+
+    // 3. Hashear y actualizar la nueva contraseña
+    const newHashedPassword = await bcrypt.hash(newPassword, 10);
+    await client.query('UPDATE users SET user_password = $1 WHERE id = $2', [newHashedPassword, userId]);
+
+    res.status(200).json({ msg: 'Contraseña actualizada exitosamente.' });
+  } catch (error) {
+    console.error('Error al cambiar la contraseña:', error.message);
     res.status(500).json({ msg: 'Error interno del servidor.', error: error.message });
   } finally {
     if (client) client.release();

@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import swaggerUi from 'swagger-ui-express';
+import cookieParser from 'cookie-parser';
 import fs from 'fs';
 
 import authRoutes from './routes/auth.routes.js';
@@ -35,6 +36,8 @@ const allowedOrigins = [
   'https://donkampo.com',
   'https://www.donkampo.com',
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
   'https://don-kampo-api-5vf3.onrender.com',
   'https://don-kampo-api-5vf3.onrender.com/api-docs'
 ];
@@ -53,6 +56,7 @@ const corsOptions = {
 };
 
 // Middlewares globales
+app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json());
@@ -71,7 +75,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Rutas de la API
 // Se agrupan todas las rutas bajo el prefijo /api para mantener la consistencia.
 const apiRouter = express.Router();
-apiRouter.use(authRoutes);
+apiRouter.use('/auth', authRoutes);
 apiRouter.use(usersRoutes);
 apiRouter.use(productsRoutes);
 apiRouter.use(shippingRoutes);

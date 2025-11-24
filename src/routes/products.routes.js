@@ -9,7 +9,8 @@ import {
   deleteProduct,
   updateProducts,
   createProductsBulk,
-  validateProductsBulk
+  validateProductsBulk,
+  updatePricesByPresentation
 } from '../controllers/products.controller.js';
 
 import { handleMulterError } from '../middlewares/validateData.middleware.js';
@@ -23,9 +24,9 @@ const upload = multer({
 
 const router = express.Router();
 
-// Parse JSON bodies for routes that expect JSON
+// Parse JSON bodies for all routes in this router that expect JSON.
+// This needs to be at the top to apply to all subsequent route definitions.
 router.use(express.json());
-
 // --- RUTAS CRUD PARA PRODUCTOS INDIVIDUALES ---
 // Se sigue una convención RESTful. La subida de imágenes se maneja con una cadena
 // de middlewares (multer -> error handler -> image optimizer) para mantener los
@@ -45,6 +46,10 @@ router.get('/products', getProducts);
 
 // GET /api/products/:id - Obtener un producto por su ID.
 router.get('/products/:id', getProductById);
+
+// Endpoint para la actualización de precios por presentación desde el Excel.
+// Se define ANTES de /products/:id para evitar conflictos de enrutamiento.
+router.put('/products/update-prices-by-presentation', updatePricesByPresentation);
 
 // PUT /api/products/:id - Actualizar un producto existente.
 // También acepta `multipart/form-data` para permitir la actualización de la imagen.
@@ -89,8 +94,7 @@ router.post(
 // DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
 router.post('/createproduct', upload.single('photo_url'), handleMulterError, optimizeImage, createProduct);
 router.get('/getproduct/:id', getProductById);
-router.put('/updateproduct/:id', upload.single('photo_url'), handleMulterError, optimizeImage, updateProducts);
-router.put('/updatemultipleproducts', updateProducts); // Esta podría ser una ruta /products (PUT) sin ID para bulk update con JSON
+router.put('/updateproduct/:id', upload.single('photo_url'), handleMulterError, optimizeImage, updateProducts); // Esta podría ser una ruta /products (PUT) sin ID para bulk update con JSON
 router.delete('/deleteproduct/:id', deleteProduct);
 
 export default router;

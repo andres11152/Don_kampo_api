@@ -4,14 +4,22 @@ const JWT_SECRET = 'Xpto-secret0-key';
 
 export const verifyToken = (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(403).json({ message: 'Token de autenticación no proporcionado o formato incorrecto.' });
+    let token;
+
+    // 1. Buscar el token en la cookie (nuevo método seguro)
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
     }
 
-    const token = authHeader.split(' ')[1];
+    // 2. Si no está en la cookie, buscar en el header (método anterior para retrocompatibilidad)
+    const authHeader = req.headers['authorization'];
+    if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+
+    // 3. Si no se encontró ningún token, rechazar la petición
     if (!token) {
-      return res.status(403).json({ message: 'Token de autenticación no encontrado.' });
+      return res.status(401).json({ message: 'Acceso denegado. No se proporcionó un token.' });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);

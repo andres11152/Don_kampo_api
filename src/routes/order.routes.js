@@ -273,7 +273,7 @@ router.put('/orders/updatePrices', updateOrderPrices);
  */
 // DEPRECATED: Esta ruta fue reemplazada por `DELETE /api/orders/:orderId`.
 // Se mantiene temporalmente por retrocompatibilidad.
-router.delete('/deleteorders/:orderId', deleteOrders);
+router.delete('/orders/:orderId', deleteOrders);
 
 /**
  * @swagger 

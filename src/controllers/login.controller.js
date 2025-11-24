@@ -38,10 +38,18 @@ export const loginController = async (req, res) => {
       { expiresIn: '1h' }
     );
 
+    // Guardar el token en una cookie segura
+    res.cookie('token', token, {
+      httpOnly: true,                                  // No accesible desde JavaScript
+      secure: process.env.NODE_ENV === 'production',   // Solo HTTPS en producción
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // strict en prod, lax en dev
+      maxAge: 3600000,                                 // 1 hora en milisegundos
+      path: '/'
+    });
+
     // Responder con éxito
     return res.status(200).json({
       message: 'Inicio de sesión exitoso',
-      token,
       user: {
         id: user.id,
         user_name: user.user_name,

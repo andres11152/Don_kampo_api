@@ -4,15 +4,33 @@ import crypto from 'crypto';
 
 export const placeOrder = async (req, res) => {
   const { userId, cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit } = req.body;
-  const trackingNumber = crypto.randomBytes(5).toString('hex');
-  const shippingStatusId = 1;
 
-  if (!userId || !cartDetails || !total) {
-    return res.status(400).json({ msg: 'Información incompleta para procesar el pedido.' });
+  // --- INICIO DE VALIDACIÓN EN BACKEND (PROMPT 4) ---
+  if (!userId || !Array.isArray(cartDetails) || cartDetails.length === 0 || !total || !userData) {
+    return res.status(400).json({ msg: 'Información incompleta para procesar el pedido. Faltan datos esenciales.' });
   }
 
+  // Validar userData
+  const requiredUserDataFields = ['user_name', 'email', 'phone', 'city', 'address', 'neighborhood'];
+  for (const field of requiredUserDataFields) {
+    if (!userData[field] || String(userData[field]).trim() === '') {
+      return res.status(400).json({ msg: `El campo '${field}' en los datos de usuario es obligatorio.` });
+    }
+  }
+
+  // Validar cada item del carrito
+  for (const item of cartDetails) {
+    if (!item.productId || !item.variationId || item.quantity <= 0 || item.price < 0) {
+      return res.status(400).json({ msg: `El producto '${item.product_name || 'desconocido'}' tiene datos inválidos en el carrito.` });
+    }
+  }
+  // --- FIN DE VALIDACIÓN EN BACKEND ---
+
+  const trackingNumber = crypto.randomBytes(5).toString('hex');
+  const shippingStatusId = 1;
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
 
     // Verificar existencia del usuario
     const userResult = await client.query(
@@ -22,7 +40,6 @@ export const placeOrder = async (req, res) => {
 
     // Si el usuario no se encuentra y es distinto a los usuarios por default
     if (!userResult.rows.length && userId !== '0f8fc459-571f-4e15-b653-4eb4558c6450') {
-      client.release();
       return res.status(404).json({ msg: 'Usuario no encontrado.' });
     }
     const userType = userResult.rows.length ? userResult.rows[0].user_type : 'home';
@@ -39,7 +56,6 @@ export const placeOrder = async (req, res) => {
     const existingProductIds = productCheckResult.rows.map((row) => row.product_id);
     const invalidProducts = productIds.filter((id) => !existingProductIds.includes(id));
     if (invalidProducts.length > 0) {
-      client.release();
       return res.status(400).json({
         msg: 'Algunos productos no existen en el catálogo.',
         invalidProducts,
@@ -105,17 +121,19 @@ export const placeOrder = async (req, res) => {
       ]);
     }
     
-    client.release();
     res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId });
   } catch (error) {
     console.error('Error al realizar el pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
+  } finally {
+    if (client) client.release();
   }
 }
 
 export const getOrders = async (req, res) => {
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
 
     // Obtener información de los pedidos
     const ordersResult = await client.query(queries.orders.getOrders);
@@ -165,19 +183,17 @@ export const getOrders = async (req, res) => {
       acc[variation_id] = {
         variation_id,
         quality,
-        presentations: presentations.map(p => ({
+        presentations: presentations?.map(p => ({
           ...p,
-          price_home: parseFloat(p.price_home),
-          price_supermarket: parseFloat(p.price_supermarket),
-          price_restaurant: parseFloat(p.price_restaurant),
-          price_fruver: parseFloat(p.price_fruver),
+          price_home: Math.round(Number(p.price_home) || 0),
+          price_supermarket: Math.round(Number(p.price_supermarket) || 0),
+          price_restaurant: Math.round(Number(p.price_restaurant) || 0),
+          price_fruver: Math.round(Number(p.price_fruver) || 0),
         }))
       };
-    
+
       return acc;
     }, {});
-
-    client.release();
 
     const ordersWithDetails = orders.map((order) => {
       // Filtrar los items que pertenecen a esta orden:
@@ -205,7 +221,7 @@ export const getOrders = async (req, res) => {
       return {
         order: {
           ...order,
-          total: parseFloat(order.total),
+          total: Math.round(Number(order.total) || 0),
         },
         userData: userDataMap[order.id] || null,
         items: aggregatedItemsArray,  // Usamos los items agrupados
@@ -217,20 +233,32 @@ export const getOrders = async (req, res) => {
   } catch (error) {
     console.error("Error al obtener los pedidos:", error);
     res.status(500).json({ msg: "Error al obtener los pedidos." });
+  } finally {
+    if (client) client.release();
   }
 };
 
 export const getOrdersById = async (req, res) => {
+  let client;
   try {
-      const { orderId } = req.params;
-      const client = await getConnection();
+    const { orderId } = req.params;
+    const authenticatedUserId = req.user.id; // ID del usuario autenticado desde el token
+    const userRole = req.user.role; // Rol del usuario desde el token
+
+    client = await getConnection();
+
       // Obtener información del pedido
       const orderResult = await client.query(queries.orders.getOrdersById, [orderId]);
       if (orderResult.rows.length === 0) {
-          client.release();
           return res.status(404).json({ msg: 'Pedido no encontrado.' });
       }
       const order = orderResult.rows[0];
+
+      // --- VERIFICACIÓN DE PROPIEDAD (IDOR PREVENTION) ---
+      // Si el usuario no es admin, verificar que la orden le pertenezca.
+      if (userRole !== 'admin' && order.customer_id !== authenticatedUserId) {
+        return res.status(403).json({ msg: 'Acceso prohibido. No tienes permiso para ver esta orden.' });
+      }
 
       // Obtener productos del pedido
       const itemsResult = await client.query(queries.orders.getOrderItemsByOrderId, [orderId]);
@@ -246,36 +274,6 @@ export const getOrdersById = async (req, res) => {
           [orderId]
       );
       const userData = userDataResult.rows.length > 0 ? userDataResult.rows[0].user_data : null;
-
-      // Obtener variaciones de los productos (usando product_variation_id)
-      const variationIds = orderItems.map(item => item.variation_id);
-      const variationsResult = await client.query(
-          `SELECT variation_id, product_id, quality, presentations
-          FROM product_variations
-          WHERE variation_id = ANY($1);`,
-          [variationIds]
-      );
-
-      const variationsMap = variationsResult.rows.reduce((acc, row) => {
-        const { variation_id, product_id, quality, presentations } = row
-
-        acc[variation_id] = {
-          variation_id,
-          product_id,
-          quality,
-          presentations: presentations.map(p => ({
-            ...p,
-            price_home: parseFloat(p.price_home),
-            price_supermarket: parseFloat(p.price_supermarket),
-            price_restaurant: parseFloat(p.price_restaurant),
-            price_fruver: parseFloat(p.price_fruver),
-          }))
-        };
-      
-        return acc;
-      }, {});
-
-      client.release();
 
       // Estructurar la respuesta consolidando la información
       const orderWithDetails = {
@@ -296,6 +294,8 @@ export const getOrdersById = async (req, res) => {
   } catch (error) {
       console.error('Error al obtener el pedido:', error);
       res.status(500).json({ msg: 'Error al obtener el pedido.' });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -306,14 +306,16 @@ export const createOrders = async (req, res) => {
     return res.status(400).json({ msg: 'Campos obligatorios incompletos.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     await client.query(queries.orders.createOrder, [customer_id, order_date, status_id, total , requires_electronic_billing, company_name, nit]);
-    client.release();
     res.status(201).json({ msg: 'Pedido creado exitosamente.' });
   } catch (error) {
     console.error('Error al crear el pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -324,14 +326,16 @@ export const updateOrders = async (req, res) => {
     return res.status(400).json({ msg: 'Campos obligatorios incompletos.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     await client.query(queries.orders.updateOrders, [customer_id, order_date, status_id, total, id]);
-    client.release();
     res.status(200).json({ msg: 'Pedido actualizado exitosamente.' });
   } catch (error) {
     console.error('Error al actualizar el pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
+  } finally {
+    if (client) client.release();
   }
 };
 
@@ -342,22 +346,25 @@ export const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ msg: 'ID de pedido o estado no proporcionado.' });
   }
 
+  let client;
   try {
-    const client = await getConnection();
+    client = await getConnection();
     await client.query(queries.orders.updateOrderStatus, [status_id, id]);
-    client.release();
     res.status(200).json({ msg: 'Estado del pedido actualizado exitosamente.' });
   } catch (error) {
     console.error('Error al actualizar el estado del pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
+  } finally {
+    if (client) client.release();
   }
 };
 
 export const deleteOrders = async (req, res) => {
+  let client;
   try {
     const { orderId } = req.params; // Asegúrate de usar "orderId" aquí
 
-    const client = await getConnection();
+    client = await getConnection();
 
     // Validar que el ID sea un número válido
     const numericId = parseInt(orderId, 10);
@@ -368,32 +375,34 @@ export const deleteOrders = async (req, res) => {
     // Verificar si el pedido existe
     const checkOrder = await client.query('SELECT * FROM orders WHERE id = $1', [numericId]);
     if (checkOrder.rows.length === 0) {
-      client.release();
       return res.status(404).json({ msg: 'Pedido no encontrado en la base de datos.' });
     }
+
+    // Eliminar dependencias en order_items (ESTE ES EL AJUSTE CLAVE)
+    await client.query('DELETE FROM order_items WHERE order_id = $1', [numericId]);
 
     // Eliminar dependencias en user_data
     await client.query('DELETE FROM user_data WHERE order_id = $1', [numericId]);
 
+    // Eliminar dependencias en shipping_info (ESTA LÍNEA ESTABA FALTANDO)
+    await client.query('DELETE FROM shipping_info WHERE order_id = $1', [numericId]);
+
     // Eliminar el pedido
     const result = await client.query('DELETE FROM orders WHERE id = $1', [numericId]);
-
-    client.release();
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ msg: 'Pedido no encontrado.' });
-    }
 
     res.status(200).json({ msg: 'Pedido eliminado exitosamente.' });
   } catch (error) {
     console.error('Error al eliminar el pedido:', error);
     res.status(500).json({ msg: 'Error al eliminar el pedido.' });
+  } finally {
+    if (client) client.release();
   }
 };
   
 export const updateOrderPrices = async (req, res) => {
-  const client = await getConnection();
+  let client;
   try {
+    client = await getConnection();
     await client.query("BEGIN");
 
     // 1. Obtener todas las órdenes con estado pendiente (status_id = 1)
@@ -436,10 +445,10 @@ export const updateOrderPrices = async (req, res) => {
         active:       row.variation_active,
         presentations: (row.presentations || []).map(p => ({
           ...p,
-          price_home:        Number(p.price_home),
-          price_supermarket: Number(p.price_supermarket),
-          price_restaurant:  Number(p.price_restaurant),
-          price_fruver:      Number(p.price_fruver),
+          price_home:        Math.round(Number(p.price_home) || 0),
+          price_supermarket: Math.round(Number(p.price_supermarket) || 0),
+          price_restaurant:  Math.round(Number(p.price_restaurant) || 0),
+          price_fruver:      Math.round(Number(p.price_fruver) || 0),
           stock:             Number(p.stock),
         }))
       }));
@@ -474,11 +483,11 @@ export const updateOrderPrices = async (req, res) => {
     await client.query("COMMIT");
     res.status(200).json({ msg: "Precios y totales de las órdenes actualizados exitosamente." });
   } catch (error) {
-    await client.query("ROLLBACK");
+    if(client) await client.query("ROLLBACK");
     console.error("Error al actualizar los precios de las órdenes:", error);
     res.status(500).json({ msg: "Error interno del servidor." });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 };
 
@@ -499,8 +508,9 @@ export const updateBulkOrders = async (req, res) => {
     });
   }
 
-  const client = await getConnection();
+  let client;
   try {
+    client = await getConnection();
     await client.query("BEGIN");
 
     // Convertir a números (según tu estructura de IDs)
@@ -538,14 +548,14 @@ export const updateBulkOrders = async (req, res) => {
     });
 
   } catch (error) {
-    await client.query("ROLLBACK");
+    if(client) await client.query("ROLLBACK");
     console.error('Error en actualización masiva:', error);
     res.status(500).json({ 
       success: false, 
       msg: 'Error al actualizar órdenes' 
     });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 };
 
@@ -571,22 +581,32 @@ export const updateOrderById = async (req, res) => {
     return res.status(400).json({ msg: 'orderId es requerido en params.' });
   }
 
-  const client = await getConnection();
-
+  let client;
   try {
+    client = await getConnection();
     await client.query('BEGIN');
 
     // Bloquear la orden para evitar race conditions
+    // --- INICIO DE VALIDACIÓN DE PROPIEDAD (PROMPT 3) ---
     const orderLock = await client.query(
-      `SELECT id FROM orders WHERE id = $1 FOR UPDATE`,
+      `SELECT id, customer_id FROM orders WHERE id = $1 FOR UPDATE`,
       [orderId]
     );
 
     if (orderLock.rowCount === 0) {
       await client.query('ROLLBACK');
-      client.release();
       return res.status(404).json({ msg: 'Orden no encontrada.' });
     }
+
+    const orderToUpdate = orderLock.rows[0];
+    const authenticatedUserId = req.user.id;
+    const userRole = req.user.role;
+
+    if (userRole !== 'admin' && orderToUpdate.customer_id !== authenticatedUserId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ msg: 'Acceso prohibido. No tienes permiso para modificar esta orden.' });
+    }
+    // --- FIN DE VALIDACIÓN DE PROPIEDAD ---
 
     // 1) Actualizar metadatos de la orden si se enviaron
     const fieldsToUpdate = [];
@@ -635,12 +655,10 @@ export const updateOrderById = async (req, res) => {
       for (const it of normalizedItems) {
         if (!it.productId || !it.variationId || (it.price === undefined || it.quantity === undefined)) {
           await client.query('ROLLBACK');
-          client.release();
           return res.status(400).json({ msg: 'Cada item requiere productId, variationId, price y quantity (valores válidos).' });
         }
         if (it.price < 0 || it.quantity < 0) {
           await client.query('ROLLBACK');
-          client.release();
           return res.status(400).json({ msg: 'price y quantity deben ser >= 0.' });
         }
       }
@@ -750,7 +768,6 @@ export const updateOrderById = async (req, res) => {
       shipping_percentage = Math.round(Number(shipping_percentage) || 0);
       if (shipping_percentage < 0 || shipping_percentage > 100) {
         await client.query('ROLLBACK');
-        client.release();
         return res.status(400).json({ msg: 'shipping_percentage debe estar entre 0 y 100.' });
       }
     }
@@ -827,8 +844,6 @@ export const updateOrderById = async (req, res) => {
     const userDataFinal = await client.query(`SELECT user_data FROM user_data WHERE order_id = $1`, [orderId]);
     const shippingFinal = await client.query(`SELECT * FROM shipping_info WHERE order_id = $1`, [orderId]);
 
-    client.release();
-
     return res.status(200).json({
       msg: 'Orden actualizada correctamente.',
       order: orderFinal.rows[0],
@@ -837,10 +852,13 @@ export const updateOrderById = async (req, res) => {
       shippingInfo: shippingFinal.rows.length ? shippingFinal.rows[0] : null
     });
   } catch (error) {
-    try { await client.query('ROLLBACK'); } catch (e) { /* ignore rollback error */ }
-    client.release();
+    if(client) {
+      try { await client.query('ROLLBACK'); } catch (e) { /* ignore rollback error */ }
+    }
     console.error('Error actualizando la orden:', error);
     // Si quieres enviar más detalle en env de dev, incluye error.message; en prod, mantener mensaje genérico
     return res.status(500).json({ msg: 'Error interno al actualizar la orden.' });
+  } finally {
+    if (client) client.release();
   }
 };

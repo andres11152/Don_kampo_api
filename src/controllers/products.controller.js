@@ -125,10 +125,10 @@ export const createProduct = async (req, res) => {
         // Asegurar que cada presentación tiene los precios correctos
         const formattedPresentations = presentations.map(presentation => ({
           ...presentation,
-          price_home: parseFloat(presentation.price_home || 0),
-          price_supermarket: parseFloat(presentation.price_supermarket || 0),
-          price_restaurant: parseFloat(presentation.price_restaurant || 0),
-          price_fruver: parseFloat(presentation.price_fruver || 0)
+          price_home: Math.round(Number(presentation.price_home) || 0),
+          price_supermarket: Math.round(Number(presentation.price_supermarket) || 0),
+          price_restaurant: Math.round(Number(presentation.price_restaurant) || 0),
+          price_fruver: Math.round(Number(presentation.price_fruver) || 0)
         }));
 
         // Crear la variación del producto
@@ -309,8 +309,7 @@ export const updateProducts = async (req, res) => {
           for (const p of presentations) {
             // comprobar si ya existe
             const { rows: exists } = await client.query(
-              `SELECT presentation_id FROM product_presentations
-               WHERE variation_id = $1 AND presentation_id = $2`,
+              queries.products.getPresentationByVariationAndId,
               [variation_id, p.presentation_id]
             );
 
@@ -320,10 +319,10 @@ export const updateProducts = async (req, res) => {
                 variation_id,
                 p.presentation,
                 parseInt(p.stock, 10) || 0,
-                p.price_home,
-                p.price_supermarket,
-                p.price_restaurant,
-                p.price_fruver,
+                Math.round(Number(p.price_home) || 0),
+                Math.round(Number(p.price_supermarket) || 0),
+                Math.round(Number(p.price_restaurant) || 0),
+                Math.round(Number(p.price_fruver) || 0),
                 p.presentation_id
               ]);
             } else {
@@ -331,10 +330,10 @@ export const updateProducts = async (req, res) => {
               await client.query(queries.products.createProductPresentation, [
                 variation_id,
                 p.presentation,
-                p.price_home,
-                p.price_supermarket,
-                p.price_restaurant,
-                p.price_fruver,
+                Math.round(Number(p.price_home) || 0),
+                Math.round(Number(p.price_supermarket) || 0),
+                Math.round(Number(p.price_restaurant) || 0),
+                Math.round(Number(p.price_fruver) || 0),
                 parseInt(p.stock, 10) || 0
               ]);
             }
@@ -417,7 +416,14 @@ export const createProductsBulk = async (req, res) => {
     client = await getConnection();
     
     // 1. VALIDACIÓN MASIVA - Verificar datos antes de procesar
-    const validationResult = await validateBulkProducts(client, products);
+    // Preparar lista de nombres entrantes y consultar solo los existentes para validar duplicados
+    const inputNames = products.map(p => (p.name || '').toLowerCase()).filter(Boolean);
+    let existingProductNames = new Set();
+    if (inputNames.length) {
+      const existingProductsResult = await client.query(queries.bulkQueries.checkExistingProductsByName, [inputNames]);
+      existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
+    }
+    const validationResult = await validateBulkProducts(client, products, existingProductNames);
     
     if (!validationResult.isValid) {
       return res.status(400).json({
@@ -469,9 +475,6 @@ export const createProductsBulk = async (req, res) => {
 
     // 4. COMMIT DE TODA LA TRANSACCIÓN
     await client.query('COMMIT');
-    
-    const processingTime = Date.now() - startTime;
-    
     // 5. RESPUESTA DETALLADA
     return res.status(201).json({
       message: 'Procesamiento masivo completado',
@@ -520,17 +523,13 @@ export const createProductsBulk = async (req, res) => {
 /**
  * Valida masivamente los productos antes de crear
  */
-async function validateBulkProducts(client, products) {
+async function validateBulkProducts(client, products, existingProductNames = new Set()) {
   const errors = [];
   let validCount = 0;
-  
-  // Obtener todas las categorías existentes de una vez
-  const categoriesResult = await client.query('SELECT DISTINCT category FROM products WHERE category IS NOT NULL');
+
+  // Obtener todas las categorías existentes de una vez desde queries.interface
+  const categoriesResult = await client.query(queries.bulkQueries.getAllCategories);
   const existingCategories = new Set(categoriesResult.rows.map(row => row.category.toLowerCase()));
-  
-  // Obtener nombres de productos existentes para detectar duplicados
-  const existingProductsResult = await client.query('SELECT name FROM products');
-  const existingProductNames = new Set(existingProductsResult.rows.map(row => row.name.toLowerCase()));
   
   // Validar cada producto
   for (let i = 0; i < products.length; i++) {
@@ -710,4 +709,92 @@ export const validateProductsBulk = async (req, res) => {
       error: error.message
     });
   }
+};
+
+export const updatePricesByPresentation = async (req, res) => {
+    let client;
+    // eslint-disable-next-line no-unused-vars
+    const updatesList = req.body; // Recibe el array [{ presentation_id, target_column, new_price }, ...]
+
+    // 1. Validaciones básicas
+    if (!Array.isArray(updatesList) || updatesList.length === 0) {
+        return res.status(400).json({ message: 'Se requiere un array de actualizaciones válido.' });
+    }
+
+    // Lista blanca de columnas permitidas para evitar SQL Injection
+    const ALLOWED_COLUMNS = [
+        'price_home', 
+        'price_restaurant', 
+        'price_supermarket', 
+        'price_fruver', 
+        'stock' // Agregado por si en el futuro quieres actualizar stock también
+    ];
+
+    try {
+        client = await getConnection();
+        await client.query('BEGIN');
+
+        console.log(`[PriceUpdate] Procesando ${updatesList.length} actualizaciones de precios...`);
+        console.time('PRICE_UPDATE');
+
+        let updatedCount = 0;
+
+        for (const item of updatesList) {
+            const { presentation_id, target_column, new_price } = item;
+
+            // 2. Validar que tengamos los datos mínimos
+            if (!presentation_id || !target_column || new_price === undefined || new_price === null) {
+                continue; // Saltamos filas incompletas o con precio nulo
+            }
+
+            // 3. SEGURIDAD: Validar que la columna objetivo sea válida
+            if (!ALLOWED_COLUMNS.includes(target_column)) {
+                console.warn(`Intento de actualización en columna no permitida: ${target_column}`);
+                continue;
+            }
+
+            // 4. Validar y parsear el nuevo precio
+            const numericPrice = parseFloat(new_price);
+            if (isNaN(numericPrice)) {
+                console.warn(`Valor de precio inválido para presentation_id ${presentation_id}: ${new_price}`);
+                continue; // Saltar si el precio no es un número válido
+            }
+
+            // 5. Ejecutar la actualización directa
+            const result = await client.query(
+                `UPDATE product_presentations 
+                 SET ${target_column} = $1 
+                 WHERE presentation_id = $2`,
+                [Math.round(numericPrice), presentation_id] // CORRECCIÓN: Redondear a entero
+            );
+
+            // rowCount nos dice si realmente encontró el ID y actualizó
+            if (result.rowCount > 0) {
+                updatedCount++;
+            }
+        }
+
+        console.timeEnd('PRICE_UPDATE');
+        await client.query('COMMIT');
+
+        console.log(`[PriceUpdate] Éxito. Se actualizaron ${updatedCount} registros.`);
+
+        res.status(200).json({ 
+            message: 'Actualización de precios completada.', 
+            total_processed: updatesList.length,
+            total_updated: updatedCount 
+        });
+
+    } catch (error) {
+        console.error('Error en updatePricesByPresentation:', error);
+        if (client) {
+            await client.query('ROLLBACK');
+        }
+        return res.status(500).json({ 
+            message: 'Error crítico al actualizar precios.', 
+            error: error.message 
+        });
+    } finally {
+        if (client) client.release();
+    }
 };
