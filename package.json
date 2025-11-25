@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --exec npx babel-node src/",
-    "build": "npm install && babel src -d dist",
+    "build": "npm install && npx babel src -d dist",
     "start": "node dist",
     "migration": "node src/migration/migrate.js"
   },
@@ -48,7 +48,6 @@
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/plugin-syntax-optional-chaining": "^7.8.3",
     "@babel/plugin-transform-async-to-generator": "^7.15.4",
-    "babel-cli": "^6.26.0",
     "nodemon": "^3.1.4",
     "swagger-autogen": "^2.23.7"
   }
