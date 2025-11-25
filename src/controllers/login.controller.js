@@ -52,10 +52,9 @@ export const loginController = async (req, res) => {
 
     // Guardar el token en una cookie segura con el nombre correcto
     res.cookie("accessToken", token, {
-      // Cambio de 'token' a 'accessToken'
-      httpOnly: true, // No accesible desde JavaScript
-      secure: process.env.NODE_ENV === "production", // Solo HTTPS en producción
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // none en prod para cross-site, lax en dev
+      httpOnly: true,
+      secure: true, // Forzamos secure para Render
+      sameSite: "none", // Forzamos none para cross-site
       maxAge: 3600000, // 1 hora en milisegundos
       path: "/",
     });
