@@ -336,8 +336,4 @@ router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderS
 // en una sola operación, mejorando la eficiencia de la gestión.
 router.put('/orders/bulk-update-status', [verifyToken, isAdmin], updateBulkOrders);
 
-// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
-router.put('/updatestatus/:id/:status_id', [verifyToken, isAdmin], updateOrderStatus);
-router.put('/update-bulk-orders', [verifyToken, isAdmin], updateBulkOrders);
-
 export default router;

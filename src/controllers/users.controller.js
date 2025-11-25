@@ -41,32 +41,28 @@ export const getUsersById = async (req, res) => {
 
     const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
 
-    // Para cada orden, obtener sus items
-    const ordersWithItems = await Promise.all(
-      ordersResult.rows.map(async (order) => {
-        // CORRECCIÓN: La consulta 'getOrderItemsById' no existía en el objeto de queries.
-        // Se reemplaza por la consulta SQL directa para asegurar que funcione.
-        // SEGUNDA CORRECCIÓN: Se añade un JOIN con la tabla 'products' para obtener el 'product_name'.
-        const itemsQuery = `
-          SELECT 
-            oi.order_id, 
-            oi.product_id, 
-            oi.quantity, 
-            oi.price,
-            oi.variation_id,
-            oi.quality,
-            oi.presentation,
-            oi.presentation_id,
-            p.name as product_name
-          FROM order_items oi
-          LEFT JOIN products p ON oi.product_id = p.product_id
-          WHERE oi.order_id = $1
-        `;
-        const itemsResult = await client.query(itemsQuery, [order.id]);
-        // Devolver la orden con sus items adjuntos
-        return { ...order, items: itemsResult.rows };
-      })
-    );
+    // SOLUCIÓN N+1: Obtener todos los items de todas las órdenes en una sola consulta.
+    const orderIds = ordersResult.rows.map(order => order.id);
+    let allItems = [];
+    if (orderIds.length > 0) {
+      const itemsResult = await client.query(queries.orders.getOrderItemsByOrderIds, [orderIds]);
+      allItems = itemsResult.rows;
+    }
+
+    // Agrupar los items por order_id para una asignación eficiente.
+    const itemsByOrderId = allItems.reduce((acc, item) => {
+      if (!acc[item.order_id]) {
+        acc[item.order_id] = [];
+      }
+      acc[item.order_id].push(item);
+      return acc;
+    }, {});
+
+    // Asignar los items a cada orden.
+    const ordersWithItems = ordersResult.rows.map(order => ({
+      ...order,
+      items: itemsByOrderId[order.id] || [],
+    }));
 
     res.status(200).json({
       user: userData,

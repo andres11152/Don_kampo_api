@@ -307,11 +307,5 @@ router.post('/request-password-reset', requestPasswordReset);
  */
 router.post('/verify-code-and-reset-password', verifyCodeAndResetPassword);
 
-// DEPRECATED: Rutas antiguas que serán eliminadas. Se mantienen por retrocompatibilidad.
-router.post('/createusers', createUsers);
-router.put('/updateusers/:id', [verifyToken, isAdmin], updateUsers);
-router.delete('/deleteusers/:id', [verifyToken, isAdmin], deleteUsers);
-router.put('/userstatus/:id/:status_id', [verifyToken, isAdmin], updateUserStatus);
-
 
 export default router;
