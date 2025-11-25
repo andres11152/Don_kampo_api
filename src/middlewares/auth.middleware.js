@@ -6,21 +6,20 @@ import { authConfig } from "../config/config.js";
  * Si el token es válido, añade la información del usuario (id, role) a `req.user`.
  */
 export const verifyToken = (req, res, next) => {
-  // Obtener el token de la cookie 'accessToken' o del header 'Authorization'
+  // Obtener el token: Prioridad Header Authorization > Cookie > Header x-access-token
   let token =
+    req.headers["authorization"] ||
     req.cookies?.accessToken ||
-    req.headers["x-access-token"] ||
-    req.headers["authorization"];
+    req.headers["x-access-token"];
 
   console.log("🔒 VerifyToken Middleware:");
-  console.log("   - Cookies:", req.cookies);
-  console.log("   - Headers[Authorization]:", req.headers["authorization"]);
-  console.log("   - Token found:", !!token);
+  // console.log("   - Cookies:", req.cookies); // Comentado para reducir ruido si no es necesario
+  // console.log("   - Headers[Authorization]:", req.headers["authorization"]);
 
   if (!token) {
-    return res
-      .status(403)
-      .json({ message: "No se proporcionó un token. Acceso denegado." });
+    // CORRECCIÓN: Se cambia el estado de 403 a 401 para seguir el estándar.
+    // 401 Unauthorized es para problemas de autenticación (falta de token).
+    return res.status(401).json({ message: "No se proporcionó un token." });
   }
 
   // Si el token viene en el header 'Authorization' como "Bearer <token>", lo extraemos.
@@ -28,13 +27,17 @@ export const verifyToken = (req, res, next) => {
     token = token.slice(7, token.length);
   }
 
+  // console.log("   - Secret used for verification:", authConfig.secret);
+
   jwt.verify(token, authConfig.secret, (err, decoded) => {
     if (err) {
-      return res
-        .status(401)
-        .json({
-          message: "No autorizado. El token no es válido o ha expirado.",
-        });
+      console.error("❌ JWT Verification Error:", err.message);
+      // console.error("   - Error Name:", err.name);
+      // console.error("   - Token Expired At:", err.expiredAt);
+      return res.status(401).json({
+        message: "No autorizado. El token no es válido o ha expirado.",
+        error: err.message, // Enviar detalle del error para debugging (remover en prod)
+      });
     }
     // El payload decodificado (que incluye id y role) se adjunta al objeto request.
     req.user = decoded;
@@ -68,10 +71,8 @@ export const isAdminOrOwner = (req, res, next) => {
   ) {
     next();
   } else {
-    res
-      .status(403)
-      .send({
-        message: "Acceso denegado. No eres el propietario ni un administrador.",
-      });
+    res.status(403).send({
+      message: "Acceso denegado. No eres el propietario ni un administrador.",
+    });
   }
 };

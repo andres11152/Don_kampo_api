@@ -36,12 +36,42 @@ export const getUsersById = async (req, res) => {
     }
 
     const userData = userResult.rows[0];
+    // No enviar la contraseña hasheada
+    delete userData.user_password;
+
     const ordersResult = await client.query(queries.users.getUserOrdersById, [id]);
-    const userOrders = ordersResult.rows;
+
+    // Para cada orden, obtener sus items
+    const ordersWithItems = await Promise.all(
+      ordersResult.rows.map(async (order) => {
+        // CORRECCIÓN: La consulta 'getOrderItemsById' no existía en el objeto de queries.
+        // Se reemplaza por la consulta SQL directa para asegurar que funcione.
+        // SEGUNDA CORRECCIÓN: Se añade un JOIN con la tabla 'products' para obtener el 'product_name'.
+        const itemsQuery = `
+          SELECT 
+            oi.order_id, 
+            oi.product_id, 
+            oi.quantity, 
+            oi.price,
+            oi.variation_id,
+            oi.quality,
+            oi.presentation,
+            oi.presentation_id,
+            p.name as product_name
+          FROM order_items oi
+          LEFT JOIN products p ON oi.product_id = p.product_id
+          WHERE oi.order_id = $1
+        `;
+        const itemsResult = await client.query(itemsQuery, [order.id]);
+        // Devolver la orden con sus items adjuntos
+        return { ...order, items: itemsResult.rows };
+      })
+    );
 
     res.status(200).json({
       user: userData,
-      orders: userOrders,
+      // Enviar las órdenes con sus items
+      orders: ordersWithItems,
     });
   } catch (error) {
     console.error('Error al obtener usuario:', error.message);

@@ -8,7 +8,7 @@ import {
   deleteUsers,
   changePassword, // Importar el nuevo controlador
 } from '../controllers/users.controller.js';
-import { verifyToken, isAdmin } from '../middlewares/auth.middleware.js';
+import { verifyToken, isAdmin, isAdminOrOwner } from '../middlewares/auth.middleware.js';
 import {
   requestPasswordReset,
   verifyCodeAndResetPassword,
@@ -57,8 +57,35 @@ router.get('/users', [verifyToken, isAdmin], getUsers);
  *       500:
  *         description: Error interno
  */
-router.get('/users/:id', [verifyToken, isAdmin], getUsersById);
+router.get('/users/:id', [verifyToken, isAdminOrOwner], getUsersById);
 
+/**
+ * @swagger
+ * /api/users/change-password:
+ *   put:
+ *     tags:
+ *       - Usuarios
+ *     summary: Cambiar la contraseña del usuario autenticado
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: body
+ *         name: passwordInfo
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             currentPassword:
+ *               type: string
+ *             newPassword:
+ *               type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada
+ */
+// CORRECCIÓN: Se mueve esta ruta específica ANTES de las rutas con parámetros como /users/:id
+// para evitar que el enrutador de Express aplique middlewares incorrectos.
+router.put('/users/change-password', verifyToken, changePassword);
 /**
  * @swagger
  * /api/users:
@@ -147,33 +174,8 @@ router.post('/users', createUsers);
  *       500:
  *         description: Error del servidor
  */
-router.put('/users/:id', [verifyToken, isAdmin], updateUsers);
+router.put('/users/:id', [verifyToken, isAdminOrOwner], updateUsers);
 
-/**
- * @swagger
- * /api/users/change-password:
- *   put:
- *     tags:
- *       - Usuarios
- *     summary: Cambiar la contraseña del usuario autenticado
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: body
- *         name: passwordInfo
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             currentPassword:
- *               type: string
- *             newPassword:
- *               type: string
- *     responses:
- *       200:
- *         description: Contraseña actualizada
- */
-router.put('/users/change-password', verifyToken, changePassword);
 /**
  * @swagger
  * /api/users/{id}:

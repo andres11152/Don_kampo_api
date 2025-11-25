@@ -38,6 +38,11 @@ export const loginController = async (req, res) => {
         .json({ message: "Email o contraseña incorrectos" });
     }
 
+    console.log(
+      "🔑 Login Controller - Signing with secret:",
+      authConfig.secret
+    );
+
     // Generar token JWT con role para el middleware de autorización
     const token = jwt.sign(
       {
@@ -50,25 +55,10 @@ export const loginController = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    // Guardar el token en una cookie segura con el nombre correcto
-    res.cookie("accessToken", token, {
-      httpOnly: true,
-      secure: true, // Forzamos secure para Render
-      sameSite: "none", // Forzamos none para cross-site
-      maxAge: 3600000, // 1 hora en milisegundos
-      path: "/",
-    });
-
-    console.log("🍪 Cookie establecida con opciones:", {
-      httpOnly: true,
-      secure: true, // Forzamos secure para Render
-      sameSite: "none", // Forzamos none para cross-site
-      maxAge: 3600000, // 1 hora en milisegundos.env.NODE_ENV,
-    });
-
-    // Responder con éxito
+    // Responder con éxito, enviando el token en el cuerpo de la respuesta
     return res.status(200).json({
       message: "Inicio de sesión exitoso",
+      token, // Enviar el token para que el cliente lo guarde
       user: {
         id: user.id,
         user_name: user.user_name,
