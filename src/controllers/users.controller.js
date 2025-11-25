@@ -79,6 +79,7 @@ export const getUsersById = async (req, res) => {
 
 // Crear un nuevo usuario
 export const createUsers = async (req, res) => {
+  // LÓGICA CORRECTA PARA CREAR UN USUARIO
   const { user_name, lastname, email, phone, city, address, neighborhood, user_password, user_type } = req.body;
 
   // Se asigna un valor por defecto a lastname si no se proporciona

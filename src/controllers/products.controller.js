@@ -95,25 +95,66 @@ export const getProductById = async (req, res) => {
 export const createProduct = async (req, res) => {
   let client;
   try {
-    const { name, description, category, variations, active, promocionar } =
-      req.body;
+    // Diagnostic logs to understand incoming multipart/form-data
+    console.log('[createProduct] content-type:', req.headers['content-type']);
+    console.log('[createProduct] req.body keys:', Object.keys(req.body || {}));
+    console.log('[createProduct] req.body sample:', req.body);
+    console.log('[createProduct] req.file present:', !!req.file);
+    console.log('[createProduct] req.files present:', !!req.files, Array.isArray(req.files) ? req.files.length : Object.keys(req.files || {}).reduce((acc,k)=>acc+ (Array.isArray(req.files[k])?req.files[k].length:1),0));
+    console.log('[createProduct] req.optimizedImage present:', !!req.optimizedImage);
+
+    // Try multiple ways to obtain form fields because multipart parsers sometimes
+    // put fields as strings, arrays, or inside a single `data` field.
+    let { name, description, category, variations, active, promocionar } = req.body || {};
+
+    // If multer provided fields as arrays (e.g. name: ['...']), take first
+    const pickFirst = (v) => (Array.isArray(v) ? v[0] : v);
+    name = pickFirst(name);
+    description = pickFirst(description);
+    category = pickFirst(category);
+    variations = pickFirst(variations);
+    active = pickFirst(active);
+    promocionar = pickFirst(promocionar);
+
+    // If client sent a single JSON payload in a `data` field, try to parse it
+    if ((!name || name === '') && req.body && req.body.data) {
+      try {
+        const parsed = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body.data;
+        name = name || parsed.name;
+        description = description || parsed.description;
+        category = category || parsed.category;
+        variations = variations || parsed.variations;
+        active = typeof active !== 'undefined' ? active : parsed.active;
+        promocionar = typeof promocionar !== 'undefined' ? promocionar : parsed.promocionar;
+        console.log('[createProduct] extracted from data field');
+      } catch (err) {
+        console.warn('[createProduct] could not parse req.body.data', err.message);
+      }
+    }
+
+    // as last resort, log and return clear validation error instead of DB 500
+    if (!name || (typeof name === 'string' && name.trim() === '')) {
+      console.warn('[createProduct] Missing required field: name');
+      return res.status(400).json({ message: 'El campo `name` es requerido en el formulario', receivedBody: req.body });
+    }
 
     // Si no se envía el estado, lo dejamos activo por defecto
-    const productActive = typeof active !== "undefined" ? active : true;
+    const productActive = typeof active !== 'undefined' ? active : true;
     // Definir un valor por defecto para promocionar (por ejemplo, false)
-    const productPromocionar =
-      typeof promocionar === "boolean" ? promocionar : false;
+    const productPromocionar = (typeof promocionar === 'boolean') ? promocionar : false;
 
-    const defaultPhotoUrl = "https://example.com/default-image.jpg";
+    const defaultPhotoUrl = 'https://example.com/default-image.jpg';
     let photoUrl = defaultPhotoUrl;
-    if (req.file && req.file.buffer) {
+    // Preferir imagen optimizada si existe (middleware `optimizeImage` coloca buffer en req.optimizedImage)
+    const imageBuffer = req.optimizedImage || (req.file && req.file.buffer) || null;
+    const originalName = (req.file && req.file.originalname) || 'upload.jpg';
+    if (imageBuffer) {
       try {
-        photoUrl = await uploadImage(req.file.buffer, req.file.originalname);
+        photoUrl = await uploadImage(imageBuffer, originalName);
       } catch (error) {
-        console.error("Error al subir la imagen:", error.message);
-        return res
-          .status(500)
-          .json({ message: "Error al subir la imagen a S3" });
+        // No detener la creación del producto por un fallo en S3 en entorno de desarrollo.
+        console.error('Error al subir la imagen a S3, se continuará con imagen por defecto:', error.message);
+        // photoUrl queda con defaultPhotoUrl
       }
     }
     client = await getConnection();
@@ -124,48 +165,45 @@ export const createProduct = async (req, res) => {
       category,
       photoUrl,
       productActive,
-      productPromocionar,
+      productPromocionar
     ]);
     const productId = result.rows[0].product_id;
 
-    const parsedVariations = JSON.parse(variations);
+    let parsedVariations = [];
+    if (typeof variations === 'string') {
+      try {
+        parsedVariations = JSON.parse(variations);
+      } catch (err) {
+        console.warn('createProduct: could not parse variations, defaulting to []', err.message);
+        parsedVariations = [];
+      }
+    } else if (Array.isArray(variations)) {
+      parsedVariations = variations;
+    }
 
     if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
       for (const variation of parsedVariations) {
         const { quality, presentations, active: variationActive } = variation;
-        if (
-          !quality ||
-          !Array.isArray(presentations) ||
-          presentations.length === 0
-        )
-          continue;
+        if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
 
-        const variationStatus =
-          typeof variationActive !== "undefined" ? variationActive : true;
+        const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
 
         // Asegurar que cada presentación tiene los precios correctos
-        const formattedPresentations = presentations.map((presentation) => ({
+        const formattedPresentations = presentations.map(presentation => ({
           ...presentation,
-          price_home: Math.round(Number(presentation.price_home) || 0),
-          price_supermarket: Math.round(
-            Number(presentation.price_supermarket) || 0
-          ),
-          price_restaurant: Math.round(
-            Number(presentation.price_restaurant) || 0
-          ),
-          price_fruver: Math.round(Number(presentation.price_fruver) || 0),
+          price_home: parseFloat(presentation.price_home || 0),
+          price_supermarket: parseFloat(presentation.price_supermarket || 0),
+          price_restaurant: parseFloat(presentation.price_restaurant || 0),
+          price_fruver: parseFloat(presentation.price_fruver || 0)
         }));
 
         // Crear la variación del producto
-        const variationResult = await client.query(
-          queries.products.createProductVariation,
-          [
-            productId,
-            quality,
-            JSON.stringify(formattedPresentations),
-            variationStatus,
-          ]
-        );
+        const variationResult = await client.query(queries.products.createProductVariation, [
+          productId,
+          quality,
+          JSON.stringify(formattedPresentations),
+          variationStatus
+        ]);
         const variationId = variationResult.rows[0].variation_id;
 
         // Insertar las presentaciones asociadas con esta variación
@@ -177,21 +215,19 @@ export const createProduct = async (req, res) => {
             presentation.price_supermarket,
             presentation.price_restaurant,
             presentation.price_fruver,
-            presentation.stock,
+            presentation.stock
           ]);
         }
       }
     }
 
     res.status(201).json({
-      message: "Producto creado exitosamente",
-      product_id: productId,
+      message: 'Producto creado exitosamente',
+      product_id: productId
     });
   } catch (error) {
-    console.error("Error en createProduct:", error.message);
-    res
-      .status(500)
-      .json({ message: "Error al crear el producto", error: error.message });
+    console.error('Error en createProduct:', error.message);
+    res.status(500).json({ message: 'Error al crear el producto', error: error.message });
   } finally {
     if (client) client.release();
   }
@@ -226,6 +262,17 @@ export const updateProducts = async (req, res) => {
         .json({ message: "Error al parsear las variaciones" });
     }
 
+    // Detect uploaded file(s) when using multer.fields or upload.any()
+    const uploadedFile =
+      req.file ||
+      (Array.isArray(req.files) && req.files.length ? req.files[0] : null) ||
+      (req.files && req.files.photo_url && req.files.photo_url[0]
+        ? req.files.photo_url[0]
+        : null) ||
+      (req.files && req.files.photo && req.files.photo[0]
+        ? req.files.photo[0]
+        : null);
+
     productsList = [
       {
         product_id: parsedId,
@@ -239,8 +286,8 @@ export const updateProducts = async (req, res) => {
           typeof req.body.promocionar !== "undefined"
             ? req.body.promocionar
             : false,
-        // en single viene req.file, en bulk no
-        file: req.file || null,
+        // en single viene req.file o req.files, en bulk no
+        file: uploadedFile,
       },
     ];
   }
@@ -263,14 +310,18 @@ export const updateProducts = async (req, res) => {
         file,
       } = prod;
 
-      // 3) Subir imagen si viene
+      // 3) Subir imagen si viene (soportar req.optimizedImage o file de multer)
       let updatedPhotoUrl = photo_url || null;
-      if (file && file.buffer) {
-        try {
+      try {
+        if (file && file.buffer) {
           updatedPhotoUrl = await uploadImage(file.buffer, file.originalname);
-        } catch (err) {
-          throw new Error(`Error subiendo imagen: ${err.message}`);
+        } else if (req.optimizedImage) {
+          // Si optimizeImage produjo un buffer (multer.fields case), usarlo
+          const origName = (file && file.originalname) || `${product_id || 'upload'}.jpg`;
+          updatedPhotoUrl = await uploadImage(req.optimizedImage, origName);
         }
+      } catch (err) {
+        throw new Error(`Error subiendo imagen: ${err.message}`);
       }
 
       // 4) Actualizar el registro principal

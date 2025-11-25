@@ -36,8 +36,13 @@ router.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // POST /api/products - Crear un nuevo producto.
 // Acepta `multipart/form-data` para poder incluir una imagen.
+// Accept either `photo_url` or legacy `photo` field names for file upload
+// Accept either `photo_url` or legacy `photo` field names for file upload (stricter than upload.any)
 router.post('/products',
-  upload.single('photo_url'),
+  upload.fields([
+    { name: 'photo_url', maxCount: 1 },
+    { name: 'photo', maxCount: 1 }
+  ]),
   handleMulterError,
   optimizeImage,
   createProduct
@@ -56,7 +61,10 @@ router.put('/products/update-prices-by-presentation', updatePricesByPresentation
 // PUT /api/products/:id - Actualizar un producto existente.
 // También acepta `multipart/form-data` para permitir la actualización de la imagen.
 router.put('/products/:id',
-  upload.single('photo_url'),
+  upload.fields([
+    { name: 'photo_url', maxCount: 1 },
+    { name: 'photo', maxCount: 1 }
+  ]),
   handleMulterError,
   optimizeImage,
   updateProducts

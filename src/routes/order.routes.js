@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
-  verifyToken, isAdmin
+  verifyToken,
+  isAdmin,
 } from '../middlewares/auth.middleware.js';
 import {
   placeOrder,
@@ -8,12 +9,13 @@ import {
   getOrdersById,
   createOrders,
   updateOrders,
-  updateOrderById,        // <-- importado
+  updateOrderById, // <-- importado
   deleteOrders,
   updateOrderStatus,
   updateOrderPrices,
-  updateBulkOrders
+  updateBulkOrders,
 } from '../controllers/orders.controller.js';
+import { upload } from '../middlewares/upload.middleware.js';
 
 // Este archivo define las rutas para la gestión de órdenes.
 // Se sigue una convención RESTful para las operaciones CRUD básicas (GET, POST, PUT, DELETE).
@@ -198,10 +200,6 @@ router.put('/orders/:orderId', verifyToken, updateOrderById); // <-- endpoint ag
  *       400:
  *         description: Datos inválidos
  */
-// DEPRECATED: Esta ruta fue reemplazada por `POST /api/orders` que debería usarse en su lugar.
-// Se mantiene temporalmente por retrocompatibilidad con versiones anteriores del panel de administración.
-router.post('/createorders', [verifyToken, isAdmin], createOrders);
-
 /**
  * @swagger
  * /api/updateorders/{orderId}:
@@ -234,9 +232,6 @@ router.post('/createorders', [verifyToken, isAdmin], createOrders);
  *       400:
  *         description: Datos inválidos
  */
-// DEPRECATED: Esta ruta fue reemplazada por `PUT /api/orders/:orderId`.
-// Se mantiene temporalmente por retrocompatibilidad.
-router.put('/updateorders/:orderId', [verifyToken, isAdmin], updateOrders);
 
 /**
  * @swagger
@@ -255,28 +250,6 @@ router.put('/updateorders/:orderId', [verifyToken, isAdmin], updateOrders);
 // Es un proceso batch diseñado para ser ejecutado manualmente o de forma programada
 // cuando hay cambios en la lista de precios de los productos.
 router.put('/orders/updatePrices', [verifyToken, isAdmin], updateOrderPrices);
-
-/**
- * @swagger
- * /api/deleteorders/{orderId}:
- *   delete:
- *     tags:
- *       - Órdenes
- *     summary: Eliminar una orden
- *     parameters:
- *       - name: orderId
- *         in: path
- *         required: true
- *         type: string
- *     responses:
- *       200:
- *         description: Orden eliminada
- *       404:
- *         description: No encontrada
- */
-// DEPRECATED: Esta ruta fue reemplazada por `DELETE /api/orders/:orderId`.
-// Se mantiene temporalmente por retrocompatibilidad.
-router.delete('/orders/:orderId', [verifyToken, isAdmin], deleteOrders);
 
 /**
  * @swagger 
