@@ -309,4 +309,24 @@ router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderS
 // en una sola operación, mejorando la eficiencia de la gestión.
 router.put('/orders/bulk-update-status', [verifyToken, isAdmin], updateBulkOrders);
 
+/**
+ * @swagger
+ * /api/orders/{orderId}:
+ *   delete:
+ *     tags:
+ *       - Órdenes
+ *     summary: Eliminar una orden por su ID
+ *     parameters:
+ *       - name: orderId
+ *         in: path
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Orden eliminada exitosamente
+ *       404:
+ *         description: Orden no encontrada
+ */
+router.delete('/orders/:orderId', [verifyToken, isAdmin], deleteOrders);
+
 export default router;

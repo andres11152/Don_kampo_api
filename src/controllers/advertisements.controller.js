@@ -27,6 +27,7 @@ export const getAdvertisements = async (req, res) => {
   }
 };
 
+
 // Crear una publicidad
 export const createAdvertisement = async (req, res) => {
   try {
@@ -73,7 +74,7 @@ export const createAdvertisement = async (req, res) => {
 export const updateAdvertisement = async (req, res) => {
   let connection;
   const { id } = req.params;
-  const { title, description, category, photo_url } = req.body;
+  const { title, description, category, photo_url, related_product_id } = req.body;
 
   const parsedAdvertisementId = parseInt(id, 10);
 
@@ -109,7 +110,8 @@ export const updateAdvertisement = async (req, res) => {
       description,
       category,
       updatedPhotoUrl, // Solo se actualiza la foto si se ha proporcionado una nueva
-      parsedAdvertisementId
+      related_product_id || null, // CORRECCIÓN: Se añade el related_product_id que faltaba.
+      parsedAdvertisementId // Este es el ID para el WHERE, ahora es el 6º parámetro.
     ]);
 
     if (result.rowCount === 0) {
