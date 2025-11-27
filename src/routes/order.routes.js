@@ -2,6 +2,8 @@ import { Router } from 'express';
 import {
   verifyToken,
   isAdmin,
+  verifyGuestOrUserToken, // <-- Importar el nuevo middleware
+  optionalVerifyToken, // <-- Importar el nuevo middleware
 } from '../middlewares/auth.middleware.js';
 import {
   placeOrder,
@@ -71,7 +73,7 @@ const router = Router();
 // Se utiliza un endpoint específico en lugar de un POST genérico a /api/orders
 // porque la lógica de negocio (validar stock, calcular totales, crear registros asociados)
 // es significativamente más compleja que una simple creación de registro.
-router.post('/orders/placeOrder', verifyToken, placeOrder);
+router.post('/orders/placeOrder', optionalVerifyToken, placeOrder);
 
 /**
  * @swagger
@@ -106,7 +108,8 @@ router.get('/orders', [verifyToken, isAdmin], getOrders);
  *       404:
  *         description: Orden no encontrada
  */
-router.get('/orders/:orderId', verifyToken, getOrdersById);
+// CORRECCIÓN: Usar el nuevo middleware que permite acceso a usuarios logueados O a invitados con token temporal.
+router.get('/orders/:orderId', verifyGuestOrUserToken, getOrdersById);
 
 /**
  * @swagger

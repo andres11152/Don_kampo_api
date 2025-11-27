@@ -1,12 +1,18 @@
 import { getConnection } from '../database/connection.js';
 import { queries } from '../database/queries.interface.js';
+import jwt from 'jsonwebtoken'; // CORRECCIÓN: Importar jsonwebtoken
+import { authConfig } from '../config/config.js'; // Importar config para el token
 import crypto from 'crypto';
 
 export const placeOrder = async (req, res) => {
-  const { cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit } = req.body;
-  const userId = req.user.id; // <-- CORRECCIÓN: Usar el ID del usuario autenticado desde el token.
+  const { cartDetails, shippingMethod, estimatedDelivery, actualDelivery, total, userData, companyName, companyNit, userId: userIdFromRequest } = req.body;
+  
+  // CORRECCIÓN: Priorizar el ID del token si existe (usuario logueado).
+  // Si no, usar el ID que viene del request (que puede ser "guest-user").
+  const userId = req.user?.id || userIdFromRequest;
 
   // --- INICIO DE VALIDACIÓN EN BACKEND (PROMPT 4) ---
+  // CORRECCIÓN: Se elimina la validación estricta de `userId` para permitir "guest-user".
   if (!userId || !Array.isArray(cartDetails) || cartDetails.length === 0 || !total || !userData) {
     return res.status(400).json({ msg: 'Información incompleta para procesar el pedido. Faltan datos esenciales o el usuario no está autenticado.' });
   }
@@ -33,19 +39,25 @@ export const placeOrder = async (req, res) => {
   try {
     client = await getConnection();
 
-    // Verificar existencia del usuario
-    const userResult = await client.query(
-      `SELECT id, user_type FROM users WHERE id = $1`,
-      [userId]
-    );
+    let userType = 'hogar'; // Valor por defecto para invitados.
 
-    // Si el usuario no se encuentra y es distinto a los usuarios por default
-    if (!userResult.rows.length && userId !== '0f8fc459-571f-4e15-b653-4eb4558c6450') {
-      return res.status(404).json({ msg: 'Usuario no encontrado.' });
+    // CORRECCIÓN: Si el userId NO es el de invitado, buscamos el tipo de usuario en la BD.
+    if (userId !== 'guest-user') {
+      const userResult = await client.query(
+        `SELECT id, user_type FROM users WHERE id = $1`,
+        [userId]
+      );
+
+      if (userResult.rows.length > 0) {
+        userType = userResult.rows[0].user_type;
+      } else {
+        // Si el usuario no se encuentra (y no es invitado), es un error.
+        return res.status(404).json({ msg: 'Usuario no encontrado.' });
+      }
     }
-    const userType = userResult.rows.length ? userResult.rows[0].user_type : 'home';
-    const user_type = userType === 'admin' ? 'fruver' : userType
-    const isRestaurant = user_type === 'restaurante';
+
+    const finalUserType = userType === 'admin' ? 'fruver' : userType;
+    const isRestaurant = finalUserType === 'restaurante';
     const needsElectronicInvoice = isRestaurant || false;
 
     // Verificar que los productos existan
@@ -65,14 +77,16 @@ export const placeOrder = async (req, res) => {
 
     // Crear la orden
     const orderResult = await client.query(queries.orders.createOrder, [
-      userId,
+      // CORRECCIÓN: Si es invitado, el customer_id en la BD será NULL.
+      // Si está logueado, se guarda su ID.
+      userId === 'guest-user' ? null : userId,
       new Date(),
       1,
       total,
       needsElectronicInvoice,
       companyName || null,
       companyNit || null,
-      user_type
+      finalUserType
     ]);
     const orderId = orderResult.rows[0].id;
 
@@ -122,7 +136,15 @@ export const placeOrder = async (req, res) => {
       ]);
     }
     
-    res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId });
+    // CORRECCIÓN: Si es un invitado, generar un token de acceso temporal para el PDF.
+    let accessToken = null;
+    if (userId === 'guest-user') {
+      accessToken = jwt.sign({ orderId: orderId, guest: true }, authConfig.secret, {
+        expiresIn: '1h', // El token es válido por 1 hora
+      });
+    }
+
+    res.status(201).json({ msg: 'Pedido realizado exitosamente.', orderId, accessToken });
   } catch (error) {
     console.error('Error al realizar el pedido:', error);
     res.status(500).json({ msg: 'Error interno del servidor.' });
@@ -243,8 +265,12 @@ export const getOrdersById = async (req, res) => {
   let client;
   try {
     const { orderId } = req.params;
-    const authenticatedUserId = req.user.id; // ID del usuario autenticado desde el token
-    const userRole = req.user.role; // Rol del usuario desde el token
+
+    // CORRECCIÓN: Si es un invitado (verificado por el token temporal), no hay `req.user`.
+    // Si no es un invitado, entonces sí extraemos los datos del usuario logueado.
+    const isGuest = !!req.guestOrder;
+    const authenticatedUserId = !isGuest ? req.user.id : null;
+    const userRole = !isGuest ? req.user.role : null;
 
     client = await getConnection();
 
@@ -256,8 +282,8 @@ export const getOrdersById = async (req, res) => {
       const order = orderResult.rows[0];
 
       // --- VERIFICACIÓN DE PROPIEDAD (IDOR PREVENTION) ---
-      // Si el usuario no es admin, verificar que la orden le pertenezca.
-      if (userRole !== 'admin' && order.customer_id !== authenticatedUserId) {
+      // Si el usuario no es admin y NO es un invitado, verificar que la orden le pertenezca.
+      if (!isGuest && userRole !== 'admin' && order.customer_id !== authenticatedUserId) {
         return res.status(403).json({ msg: 'Acceso prohibido. No tienes permiso para ver esta orden.' });
       }
 

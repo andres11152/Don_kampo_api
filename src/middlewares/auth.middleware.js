@@ -46,6 +46,83 @@ export const verifyToken = (req, res, next) => {
 };
 
 /**
+ * Middleware para verificar opcionalmente el token JWT.
+ * Si el token existe y es válido, añade `req.user`.
+ * Si no hay token, simplemente continúa al siguiente middleware sin error.
+ * Ideal para rutas que pueden ser accedidas por usuarios logueados e invitados.
+ */
+export const optionalVerifyToken = (req, res, next) => {
+  let token =
+    req.headers["authorization"] ||
+    req.cookies?.accessToken ||
+    req.headers["x-access-token"];
+
+  // Si no hay token, simplemente continuamos. El controlador se encargará de la lógica.
+  if (!token) {
+    return next();
+  }
+
+  if (token.startsWith("Bearer ")) {
+    token = token.slice(7, token.length);
+  }
+
+  jwt.verify(token, authConfig.secret, (err, decoded) => {
+    if (err) {
+      // Si el token existe pero es inválido (ej. expirado), sí es un error.
+      console.error("❌ JWT Verification Error (Optional):", err.message);
+      return res.status(401).json({
+        message: "No autorizado. El token proporcionado no es válido o ha expirado.",
+        error: err.message,
+      });
+    }
+    req.user = decoded; // Adjuntamos los datos del usuario si el token es válido
+    next();
+  });
+};
+
+/**
+ * Middleware para verificar si el token es de un usuario logueado o de un invitado temporal.
+ * Si es un usuario logueado, adjunta `req.user`.
+ * Si es un invitado con un token válido para una orden específica, adjunta `req.guestOrder`.
+ */
+export const verifyGuestOrUserToken = (req, res, next) => {
+  let token =
+    req.headers["authorization"] ||
+    req.cookies?.accessToken ||
+    req.headers["x-access-token"];
+
+  if (!token) {
+    return res.status(401).json({ message: "No se proporcionó un token." });
+  }
+
+  if (token.startsWith("Bearer ")) {
+    token = token.slice(7, token.length);
+  }
+
+  jwt.verify(token, authConfig.secret, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({
+        message: "No autorizado. El token no es válido o ha expirado.",
+        error: err.message,
+      });
+    }
+
+    // Si el token decodificado tiene la propiedad 'guest', es un token de invitado.
+    if (decoded.guest && decoded.orderId) {
+      // Verificamos que el ID de la orden en el token coincida con el de la URL.
+      if (String(decoded.orderId) !== req.params.orderId) {
+        return res.status(403).json({ message: "Acceso prohibido. El token no corresponde a esta orden." });
+      }
+      req.guestOrder = { orderId: decoded.orderId };
+      next();
+    } else { // Si no, es un token de usuario normal.
+      req.user = decoded;
+      next();
+    }
+  });
+};
+
+/**
  * Middleware para verificar si el usuario tiene el rol de 'admin'.
  * Debe usarse SIEMPRE DESPUÉS de verifyToken.
  */
