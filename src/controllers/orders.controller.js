@@ -437,7 +437,7 @@ export const updateOrderPrices = async (req, res) => {
       // Usamos tu query para traer las variaciones actualizadas
       const variationsResult = await client.query(
         queries.products.getProductVariations,
-        [pid]
+        [[pid]] // Envolver el ID en un array anidado
       );
       // variationsResult.rows tiene [{ product_id, variation_id, quality, presentations, variation_active }, ...]
       const variations = variationsResult.rows.map(row => ({
@@ -466,20 +466,37 @@ export const updateOrderPrices = async (req, res) => {
         if (presentation) {
           const newPrice = presentation[`price_${userType}`]; 
           if (newPrice) {
+            // --- INICIO DIAGNÓSTICO ---
+            console.log(`[DEBUG] Actualizando item: order_id=${item.order_id}, product_id=${item.product_id}, presentation_id=${item.presentation_id} con precio=${newPrice}`);
+            // --- FIN DIAGNÓSTICO ---
             await client.query(
-              `
-              UPDATE order_items
-              SET price = $1
-              WHERE order_id = $2
-                AND product_id = $3
-                AND variation_id = $4;
-              `,
-              [newPrice, item.order_id, item.product_id, item.variation_id]
+              `UPDATE order_items
+               SET price = $1
+               WHERE order_id = $2
+                 AND product_id = $3
+                 AND variation_id = $4
+                 AND presentation_id = $5;`, // CORRECCIÓN: Asegurar que los 5 parámetros se pasen.
+              [newPrice, item.order_id, item.product_id, item.variation_id, item.presentation_id]
             );
           }
         }
       }
     }
+
+    // 4. Recalcular y actualizar el total de cada orden modificada (LÓGICA MEJORADA)
+    console.log('[DEBUG] Recalculando totales para las órdenes:', orderIds);
+    await client.query(
+      `UPDATE orders o
+       SET total = sub.new_total
+       FROM (
+         SELECT order_id, COALESCE(SUM(price * quantity), 0) as new_total
+         FROM order_items
+         WHERE order_id = ANY($1)
+         GROUP BY order_id
+       ) AS sub
+       WHERE o.id = sub.order_id;`,
+      [orderIds]
+    );
 
     await client.query("COMMIT");
     res.status(200).json({ msg: "Precios y totales de las órdenes actualizados exitosamente." });

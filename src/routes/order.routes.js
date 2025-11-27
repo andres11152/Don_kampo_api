@@ -161,11 +161,6 @@ router.get('/orders/:orderId', verifyToken, getOrdersById);
  *       500:
  *         description: Error interno
  */
-// Endpoint principal y estandarizado para la actualización de órdenes.
-// Centraliza la lógica de modificación de ítems, datos de envío y metadatos,
-// recalculando totales para mantener la consistencia.
-router.put('/orders/:orderId', verifyToken, updateOrderById); // <-- endpoint agregado y protegido
-
 /**
  * @swagger
  * /api/createorders:
@@ -252,33 +247,6 @@ router.put('/orders/:orderId', verifyToken, updateOrderById); // <-- endpoint ag
 router.put('/orders/updatePrices', [verifyToken, isAdmin], updateOrderPrices);
 
 /**
- * @swagger 
- * /api/updatestatus/{id}/{status_id}:
- *   put:
- *     tags:
- *       - Órdenes
- *     summary: Cambiar estado de una orden
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         type: string
- *       - name: status_id
- *         in: path
- *         required: true
- *         type: string
- *     responses:
- *       200:
- *         description: Estado actualizado
- *       400:
- *         description: Datos inválidos
- */
-// Ruta de acción para una actualización rápida y específica del estado de una orden.
-// Se utiliza en flujos de trabajo donde solo se necesita cambiar el estado (ej. "enviado", "entregado")
-// sin modificar el resto de la orden, optimizando la operación.
-router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderStatus);
-
-/**
  * @swagger
  * /api/orders/bulk-update-status:
  *   put:
@@ -310,6 +278,33 @@ router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderS
 router.put('/orders/bulk-update-status', [verifyToken, isAdmin], updateBulkOrders);
 
 /**
+ * @swagger 
+ * /api/updatestatus/{id}/{status_id}:
+ *   put:
+ *     tags:
+ *       - Órdenes
+ *     summary: Cambiar estado de una orden
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - name: status_id
+ *         in: path
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Estado actualizado
+ *       400:
+ *         description: Datos inválidos
+ */
+// Ruta de acción para una actualización rápida y específica del estado de una orden.
+// Se utiliza en flujos de trabajo donde solo se necesita cambiar el estado (ej. "enviado", "entregado")
+// sin modificar el resto de la orden, optimizando la operación.
+router.put('/orders/:id/status/:status_id', [verifyToken, isAdmin], updateOrderStatus);
+
+/**
  * @swagger
  * /api/orders/{orderId}:
  *   delete:
@@ -328,5 +323,10 @@ router.put('/orders/bulk-update-status', [verifyToken, isAdmin], updateBulkOrder
  *         description: Orden no encontrada
  */
 router.delete('/orders/:orderId', [verifyToken, isAdmin], deleteOrders);
+
+// Endpoint principal y estandarizado para la actualización de órdenes.
+// Centraliza la lógica de modificación de ítems, datos de envío y metadatos,
+// recalculando totales para mantener la consistencia.
+router.put('/orders/:orderId', verifyToken, updateOrderById); // <-- endpoint agregado y protegido
 
 export default router;
