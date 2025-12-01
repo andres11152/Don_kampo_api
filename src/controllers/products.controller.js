@@ -1,6 +1,7 @@
-import { getConnection } from "../database/connection.js";
+import { getConnection } from "../database/connection.js"; // Importación correcta
 import { uploadImage } from "../helpers/uploadImage.js";
 import { queries, bulkQueries } from "../database/queries.interface.js";
+import XLSX from "xlsx"; // Importar la librería para leer Excel
 
 export const getProducts = async (req, res) => {
   let client;
@@ -49,6 +50,213 @@ export const getProducts = async (req, res) => {
     console.error("Error al obtener los productos:", error);
     res.status(500).json({
       message: "Error al obtener los productos",
+      error: error.message,
+    });
+  } finally {
+    if (client) client.release();
+  }
+};
+
+/**
+ * Actualiza productos masivamente a partir de un array de datos (proveniente de un Excel/JSON).
+ * Esta función está diseñada para alto rendimiento, manejando la lógica de creación,
+ * actualización y eliminación de sub-entidades (variaciones, presentaciones) dentro de una transacción.
+ */
+export const bulkUpdateProducts = async (req, res) => {
+  let client;
+  const { products } = req.body;
+  const startTime = Date.now();
+
+  // 1. Validación inicial
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({
+      message: "Se requiere un array de productos para la actualización.",
+      success: false,
+    });
+  }
+
+  try {
+    client = await getConnection();
+    await client.query("BEGIN");
+
+    const results = {
+      updated: 0,
+      created: 0,
+      deleted: 0,
+      failed: [],
+    };
+
+    // 2. Iterar sobre cada producto del payload (del Excel)
+    for (const productData of products) {
+      const { product_id, variations, ...productFields } = productData;
+
+      if (!product_id) {
+        results.failed.push({
+          productName: productData.name || "Sin ID",
+          error: "Falta el product_id, no se puede actualizar.",
+        });
+        continue;
+      }
+
+      try {
+        // 3. Actualizar el registro principal del producto
+        const productUpdateResult = await client.query(
+          queries.products.updateProduct,
+          [
+            productFields.name,
+            productFields.description,
+            productFields.category,
+            productFields.photo_url, // Asume que la URL de la foto no cambia o viene en el Excel
+            productFields.active,
+            productFields.promocionar,
+            product_id,
+          ]
+        );
+
+        if (productUpdateResult.rowCount > 0) {
+          results.updated++;
+        }
+
+        // 4. Obtener el estado actual de las variaciones y presentaciones desde la BD
+        const { rows: existingVariations } = await client.query(
+          queries.products.getProductVariations,
+          [[product_id]]
+        );
+
+        const existingVariationIds = new Set(
+          existingVariations.map((v) => v.variation_id)
+        );
+        const incomingVariationIds = new Set(
+          variations.map((v) => v.variation_id).filter(Boolean)
+        );
+
+        // 5. Lógica de eliminación: Variaciones que están en la BD pero no en el Excel
+        for (const ev of existingVariations) {
+          if (!incomingVariationIds.has(ev.variation_id)) {
+            await client.query(queries.products.deleteProductVariation, [
+              ev.variation_id,
+            ]);
+            results.deleted++;
+          }
+        }
+
+        // 6. Lógica de creación/actualización para variaciones y presentaciones
+        for (const incomingVar of variations) {
+          const {
+            variation_id,
+            quality,
+            active: varActive,
+            presentations,
+          } = incomingVar;
+          const variationStatus = typeof varActive !== "undefined" ? varActive : true;
+
+          if (variation_id && existingVariationIds.has(variation_id)) {
+            // 6a. ACTUALIZAR Variación existente
+            await client.query(queries.products.updateProductVariation, [
+              quality,
+              variationStatus,
+              variation_id,
+            ]);
+
+            // Lógica para presentaciones dentro de una variación existente
+            const existingVariation = existingVariations.find(
+              (ev) => ev.variation_id === variation_id
+            );
+            const existingPresIds = new Set(
+              existingVariation.presentations.map((p) => p.presentation_id)
+            );
+            const incomingPresIds = new Set(
+              presentations.map((p) => p.presentation_id).filter(Boolean)
+            );
+
+            // Eliminar presentaciones que ya no vienen
+            for (const pres of existingVariation.presentations) {
+              if (!incomingPresIds.has(pres.presentation_id)) {
+                await client.query(queries.products.deletePresentation, [
+                  pres.presentation_id,
+                ]);
+              }
+            }
+
+            for (const pres of presentations) {
+              if (pres.presentation_id && existingPresIds.has(pres.presentation_id)) {
+                // Actualizar presentación
+                await client.query(queries.products.updateProductPresentation, [
+                  pres.presentation,
+                  parseInt(pres.stock, 10) || 0,
+                  parseFloat(pres.price_home) || 0,
+                  parseFloat(pres.price_supermarket) || 0,
+                  parseFloat(pres.price_restaurant) || 0,
+                  parseFloat(pres.price_fruver) || 0,
+                  pres.presentation_id,
+                ]);
+              } else {
+                // Crear nueva presentación
+                await client.query(queries.products.createProductPresentation, [
+                  variation_id,
+                  pres.presentation,
+                  parseInt(pres.stock, 10) || 0,
+                  parseFloat(pres.price_home) || 0,
+                  parseFloat(pres.price_supermarket) || 0,
+                  parseFloat(pres.price_restaurant) || 0,
+                  parseFloat(pres.price_fruver) || 0,
+                ]);
+              }
+            }
+          } else {
+            // 6b. CREAR Nueva Variación (no tenía ID o el ID no estaba en la BD)
+            const { rows } = await client.query(
+              queries.products.createProductVariation,
+              [product_id, quality, JSON.stringify(presentations), variationStatus]
+            );
+            const newVarId = rows[0].variation_id;
+            results.created++;
+
+            // Crear todas sus presentaciones
+            for (const pres of presentations) {
+              await client.query(queries.products.createProductPresentation, [
+                newVarId,
+                pres.presentation,
+                parseInt(pres.stock, 10) || 0,
+                parseFloat(pres.price_home) || 0,
+                parseFloat(pres.price_supermarket) || 0,
+                parseFloat(pres.price_restaurant) || 0,
+                parseFloat(pres.price_fruver) || 0,
+              ]);
+            }
+          }
+        }
+      } catch (innerError) {
+        results.failed.push({
+          productId: product_id,
+          productName: productData.name,
+          error: innerError.message,
+        });
+      }
+    }
+
+    // 7. Finalizar transacción
+    await client.query("COMMIT");
+    const processingTime = Date.now() - startTime;
+
+    res.status(200).json({
+      message: "Actualización masiva completada.",
+      success: true,
+      summary: {
+        products_updated: results.updated,
+        variations_created: results.created,
+        variations_deleted: results.deleted,
+        failures: results.failed.length,
+        processingTime: `${processingTime}ms`,
+      },
+      failures: results.failed,
+    });
+  } catch (error) {
+    if (client) await client.query("ROLLBACK");
+    console.error("Error en bulkUpdateProducts:", error);
+    res.status(500).json({
+      message: "Error crítico durante la actualización masiva.",
+      success: false,
       error: error.message,
     });
   } finally {
@@ -1081,5 +1289,109 @@ export const updatePricesByPresentation = async (req, res) => {
     });
   } finally {
     if (client) client.release();
+  }
+};
+
+export const bulkUpdateFromExcel = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No se ha subido ningún archivo." });
+  }
+
+  let client; // Declarar el cliente fuera del try
+
+  try {
+    client = await getConnection(); // Obtener conexión del pool de forma segura
+    // Inicia una transacción para asegurar la integridad de los datos.
+    await client.query("BEGIN");
+
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" }); // Leer el archivo Excel
+
+    // --- PROCESAMIENTO DE DATOS ---
+    const productsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Productos"]);
+    const variationsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Variaciones"]);
+    const presentationsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Presentaciones"]);
+
+    // --- CONTADORES PARA EL RESULTADO ---
+    let productsUpdated = 0;
+    let variationsUpdated = 0;
+    let presentationsUpdated = 0;
+
+    // 1. ACTUALIZAR PRODUCTOS
+    if (productsSheet && productsSheet.length > 0) {
+      for (const product of productsSheet) {
+        const { Id, Nombre, Descripcion, Categoria, Promocionar, Activo } = product;
+        if (!Id) continue;
+        await client.query(
+          `UPDATE products SET name = $1, description = $2, category = $3, promocionar = $4, active = $5, updated_at = CURRENT_TIMESTAMP WHERE product_id = $6`,
+          [Nombre, Descripcion, Categoria, Promocionar, Activo, Id]
+        );
+        productsUpdated++;
+      }
+    }
+
+    // 2. ACTUALIZAR VARIACIONES
+    if (variationsSheet && variationsSheet.length > 0) {
+      for (const variation of variationsSheet) {
+        const { "Id Variacion": variationId, Calidad, Activo } = variation;
+        if (!variationId) continue;
+        await client.query(
+          `UPDATE product_variations SET quality = $1, active = $2 WHERE variation_id = $3`,
+          [Calidad, Activo, variationId]
+        );
+        variationsUpdated++;
+      }
+    }
+
+    // 3. ACTUALIZAR PRESENTACIONES Y PRECIOS
+    if (presentationsSheet && presentationsSheet.length > 0) {
+      for (const presentation of presentationsSheet) {
+        const {
+          "Id Presentacion": presentationId,
+          Presentacion,
+          "Precio Hogar": price_home,
+          "Precio Supermercado": price_supermarket,
+          "Precio Restaurante": price_restaurant,
+          "Precio Fruver": price_fruver,
+        } = presentation;
+        if (!presentationId) continue;
+        await client.query(
+          `UPDATE product_presentations SET presentation = $1, price_home = $2, price_supermarket = $3, price_restaurant = $4, price_fruver = $5 WHERE presentation_id = $6`,
+          [
+            Presentacion,
+            price_home || 0,
+            price_supermarket || 0,
+            price_restaurant || 0,
+            price_fruver || 0,
+            presentationId,
+          ]
+        );
+        presentationsUpdated++;
+      }
+    }
+
+    // Si todo ha ido bien, confirma la transacción.
+    await client.query("COMMIT");
+
+    res.status(200).json({
+      message: "Actualización masiva completada con éxito.",
+      productsUpdated,
+      variationsUpdated,
+      presentationsUpdated,
+    });
+  } catch (error) {
+    // Si algo falla, revierte todos los cambios.
+    if (client) {
+      await client.query("ROLLBACK");
+    }
+    console.error("Error en la actualización masiva:", error);
+    res.status(500).json({
+      message: "Error en el servidor al procesar el archivo.",
+      error: error.message,
+    });
+  } finally {
+    // Libera la conexión a la base de datos.
+    if (client) {
+      client.release();
+    }
   }
 };

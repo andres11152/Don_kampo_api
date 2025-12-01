@@ -10,11 +10,13 @@ import {
   updateProducts,
   createProductsBulk,
   validateProductsBulk,
-  updatePricesByPresentation
+  updatePricesByPresentation,
+  bulkUpdateFromExcel
 } from '../controllers/products.controller.js';
 
 import { handleMulterError } from '../middlewares/validateData.middleware.js';
 import { optimizeImage } from '../middlewares/image.middleware.js';
+import { verifyToken, isAdmin } from '../middlewares/auth.middleware.js';
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -92,13 +94,21 @@ router.post(
   validateProductsBulk
 );
 
-// POST /api/products/bulk - Crea o actualiza productos en lote.
+// POST /api/products/bulk - Crea o actualiza productos en lote de las ordenes.
 // Este es el endpoint que persiste los cambios en la base de datos.
 router.post(
   '/products/bulk',
   upload.single('file'),
   handleMulterError,
   createProductsBulk
+);
+
+router.post('/products', [verifyToken, isAdmin, upload.single('photo')], createProduct);
+
+router.post(
+  "/products/bulk-update-from-excel",
+  upload.single("file"),
+  bulkUpdateFromExcel
 );
 
 export default router;

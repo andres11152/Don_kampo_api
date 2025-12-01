@@ -1,53 +1,61 @@
 import pg from 'pg';
-import { dbSettings } from '../config/config.js';
+import { dbSettings } from '../config/config.js'; // Corregido para apuntar a la carpeta correcta
 
 const { Pool } = pg;
 
-// Configuración robusta para Render y entornos locales
+// --- LÓGICA DE CONFIGURACIÓN MEJORADA ---
+// Priorizamos la connectionString para entornos de producción (como Render).
+// Si no existe, usamos los ajustes individuales para desarrollo local.
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      // Configuración para producción/Render usando la URL de conexión
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false, // Requerido por muchos proveedores de DB en la nube
+      },
+    }
+  : {
+      // Configuración para desarrollo local usando variables de entorno individuales
+      user: dbSettings.user,
+      host: dbSettings.host,
+      database: dbSettings.database,
+      password: dbSettings.password,
+      port: dbSettings.port,
+      ssl: false, // Generalmente no se usa SSL en local
+    };
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' || process.env.DATABASE_URL?.includes('render.com') 
-    ? { rejectUnauthorized: false } // Render requiere esto
-    : false, // En local sin SSL (si tu postgres local no tiene SSL)
-  
-  // Opcional: Configuración del pool
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  ...poolConfig,
+  // Opciones del pool para mejorar la estabilidad
+  max: 20, // Número máximo de clientes en el pool
+  idleTimeoutMillis: 30000, // Tiempo que un cliente puede estar inactivo antes de cerrarse
+  connectionTimeoutMillis: 5000, // Aumentado a 5s para evitar timeouts prematuros
 });
 
-// Función para obtener una conexión del pool
+// Evento para capturar errores en clientes inactivos del pool
+pool.on('error', (err, client) => {
+  console.error('Error inesperado en un cliente inactivo del pool de PostgreSQL', err);
+});
+
+// Función para obtener una conexión del pool de forma segura
 export const getConnection = async () => {
-  try {
-    const client = await pool.connect();
-    return client;
-  } catch (error) {
-    console.error('Error al obtener conexión del pool:', error.message);
-    throw error;
-  }
+  const client = await pool.connect();
+  return client;
 };
 
-// Prueba inicial de conexión
+// Función para probar la conexión al iniciar la aplicación
 export const testConnection = async () => {
   let client;
   try {
     client = await getConnection();
-    console.log('✅ Conexión exitosa a PostgreSQL');
-    
+    console.log('✅ Conexión exitosa a PostgreSQL.');
     const res = await client.query('SELECT NOW()');
-    console.log('🕒 Hora del servidor DB:', res.rows[0].now);
-
+    console.log('🕒 Hora del servidor de la base de datos:', res.rows[0].now);
   } catch (error) {
-    console.error('❌ Error fatal al conectar a la base de datos:', error.message);
+    console.error('❌ Error fatal al conectar con la base de datos:', error.message);
   } finally {
-    if (client) client.release();
+    if (client) client.release(); // Siempre libera el cliente
   }
 };
-
-testConnection();
-
-pool.on('error', (err, client) => {
-  console.error('Error inesperado en cliente de PostgreSQL inactivo', err);
-});
 
 export default pool;

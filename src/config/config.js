@@ -1,5 +1,5 @@
-import { config } from 'dotenv';
-config();  
+import { config } from 'dotenv'; // Importa la función 'config'
+config(); // Carga las variables de entorno del archivo .env
 
 export const PORT = process.env.PORT || 8080;
 
