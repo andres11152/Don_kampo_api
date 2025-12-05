@@ -45,6 +45,13 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
+    // En desarrollo, permitir todos los orígenes
+    if (process.env.NODE_ENV !== "production") {
+      callback(null, true);
+      return;
+    }
+
+    // En producción, verificar la lista blanca
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
