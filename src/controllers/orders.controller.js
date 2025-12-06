@@ -4,16 +4,26 @@ import jwt from "jsonwebtoken";
 import { authConfig } from "../config/config.js";
 import crypto from "crypto";
 
-// --- UTILIDAD DE NORMALIZACIÓN MEJORADA ---
-const normalizeText = (text) => {
+// --- UTILIDADES DE NORMALIZACIÓN MEJORADAS ---
+// Normalización estricta: mantiene estructura pero normaliza mayúsculas/tildes/espacios
+const normalizeStrict = (text) => {
   if (!text) return "";
   return String(text)
     .toLowerCase()
-    .replace(/\?/g, "") // Limpia caracteres rotos
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Quita tildes
     .trim()
-    .replace(/\s+/g, " "); // Unifica espacios
+    .replace(/\s+/g, " "); // Unifica espacios múltiples
+};
+
+// Normalización fuzzy: elimina TODO excepto letras y números para matching flexible
+const normalizeFuzzy = (text) => {
+  if (!text) return "";
+  return String(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, ""); // Elimina todo excepto letras y números
 };
 
 export const placeOrder = async (req, res) => {
@@ -595,8 +605,10 @@ export const updateOrderPrices = async (req, res) => {
       [uniqueProductIds]
     );
 
-    // 3. Crear Mapas
-    const priceMap = new Map();
+    // 3. Crear Mapas con TRIPLE INDEXACIÓN para matching robusto
+    const priceMapStrict = new Map(); // Por nombre normalizado strict
+    const priceMapFuzzy = new Map(); // Por nombre normalizado fuzzy
+    const priceMapById = new Map(); // Por presentation_id directamente
     const singleVariationFallback = new Map();
     const availablePresentationsByProd = {};
 
@@ -624,8 +636,9 @@ export const updateOrderPrices = async (req, res) => {
         }
 
         for (const pres of validPresentations) {
-          const presName = normalizeText(pres.presentation);
-          availablePresentationsByProd[row.product_id].push(presName);
+          const presNameStrict = normalizeStrict(pres.presentation);
+          const presNameFuzzy = normalizeFuzzy(pres.presentation);
+          availablePresentationsByProd[row.product_id].push(presNameStrict);
 
           const prices = {
             price_home: Math.round(Number(pres.price_home) || 0),
@@ -633,15 +646,28 @@ export const updateOrderPrices = async (req, res) => {
             price_restaurant: Math.round(Number(pres.price_restaurant) || 0),
             price_fruver: Math.round(Number(pres.price_fruver) || 0),
           };
-          priceMap.set(`VAR:${row.variation_id}:${presName}`, prices);
-          priceMap.set(`PROD:${row.product_id}:${presName}`, prices);
+
+          // Indexar por nombre strict (variación y producto)
+          priceMapStrict.set(
+            `VAR:${row.variation_id}:${presNameStrict}`,
+            prices
+          );
+          priceMapStrict.set(
+            `PROD:${row.product_id}:${presNameStrict}`,
+            prices
+          );
+
+          // Indexar por nombre fuzzy (variación y producto)
+          priceMapFuzzy.set(`VAR:${row.variation_id}:${presNameFuzzy}`, prices);
+          priceMapFuzzy.set(`PROD:${row.product_id}:${presNameFuzzy}`, prices);
         }
       }
     }
 
-    // 4. Iterar y comparar
+    // 4. Iterar y comparar con ESTRATEGIA MULTI-NIVEL
     const updatePromises = [];
     let updatesCount = 0;
+    const matchStats = { strict: 0, fuzzy: 0, fallback: 0, failed: 0 };
 
     for (const item of itemsToUpdate) {
       let safeUserType = item.user_type
@@ -650,31 +676,76 @@ export const updateOrderPrices = async (req, res) => {
       if (safeUserType === "guest-user") safeUserType = "hogar";
 
       const priceKey = userTypeToPriceKey[safeUserType] || "price_home";
-      const itemPresName = normalizeText(item.presentation);
+      const itemPresNameStrict = normalizeStrict(item.presentation);
+      const itemPresNameFuzzy = normalizeFuzzy(item.presentation);
 
-      let mapKey = `VAR:${item.variation_id}:${itemPresName}`;
-      let newPrices = priceMap.get(mapKey);
+      let newPrices = null;
+      let matchMethod = "";
 
-      if (!newPrices) {
-        mapKey = `PROD:${item.product_id}:${itemPresName}`;
-        newPrices = priceMap.get(mapKey);
+      // NIVEL 1: Match por presentation_id (si existe)
+      if (item.presentation_id && priceMapById.has(item.presentation_id)) {
+        newPrices = priceMapById.get(item.presentation_id);
+        matchMethod = "by_id";
+        matchStats.strict++;
       }
 
-      // ESTRATEGIA DE RESCATE (Último recurso)
+      // NIVEL 2: Match STRICT por variación + nombre normalizado
       if (!newPrices) {
-        newPrices = singleVariationFallback.get(item.product_id);
+        let mapKey = `VAR:${item.variation_id}:${itemPresNameStrict}`;
+        newPrices = priceMapStrict.get(mapKey);
+
+        if (!newPrices) {
+          mapKey = `PROD:${item.product_id}:${itemPresNameStrict}`;
+          newPrices = priceMapStrict.get(mapKey);
+        }
+
         if (newPrices) {
-          // console.log(`ℹ️ Usando precio de rescate (única opción) para Prod ${item.product_id}`);
+          matchMethod = "strict";
+          matchStats.strict++;
         }
       }
 
+      // NIVEL 3: Match FUZZY (elimina TODO excepto letras y números)
+      if (!newPrices) {
+        let mapKey = `VAR:${item.variation_id}:${itemPresNameFuzzy}`;
+        newPrices = priceMapFuzzy.get(mapKey);
+
+        if (!newPrices) {
+          mapKey = `PROD:${item.product_id}:${itemPresNameFuzzy}`;
+          newPrices = priceMapFuzzy.get(mapKey);
+        }
+
+        if (newPrices) {
+          matchMethod = "fuzzy";
+          matchStats.fuzzy++;
+          console.log(
+            `⚠️ Match FUZZY para Item ${item.item_id}: "${item.presentation}"`
+          );
+        }
+      }
+
+      // NIVEL 4: FALLBACK si solo hay una presentación disponible
+      if (!newPrices) {
+        newPrices = singleVariationFallback.get(item.product_id);
+        if (newPrices) {
+          matchMethod = "fallback";
+          matchStats.fallback++;
+          console.log(
+            `ℹ️ Usando FALLBACK (única presentación) para Prod ${item.product_id}`
+          );
+        }
+      }
+
+      // APLICAR ACTUALIZACIÓN SI SE ENCONTRÓ PRECIO
       if (newPrices) {
         const precioNuevo = newPrices[priceKey];
         const precioViejo = Math.round(Number(item.old_price));
 
         if (precioNuevo !== undefined && precioNuevo !== precioViejo) {
           console.log(
-            `✅ ACTUALIZANDO Item ${item.item_id}: ${item.presentation} => ${precioNuevo}`
+            `✅ ${matchMethod.toUpperCase()} - Item ${item.item_id}: "${
+              item.presentation
+            }" => $${precioNuevo} (era $${precioViejo})`
           );
           updatePromises.push(
             client.query(`UPDATE order_items SET price = $1 WHERE id = $2`, [
@@ -685,14 +756,23 @@ export const updateOrderPrices = async (req, res) => {
           updatesCount++;
         }
       } else {
+        // NO SE ENCONTRÓ MATCH
+        matchStats.failed++;
         const available = availablePresentationsByProd[item.product_id] || [];
-        console.warn(
-          `❌ NO MATCH: Prod ${
-            item.product_id
-          }. Busqué: "${itemPresName}". DB: [${available.join(", ")}]`
+        console.error(
+          `❌ SIN MATCH: Item ${item.item_id}, Prod ${item.product_id}\n` +
+            `   Buscado (strict): "${itemPresNameStrict}"\n` +
+            `   Buscado (fuzzy): "${itemPresNameFuzzy}"\n` +
+            `   Disponibles en DB: [${available.join(", ")}]`
         );
       }
     }
+
+    console.log("\n📊 ESTADÍSTICAS DE MATCHING:");
+    console.log(`   ✓ Match Strict/ID: ${matchStats.strict}`);
+    console.log(`   ⚠ Match Fuzzy: ${matchStats.fuzzy}`);
+    console.log(`   ℹ Fallback (1 pres): ${matchStats.fallback}`);
+    console.log(`   ❌ Sin Match: ${matchStats.failed}\n`);
 
     // 5. Ejecutar actualizaciones
     if (updatePromises.length > 0) {
