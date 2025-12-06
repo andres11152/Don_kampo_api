@@ -137,12 +137,7 @@ export const placeOrder = async (req, res) => {
     );
 
     const aggregatedCart = cartDetails.reduce((acc, item) => {
-      // ✅ CORRECCIÓN CRÍTICA: Usar presentation_id como clave primaria
-      // Esto evita que se mezclen datos de diferentes calidades con el mismo nombre de presentación
-      const key = item.presentation_id
-        ? String(item.presentation_id)
-        : `${item.variationId}-${item.presentation}`;
-
+      const key = `${item.variationId}-${item.presentation}`;
       if (acc[key]) {
         acc[key].quantity += item.quantity;
       } else {
@@ -150,21 +145,6 @@ export const placeOrder = async (req, res) => {
       }
       return acc;
     }, {});
-
-    // Logging de diagnóstico para validar agregación
-    console.log(
-      `📦 Carrito agregado: ${Object.keys(aggregatedCart).length} items únicos`
-    );
-    for (const [key, item] of Object.entries(aggregatedCart)) {
-      if (!item.presentation_id) {
-        console.warn(`⚠️ Item sin presentation_id:`, {
-          key,
-          product: item.productId,
-          variation: item.variationId,
-          presentation: item.presentation,
-        });
-      }
-    }
 
     for (const item of Object.values(aggregatedCart)) {
       await client.query(queries.orders.createOrderItem, [
@@ -587,35 +567,6 @@ export const updateOrderPrices = async (req, res) => {
       FROM orders o
       JOIN order_items oi ON o.id = oi.order_id
       WHERE o.status_id = 1;
-    `);
-
-    const itemsToUpdate = pendingOrdersResult.rows;
-
-    console.log(`\n🔍 DIAGNÓSTICO INICIAL:`);
-    console.log(
-      `   Órdenes pendientes encontradas: ${itemsToUpdate.length} items`
-    );
-
-    if (itemsToUpdate.length === 0) {
-      await client.query("COMMIT");
-      console.log("⚠️ No hay órdenes en estado PENDIENTE (status_id=1)");
-      return res.status(200).json({ msg: "No hay ítems pendientes." });
-    }
-
-    console.log(
-      `   Productos únicos: ${
-        [...new Set(itemsToUpdate.map((i) => i.product_id))].length
-      }`
-    );
-    console.log(`\n📝 ITEMS A PROCESAR:`);
-    itemsToUpdate.forEach((item) => {
-      console.log(
-        `   - Item ${item.item_id}: Prod ${item.product_id}, Var ${item.variation_id}, Pres "${item.presentation}", PrecioActual: $${item.old_price}`
-      );
-    });
-
-    // 2. Obtener productos CON JOIN A product_presentations
-    const uniqueProductIds = [
       ...new Set(itemsToUpdate.map((i) => i.product_id)),
     ];
 
