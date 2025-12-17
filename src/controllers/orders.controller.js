@@ -242,20 +242,10 @@ export const getOrders = async (req, res) => {
         (item) => item.order_id === order.id
       );
 
-      const aggregatedItems = itemsForOrder.reduce((acc, item) => {
-        const key = `${item.variation_id}-${item.presentation}`;
-        if (acc[key]) {
-          acc[key].quantity += item.quantity;
-        } else {
-          acc[key] = { ...item };
-        }
-        return acc;
-      }, {});
-
       return {
         order: { ...order, total: Math.round(Number(order.total) || 0) },
         userData: userDataMap[order.id] || null,
-        items: Object.values(aggregatedItems),
+        items: itemsForOrder, // Devolver items crudos sin agrupar para evitar errores de cálculo
         shippingInfo:
           shippingInfo.find((info) => info.order_id === order.id) || null,
       };

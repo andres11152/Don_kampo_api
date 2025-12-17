@@ -31,7 +31,7 @@ export const queries = {
       WHERE id = $2;
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
-    getUserByEmail: 'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+    getUserByEmail: "SELECT id FROM users WHERE LOWER(email) = LOWER($1)",
     updateUserResetToken: `
       UPDATE users 
       SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
@@ -63,7 +63,7 @@ export const queries = {
         WHEN type_name = 'Restaurante' THEN $4::numeric
       END;
     `,
-  }, 
+  },
   orders: {
     getOrders: `
       SELECT 
@@ -76,6 +76,7 @@ export const queries = {
         o.company_name, 
         o.nit,
         o.user_type,
+        u.user_type as user_type_from_user,
         u.user_name,
         u.lastname,
         u.email,
@@ -97,6 +98,8 @@ export const queries = {
         o.requires_electronic_billing, 
         o.company_name, 
         o.nit,
+        o.user_type,
+        u.user_type as user_type_from_user,
         u.user_name AS customer_name, 
         u.email AS customer_email
       FROM orders o
@@ -210,7 +213,7 @@ export const queries = {
         presentation_id
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `
+    `,
   },
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
@@ -385,8 +388,8 @@ export const queries = {
     `,
     deletePresentationsByVariation: `
       DELETE FROM product_presentations WHERE variation_id = $1;
-    `
-  },  
+    `,
+  },
   advertisements: {
     getAll: `
       SELECT 
@@ -462,7 +465,7 @@ export const bulkQueries = {
     FROM products 
     WHERE LOWER(name) = ANY($1::text[])
   `,
-  
+
   // Query para obtener todas las categorías existentes
   getAllCategories: `
     SELECT DISTINCT category 
@@ -470,21 +473,21 @@ export const bulkQueries = {
     WHERE category IS NOT NULL 
     ORDER BY category
   `,
-  
+
   // Query optimizada para inserción masiva de productos (usando UNNEST)
   createMultipleProducts: `
     INSERT INTO products (name, description, category, photo_url, active, promocionar)
     SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::boolean[], $6::boolean[])
     RETURNING product_id, name
   `,
-  
+
   // Query para inserción masiva de variaciones
   createMultipleVariations: `
     INSERT INTO product_variations (product_id, quality, presentations, active)
     SELECT * FROM UNNEST($1::integer[], $2::text[], $3::jsonb[], $4::boolean[])
     RETURNING variation_id, product_id
   `,
-  
+
   // Query para inserción masiva de presentaciones
   createMultiplePresentations: `
     INSERT INTO product_presentations (variation_id, presentation, price_home, price_supermarket, price_restaurant, price_fruver, stock)
@@ -494,7 +497,7 @@ export const bulkQueries = {
     )
     RETURNING presentation_id, variation_id
   `,
-  
+
   // Query para verificar integridad de datos después de bulk insert
   validateBulkIntegrity: `
     SELECT 
@@ -508,7 +511,7 @@ export const bulkQueries = {
     WHERE p.product_id = ANY($1::integer[])
     GROUP BY p.product_id, p.name
   `,
-  
+
   // Query para limpiar datos huérfanos en caso de error
   cleanOrphanedData: `
     WITH deleted_presentations AS (
@@ -528,7 +531,7 @@ export const bulkQueries = {
     SELECT 
       (SELECT COUNT(*) FROM deleted_presentations) as presentations_cleaned,
       (SELECT COUNT(*) FROM deleted_variations) as variations_cleaned
-  `
+  `,
 };
 
 // Statistics queries for monitoring
@@ -542,7 +545,7 @@ export const statsQueries = {
       COUNT(DISTINCT category) as categories_count
     FROM products
   `,
-  
+
   // Estadísticas de rendimiento por categoría
   getPerformanceByCategory: `
     SELECT 
@@ -557,7 +560,7 @@ export const statsQueries = {
     GROUP BY p.category
     ORDER BY products_count DESC
   `,
-  
+
   // Query para detectar productos con problemas de integridad
   findIntegrityIssues: `
     SELECT 
@@ -580,5 +583,5 @@ export const statsQueries = {
     JOIN products p ON pv.product_id = p.product_id
     LEFT JOIN product_presentations pp ON pv.variation_id = pp.variation_id
     WHERE pp.presentation_id IS NULL
-  `
+  `,
 };

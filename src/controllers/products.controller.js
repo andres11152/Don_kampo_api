@@ -58,6 +58,49 @@ export const getProducts = async (req, res) => {
 };
 
 /**
+ * Busca productos únicos por nombre (para autocomplete en modal de edición de órdenes)
+ * Retorna productos sin duplicados, solo con información básica
+ */
+export const searchUniqueProducts = async (req, res) => {
+  let client;
+  try {
+    const { q } = req.query;
+
+    if (!q || q.length < 2) {
+      return res
+        .status(400)
+        .json({ message: "Query debe tener al menos 2 caracteres" });
+    }
+
+    client = await getConnection();
+
+    // Buscar productos únicos por nombre (case insensitive)
+    const result = await client.query(
+      `SELECT DISTINCT 
+        p.product_id, 
+        p.name, 
+        p.photo_url
+      FROM products p
+      WHERE LOWER(p.name) LIKE LOWER($1)
+      AND p.active = true
+      ORDER BY p.name
+      LIMIT 20`,
+      [`%${q}%`]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error al buscar productos:", error);
+    res.status(500).json({
+      message: "Error al buscar productos",
+      error: error.message,
+    });
+  } finally {
+    if (client) client.release();
+  }
+};
+
+/**
  * Actualiza productos masivamente a partir de un array de datos (proveniente de un Excel/JSON).
  * Esta función está diseñada para alto rendimiento, manejando la lógica de creación,
  * actualización y eliminación de sub-entidades (variaciones, presentaciones) dentro de una transacción.
@@ -148,7 +191,8 @@ export const bulkUpdateProducts = async (req, res) => {
             active: varActive,
             presentations,
           } = incomingVar;
-          const variationStatus = typeof varActive !== "undefined" ? varActive : true;
+          const variationStatus =
+            typeof varActive !== "undefined" ? varActive : true;
 
           if (variation_id && existingVariationIds.has(variation_id)) {
             // 6a. ACTUALIZAR Variación existente
@@ -179,7 +223,10 @@ export const bulkUpdateProducts = async (req, res) => {
             }
 
             for (const pres of presentations) {
-              if (pres.presentation_id && existingPresIds.has(pres.presentation_id)) {
+              if (
+                pres.presentation_id &&
+                existingPresIds.has(pres.presentation_id)
+              ) {
                 // Actualizar presentación
                 await client.query(queries.products.updateProductPresentation, [
                   pres.presentation,
@@ -207,7 +254,12 @@ export const bulkUpdateProducts = async (req, res) => {
             // 6b. CREAR Nueva Variación (no tenía ID o el ID no estaba en la BD)
             const { rows } = await client.query(
               queries.products.createProductVariation,
-              [product_id, quality, JSON.stringify(presentations), variationStatus]
+              [
+                product_id,
+                quality,
+                JSON.stringify(presentations),
+                variationStatus,
+              ]
             );
             const newVarId = rows[0].variation_id;
             results.created++;
@@ -304,16 +356,30 @@ export const createProduct = async (req, res) => {
   let client;
   try {
     // Diagnostic logs to understand incoming multipart/form-data
-    console.log('[createProduct] content-type:', req.headers['content-type']);
-    console.log('[createProduct] req.body keys:', Object.keys(req.body || {}));
-    console.log('[createProduct] req.body sample:', req.body);
-    console.log('[createProduct] req.file present:', !!req.file);
-    console.log('[createProduct] req.files present:', !!req.files, Array.isArray(req.files) ? req.files.length : Object.keys(req.files || {}).reduce((acc,k)=>acc+ (Array.isArray(req.files[k])?req.files[k].length:1),0));
-    console.log('[createProduct] req.optimizedImage present:', !!req.optimizedImage);
+    console.log("[createProduct] content-type:", req.headers["content-type"]);
+    console.log("[createProduct] req.body keys:", Object.keys(req.body || {}));
+    console.log("[createProduct] req.body sample:", req.body);
+    console.log("[createProduct] req.file present:", !!req.file);
+    console.log(
+      "[createProduct] req.files present:",
+      !!req.files,
+      Array.isArray(req.files)
+        ? req.files.length
+        : Object.keys(req.files || {}).reduce(
+            (acc, k) =>
+              acc + (Array.isArray(req.files[k]) ? req.files[k].length : 1),
+            0
+          )
+    );
+    console.log(
+      "[createProduct] req.optimizedImage present:",
+      !!req.optimizedImage
+    );
 
     // Try multiple ways to obtain form fields because multipart parsers sometimes
     // put fields as strings, arrays, or inside a single `data` field.
-    let { name, description, category, variations, active, promocionar } = req.body || {};
+    let { name, description, category, variations, active, promocionar } =
+      req.body || {};
 
     // If multer provided fields as arrays (e.g. name: ['...']), take first
     const pickFirst = (v) => (Array.isArray(v) ? v[0] : v);
@@ -325,43 +391,60 @@ export const createProduct = async (req, res) => {
     promocionar = pickFirst(promocionar);
 
     // If client sent a single JSON payload in a `data` field, try to parse it
-    if ((!name || name === '') && req.body && req.body.data) {
+    if ((!name || name === "") && req.body && req.body.data) {
       try {
-        const parsed = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body.data;
+        const parsed =
+          typeof req.body.data === "string"
+            ? JSON.parse(req.body.data)
+            : req.body.data;
         name = name || parsed.name;
         description = description || parsed.description;
         category = category || parsed.category;
         variations = variations || parsed.variations;
-        active = typeof active !== 'undefined' ? active : parsed.active;
-        promocionar = typeof promocionar !== 'undefined' ? promocionar : parsed.promocionar;
-        console.log('[createProduct] extracted from data field');
+        active = typeof active !== "undefined" ? active : parsed.active;
+        promocionar =
+          typeof promocionar !== "undefined" ? promocionar : parsed.promocionar;
+        console.log("[createProduct] extracted from data field");
       } catch (err) {
-        console.warn('[createProduct] could not parse req.body.data', err.message);
+        console.warn(
+          "[createProduct] could not parse req.body.data",
+          err.message
+        );
       }
     }
 
     // as last resort, log and return clear validation error instead of DB 500
-    if (!name || (typeof name === 'string' && name.trim() === '')) {
-      console.warn('[createProduct] Missing required field: name');
-      return res.status(400).json({ message: 'El campo `name` es requerido en el formulario', receivedBody: req.body });
+    if (!name || (typeof name === "string" && name.trim() === "")) {
+      console.warn("[createProduct] Missing required field: name");
+      return res
+        .status(400)
+        .json({
+          message: "El campo `name` es requerido en el formulario",
+          receivedBody: req.body,
+        });
     }
 
     // Si no se envía el estado, lo dejamos activo por defecto
-    const productActive = typeof active !== 'undefined' ? active : true;
+    const productActive = typeof active !== "undefined" ? active : true;
     // Definir un valor por defecto para promocionar (por ejemplo, false)
-    const productPromocionar = (typeof promocionar === 'boolean') ? promocionar : false;
+    const productPromocionar =
+      typeof promocionar === "boolean" ? promocionar : false;
 
-    const defaultPhotoUrl = 'https://example.com/default-image.jpg';
+    const defaultPhotoUrl = "https://example.com/default-image.jpg";
     let photoUrl = defaultPhotoUrl;
     // Preferir imagen optimizada si existe (middleware `optimizeImage` coloca buffer en req.optimizedImage)
-    const imageBuffer = req.optimizedImage || (req.file && req.file.buffer) || null;
-    const originalName = (req.file && req.file.originalname) || 'upload.jpg';
+    const imageBuffer =
+      req.optimizedImage || (req.file && req.file.buffer) || null;
+    const originalName = (req.file && req.file.originalname) || "upload.jpg";
     if (imageBuffer) {
       try {
         photoUrl = await uploadImage(imageBuffer, originalName);
       } catch (error) {
         // No detener la creación del producto por un fallo en S3 en entorno de desarrollo.
-        console.error('Error al subir la imagen a S3, se continuará con imagen por defecto:', error.message);
+        console.error(
+          "Error al subir la imagen a S3, se continuará con imagen por defecto:",
+          error.message
+        );
         // photoUrl queda con defaultPhotoUrl
       }
     }
@@ -373,16 +456,19 @@ export const createProduct = async (req, res) => {
       category,
       photoUrl,
       productActive,
-      productPromocionar
+      productPromocionar,
     ]);
     const productId = result.rows[0].product_id;
 
     let parsedVariations = [];
-    if (typeof variations === 'string') {
+    if (typeof variations === "string") {
       try {
         parsedVariations = JSON.parse(variations);
       } catch (err) {
-        console.warn('createProduct: could not parse variations, defaulting to []', err.message);
+        console.warn(
+          "createProduct: could not parse variations, defaulting to []",
+          err.message
+        );
         parsedVariations = [];
       }
     } else if (Array.isArray(variations)) {
@@ -392,26 +478,35 @@ export const createProduct = async (req, res) => {
     if (Array.isArray(parsedVariations) && parsedVariations.length > 0) {
       for (const variation of parsedVariations) {
         const { quality, presentations, active: variationActive } = variation;
-        if (!quality || !Array.isArray(presentations) || presentations.length === 0) continue;
+        if (
+          !quality ||
+          !Array.isArray(presentations) ||
+          presentations.length === 0
+        )
+          continue;
 
-        const variationStatus = typeof variationActive !== 'undefined' ? variationActive : true;
+        const variationStatus =
+          typeof variationActive !== "undefined" ? variationActive : true;
 
         // Asegurar que cada presentación tiene los precios correctos
-        const formattedPresentations = presentations.map(presentation => ({
+        const formattedPresentations = presentations.map((presentation) => ({
           ...presentation,
           price_home: parseFloat(presentation.price_home || 0),
           price_supermarket: parseFloat(presentation.price_supermarket || 0),
           price_restaurant: parseFloat(presentation.price_restaurant || 0),
-          price_fruver: parseFloat(presentation.price_fruver || 0)
+          price_fruver: parseFloat(presentation.price_fruver || 0),
         }));
 
         // Crear la variación del producto
-        const variationResult = await client.query(queries.products.createProductVariation, [
-          productId,
-          quality,
-          JSON.stringify(formattedPresentations),
-          variationStatus
-        ]);
+        const variationResult = await client.query(
+          queries.products.createProductVariation,
+          [
+            productId,
+            quality,
+            JSON.stringify(formattedPresentations),
+            variationStatus,
+          ]
+        );
         const variationId = variationResult.rows[0].variation_id;
 
         // Insertar las presentaciones asociadas con esta variación
@@ -423,19 +518,21 @@ export const createProduct = async (req, res) => {
             presentation.price_supermarket,
             presentation.price_restaurant,
             presentation.price_fruver,
-            presentation.stock
+            presentation.stock,
           ]);
         }
       }
     }
 
     res.status(201).json({
-      message: 'Producto creado exitosamente',
-      product_id: productId
+      message: "Producto creado exitosamente",
+      product_id: productId,
     });
   } catch (error) {
-    console.error('Error en createProduct:', error.message);
-    res.status(500).json({ message: 'Error al crear el producto', error: error.message });
+    console.error("Error en createProduct:", error.message);
+    res
+      .status(500)
+      .json({ message: "Error al crear el producto", error: error.message });
   } finally {
     if (client) client.release();
   }
@@ -525,7 +622,8 @@ export const updateProducts = async (req, res) => {
           updatedPhotoUrl = await uploadImage(file.buffer, file.originalname);
         } else if (req.optimizedImage) {
           // Si optimizeImage produjo un buffer (multer.fields case), usarlo
-          const origName = (file && file.originalname) || `${product_id || 'upload'}.jpg`;
+          const origName =
+            (file && file.originalname) || `${product_id || "upload"}.jpg`;
           updatedPhotoUrl = await uploadImage(req.optimizedImage, origName);
         }
       } catch (err) {
@@ -1307,9 +1405,15 @@ export const bulkUpdateFromExcel = async (req, res) => {
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" }); // Leer el archivo Excel
 
     // --- PROCESAMIENTO DE DATOS ---
-    const productsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Productos"]);
-    const variationsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Variaciones"]);
-    const presentationsSheet = XLSX.utils.sheet_to_json(workbook.Sheets["Presentaciones"]);
+    const productsSheet = XLSX.utils.sheet_to_json(
+      workbook.Sheets["Productos"]
+    );
+    const variationsSheet = XLSX.utils.sheet_to_json(
+      workbook.Sheets["Variaciones"]
+    );
+    const presentationsSheet = XLSX.utils.sheet_to_json(
+      workbook.Sheets["Presentaciones"]
+    );
 
     // --- CONTADORES PARA EL RESULTADO ---
     let productsUpdated = 0;
@@ -1319,7 +1423,8 @@ export const bulkUpdateFromExcel = async (req, res) => {
     // 1. ACTUALIZAR PRODUCTOS
     if (productsSheet && productsSheet.length > 0) {
       for (const product of productsSheet) {
-        const { Id, Nombre, Descripcion, Categoria, Promocionar, Activo } = product;
+        const { Id, Nombre, Descripcion, Categoria, Promocionar, Activo } =
+          product;
         if (!Id) continue;
         await client.query(
           `UPDATE products SET name = $1, description = $2, category = $3, promocionar = $4, active = $5, updated_at = CURRENT_TIMESTAMP WHERE product_id = $6`,
