@@ -1,5 +1,6 @@
 import { getConnection } from "../database/connection.js";
 import { queries } from "../database/queries.interface.js";
+import { withTransaction } from "../helpers/transaction.js";
 import jwt from "jsonwebtoken";
 import { authConfig } from "../config/config.js";
 import crypto from "crypto";
@@ -87,10 +88,9 @@ export const placeOrder = async (req, res) => {
     let userType = "hogar";
 
     if (userId !== "guest-user") {
-      const userResult = await client.query(
-        `SELECT id, user_type FROM users WHERE id = $1`,
-        [userId]
-      );
+      const userResult = await client.query(queries.orders.getUserTypeById, [
+        userId,
+      ]);
       if (userResult.rows.length > 0) {
         userType = userResult.rows[0].user_type || "hogar";
       } else {
@@ -103,7 +103,7 @@ export const placeOrder = async (req, res) => {
 
     const productIds = cartDetails.map((item) => item.productId);
     const productCheckResult = await client.query(
-      `SELECT product_id FROM products WHERE product_id = ANY($1)`,
+      queries.orders.checkProductsExist,
       [productIds]
     );
     const existingProductIds = productCheckResult.rows.map(
@@ -131,10 +131,7 @@ export const placeOrder = async (req, res) => {
     ]);
     const orderId = orderResult.rows[0].id;
 
-    await client.query(
-      "INSERT INTO user_data (order_id, user_data) VALUES ($1, $2)",
-      [orderId, userData]
-    );
+    await client.query(queries.orders.createUserData, [orderId, userData]);
 
     const aggregatedCart = cartDetails.reduce((acc, item) => {
       // ✅ CORRECCIÓN CRÍTICA: Usar presentation_id como clave primaria
@@ -229,7 +226,7 @@ export const getOrders = async (req, res) => {
     const shippingInfo = shippingResult.rows;
 
     const userDataResult = await client.query(
-      `SELECT order_id, user_data FROM user_data WHERE order_id = ANY($1)`,
+      queries.orders.getUserDataByOrderIds,
       [orderIds]
     );
     const userDataMap = userDataResult.rows.reduce(
@@ -294,7 +291,7 @@ export const getOrdersById = async (req, res) => {
       [orderId]
     );
     const userDataResult = await client.query(
-      `SELECT user_data FROM user_data WHERE order_id = $1`,
+      queries.orders.getUserDataByOrderId,
       [orderId]
     );
 
@@ -339,16 +336,14 @@ export const deleteOrders = async (req, res) => {
     client = await getConnection();
     const id = parseInt(orderId, 10);
 
-    const check = await client.query("SELECT id FROM orders WHERE id = $1", [
-      id,
-    ]);
+    const check = await client.query(queries.orders.checkOrderExists, [id]);
     if (check.rowCount === 0)
       return res.status(404).json({ msg: "No encontrado" });
 
-    await client.query("DELETE FROM order_items WHERE order_id = $1", [id]);
-    await client.query("DELETE FROM user_data WHERE order_id = $1", [id]);
-    await client.query("DELETE FROM shipping_info WHERE order_id = $1", [id]);
-    await client.query("DELETE FROM orders WHERE id = $1", [id]);
+    await client.query(queries.orders.deleteOrderItems, [id]);
+    await client.query(queries.orders.deleteUserData, [id]);
+    await client.query(queries.orders.deleteShippingInfoByOrderId, [id]);
+    await client.query(queries.orders.deleteOrderById, [id]);
 
     res.status(200).json({ msg: "Eliminado." });
   } catch (e) {
@@ -367,18 +362,20 @@ export const updateBulkOrders = async (req, res) => {
   let client;
   try {
     client = await getConnection();
-    await client.query("BEGIN");
-    const numericIds = orderIds.map(Number);
-    const updateResult = await client.query(
-      queries.orders.updateBulkOrderStatus,
-      [newStatus, numericIds]
-    );
-    await client.query("COMMIT");
-    res
-      .status(200)
-      .json({ success: true, updatedCount: updateResult.rowCount });
+
+    // ✅ USANDO HELPER DE TRANSACCIONES
+    const result = await withTransaction(client, async (trx) => {
+      const numericIds = orderIds.map(Number);
+      const updateResult = await trx.query(
+        queries.orders.updateBulkOrderStatus,
+        [newStatus, numericIds]
+      );
+      return updateResult;
+    });
+
+    res.status(200).json({ success: true, updatedCount: result.rowCount });
   } catch (e) {
-    if (client) await client.query("ROLLBACK");
+    console.error("Error en updateBulkOrders:", e);
     res.status(500).json({ msg: "Error." });
   } finally {
     if (client) client.release();
@@ -407,10 +404,9 @@ export const updateOrderById = async (req, res) => {
     client = await getConnection();
     await client.query("BEGIN");
 
-    const orderLock = await client.query(
-      `SELECT id, customer_id FROM orders WHERE id = $1 FOR UPDATE`,
-      [orderId]
-    );
+    const orderLock = await client.query(queries.orders.lockOrderForUpdate, [
+      orderId,
+    ]);
     if (orderLock.rowCount === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ msg: "Orden no encontrada." });
@@ -463,73 +459,61 @@ export const updateOrderById = async (req, res) => {
       }));
 
       // Primero eliminar TODOS los items de esta orden
-      await client.query(`DELETE FROM order_items WHERE order_id = $1`, [
-        orderId,
-      ]);
+      await client.query(queries.orders.deleteOrderItems, [orderId]);
 
       // Luego insertar todos los items nuevos
       for (const it of normalizedItems) {
-        await client.query(
-          `INSERT INTO order_items (order_id, product_id, variation_id, presentation_id, presentation, price, quantity, quality) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [
-            orderId,
-            it.productId,
-            it.variationId,
-            it.presentationId || null,
-            it.presentation || null,
-            it.price,
-            it.quantity,
-            it.quality || null,
-          ]
-        );
+        await client.query(queries.orders.insertOrderItem, [
+          orderId,
+          it.productId,
+          it.variationId,
+          it.presentationId || null,
+          it.presentation || null,
+          it.price,
+          it.quantity,
+          it.quality || null,
+        ]);
       }
     }
 
     if (shipping) {
-      const sh = await client.query(
-        `SELECT id FROM shipping_info WHERE order_id = $1`,
-        [orderId]
-      );
+      const sh = await client.query(queries.orders.checkShippingInfoExists, [
+        orderId,
+      ]);
       if (sh.rowCount > 0) {
-        await client.query(
-          `UPDATE shipping_info SET shipping_method = $1, tracking_number = $2, estimated_delivery = $3, actual_delivery = $4, shipping_status_id = $5 WHERE order_id = $6`,
-          [
-            shipping.shippingMethod,
-            shipping.trackingNumber,
-            shipping.estimatedDelivery,
-            shipping.actualDelivery,
-            shipping.shippingStatusId,
-            orderId,
-          ]
-        );
+        await client.query(queries.orders.updateShippingInfoByOrderId, [
+          shipping.shippingMethod,
+          shipping.trackingNumber,
+          shipping.estimatedDelivery,
+          shipping.actualDelivery,
+          shipping.shippingStatusId,
+          orderId,
+        ]);
       } else {
-        await client.query(
-          `INSERT INTO shipping_info (shipping_method, tracking_number, estimated_delivery, actual_delivery, shipping_status_id, order_id) VALUES ($1,$2,$3,$4,$5,$6)`,
-          [
-            shipping.shippingMethod,
-            shipping.trackingNumber,
-            shipping.estimatedDelivery,
-            shipping.actualDelivery,
-            shipping.shippingStatusId,
-            orderId,
-          ]
-        );
+        await client.query(queries.orders.insertShippingInfo, [
+          shipping.shippingMethod,
+          shipping.trackingNumber,
+          shipping.estimatedDelivery,
+          shipping.actualDelivery,
+          shipping.shippingStatusId,
+          orderId,
+        ]);
       }
       if (shipping.shipping_cost !== undefined)
         shipping_cost = Number(shipping.shipping_cost);
     }
 
-    const totalRes = await client.query(
-      `SELECT COALESCE(SUM(price * quantity), 0) as sub FROM order_items WHERE order_id = $1`,
-      [orderId]
-    );
+    const totalRes = await client.query(queries.orders.getOrderSubtotal, [
+      orderId,
+    ]);
     const sub = Number(totalRes.rows[0].sub);
     const newShipping = shipping_cost ? Number(shipping_cost) : 0;
 
-    await client.query(
-      `UPDATE orders SET total = $1, shipping_cost = $2 WHERE id = $3`,
-      [sub + newShipping, newShipping, orderId]
-    );
+    await client.query(queries.orders.updateOrderTotal, [
+      sub + newShipping,
+      newShipping,
+      orderId,
+    ]);
 
     await client.query("COMMIT");
     res.status(200).json({ msg: "Orden actualizada." });
@@ -562,22 +546,10 @@ export const updateOrderPrices = async (req, res) => {
       fruver: "price_fruver",
     };
 
-    // 1. Obtener órdenes pendientes
-    const pendingOrdersResult = await client.query(`
-      SELECT
-        o.id as order_id,
-        o.user_type,
-        oi.id as item_id,
-        oi.product_id,
-        oi.variation_id,
-        oi.presentation_id,
-        oi.presentation, 
-        oi.price as old_price,
-        oi.quantity
-      FROM orders o
-      JOIN order_items oi ON o.id = oi.order_id
-      WHERE o.status_id = 1;
-    `);
+    // 1. Obtener órdenes pendientes usando query centralizado
+    const pendingOrdersResult = await client.query(
+      queries.orders.getPendingOrdersWithItems
+    );
 
     const itemsToUpdate = pendingOrdersResult.rows;
 
@@ -604,32 +576,13 @@ export const updateOrderPrices = async (req, res) => {
       );
     });
 
-    // 2. Obtener productos CON JOIN A product_presentations
+    // 2. Obtener productos CON JOIN A product_presentations usando query centralizado
     const uniqueProductIds = [
       ...new Set(itemsToUpdate.map((i) => i.product_id)),
     ];
 
     const productsResult = await client.query(
-      `
-      SELECT 
-        p.product_id,
-        p.name as product_name,
-        v.variation_id,
-        json_agg(
-          json_build_object(
-            'presentation', pp.presentation,
-            'price_home', pp.price_home,
-            'price_supermarket', pp.price_supermarket,
-            'price_restaurant', pp.price_restaurant,
-            'price_fruver', pp.price_fruver
-          ) 
-        ) FILTER (WHERE pp.presentation_id IS NOT NULL) as presentations
-      FROM products p
-      JOIN product_variations v ON p.product_id = v.product_id
-      LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
-      WHERE p.product_id = ANY($1)
-      GROUP BY p.product_id, p.name, v.variation_id
-    `,
+      queries.orders.getProductsWithPresentations,
       [uniqueProductIds]
     );
 
@@ -768,7 +721,7 @@ export const updateOrderPrices = async (req, res) => {
             }" => $${precioNuevo} (era $${precioViejo})`
           );
           updatePromises.push(
-            client.query(`UPDATE order_items SET price = $1 WHERE id = $2`, [
+            client.query(queries.orders.updateOrderItemPrice, [
               precioNuevo,
               item.item_id,
             ])

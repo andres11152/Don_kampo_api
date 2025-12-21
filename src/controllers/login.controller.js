@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { getConnection } from "../database/connection.js";
 import { authConfig } from "../config/config.js";
+import { queries } from "../database/queries.interface.js";
 
 export const loginController = async (req, res) => {
   let client;
@@ -18,7 +19,7 @@ export const loginController = async (req, res) => {
 
     // Obtener conexión y buscar usuario
     client = await getConnection();
-    const result = await client.query("SELECT * FROM users WHERE email = $1", [
+    const result = await client.query(queries.users.getUserByEmailComplete, [
       email,
     ]);
 

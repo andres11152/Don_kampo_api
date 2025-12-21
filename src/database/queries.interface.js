@@ -32,6 +32,15 @@ export const queries = {
     `,
     deleteUsers: "DELETE FROM users WHERE id = $1",
     getUserByEmail: "SELECT id FROM users WHERE LOWER(email) = LOWER($1)",
+    // Query completo para login (necesita todos los datos del usuario)
+    getUserByEmailComplete: "SELECT * FROM users WHERE email = $1",
+    // Query para verificar si un email ya existe (registro)
+    checkEmailExists: "SELECT * FROM users WHERE email = $1",
+    // Query para obtener el password del usuario (cambio de contraseña)
+    getUserPasswordById: "SELECT user_password FROM users WHERE id = $1",
+    // Query para obtener perfil de usuario (sin password)
+    getUserProfileById:
+      "SELECT id, user_name, phone, lastname, email, user_type FROM users WHERE id = $1",
     updateUserResetToken: `
       UPDATE users 
       SET reset_password_token = $1, reset_password_expires = to_timestamp($2) 
@@ -214,6 +223,157 @@ export const queries = {
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
+    // Queries para user_data
+    createUserData: `
+      INSERT INTO user_data (order_id, user_data) 
+      VALUES ($1, $2)
+    `,
+    getUserDataByOrderId: `
+      SELECT user_data 
+      FROM user_data 
+      WHERE order_id = $1
+    `,
+    getUserDataByOrderIds: `
+      SELECT order_id, user_data 
+      FROM user_data 
+      WHERE order_id = ANY($1)
+    `,
+    // Queries de validación
+    checkOrderExists: `
+      SELECT id 
+      FROM orders 
+      WHERE id = $1
+    `,
+    getUserTypeById: `
+      SELECT id, user_type 
+      FROM users 
+      WHERE id = $1
+    `,
+    checkProductsExist: `
+      SELECT product_id 
+      FROM products 
+      WHERE product_id = ANY($1)
+    `,
+    // Queries de eliminación
+    deleteOrderItems: `
+      DELETE FROM order_items 
+      WHERE order_id = $1
+    `,
+    deleteUserData: `
+      DELETE FROM user_data 
+      WHERE order_id = $1
+    `,
+    deleteShippingInfoByOrderId: `
+      DELETE FROM shipping_info 
+      WHERE order_id = $1
+    `,
+    deleteOrderById: `
+      DELETE FROM orders 
+      WHERE id = $1
+    `,
+    // Queries de actualización avanzada
+    lockOrderForUpdate: `
+      SELECT id, customer_id 
+      FROM orders 
+      WHERE id = $1 
+      FOR UPDATE
+    `,
+    getOrderSubtotal: `
+      SELECT COALESCE(SUM(price * quantity), 0) as sub 
+      FROM order_items 
+      WHERE order_id = $1
+    `,
+    updateOrderTotal: `
+      UPDATE orders 
+      SET total = $1, shipping_cost = $2 
+      WHERE id = $3
+    `,
+    insertOrderItem: `
+      INSERT INTO order_items (
+        order_id, 
+        product_id, 
+        variation_id, 
+        presentation_id, 
+        presentation, 
+        price, 
+        quantity, 
+        quality
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `,
+    checkShippingInfoExists: `
+      SELECT id 
+      FROM shipping_info 
+      WHERE order_id = $1
+    `,
+    updateShippingInfoByOrderId: `
+      UPDATE shipping_info 
+      SET 
+        shipping_method = $1, 
+        tracking_number = $2, 
+        estimated_delivery = $3, 
+        actual_delivery = $4, 
+        shipping_status_id = $5 
+      WHERE order_id = $6
+    `,
+    insertShippingInfo: `
+      INSERT INTO shipping_info (
+        shipping_method, 
+        tracking_number, 
+        estimated_delivery, 
+        actual_delivery, 
+        shipping_status_id, 
+        order_id
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `,
+    // Queries complejos para updateOrderPrices
+    getPendingOrdersWithItems: `
+      SELECT
+        o.id as order_id,
+        o.user_type,
+        oi.id as item_id,
+        oi.product_id,
+        oi.variation_id,
+        oi.presentation_id,
+        oi.presentation, 
+        oi.price as old_price,
+        oi.quantity
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      WHERE o.status_id = 1
+    `,
+    getProductsWithPresentations: `
+      SELECT 
+        p.product_id,
+        p.name as product_name,
+        v.variation_id,
+        json_agg(
+          json_build_object(
+            'presentation', pp.presentation,
+            'price_home', pp.price_home,
+            'price_supermarket', pp.price_supermarket,
+            'price_restaurant', pp.price_restaurant,
+            'price_fruver', pp.price_fruver
+          ) 
+        ) FILTER (WHERE pp.presentation_id IS NOT NULL) as presentations
+      FROM products p
+      JOIN product_variations v ON p.product_id = v.product_id
+      LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
+      WHERE p.product_id = ANY($1)
+      GROUP BY p.product_id, p.name, v.variation_id
+    `,
+    updateOrderItemPrice: `
+      UPDATE order_items 
+      SET price = $1 
+      WHERE id = $2
+    `,
+    checkCustomerTypesTableExists: `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'customer_types'
+      )
+    `,
   },
   order_statuses: {
     getOrderStatuses: "SELECT * FROM order_statuses",
@@ -263,6 +423,7 @@ export const queries = {
     deleteShippingInfo: "DELETE FROM shipping_info WHERE id = $1",
   },
   products: {
+    // Admin - Obtiene TODOS los productos (activos e inactivos)
     getProducts: `
       SELECT 
         p.product_id, 
@@ -273,6 +434,20 @@ export const queries = {
         p.active,
         p.promocionar
       FROM products p
+      ORDER BY p.created_at DESC;
+    `,
+    // Cliente - Obtiene SOLO productos activos
+    getActiveProducts: `
+      SELECT 
+        p.product_id, 
+        p.name, 
+        p.description, 
+        p.category, 
+        p.photo_url,
+        p.active,
+        p.promocionar
+      FROM products p
+      WHERE p.active = true
       ORDER BY p.created_at DESC;
     `,
     getProductById: `
@@ -355,6 +530,7 @@ export const queries = {
         price_fruver = $7
       WHERE presentation_id = $8;
     `,
+    // Admin - Obtiene TODAS las variaciones (activas e inactivas)
     getProductVariations: `
       SELECT 
         v.product_id,
@@ -375,6 +551,29 @@ export const queries = {
       FROM product_variations v
       LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
       WHERE v.product_id = ANY($1)
+      GROUP BY v.product_id, v.variation_id, v.quality, v.active;
+    `,
+    // Cliente - Obtiene SOLO variaciones activas
+    getActiveProductVariations: `
+      SELECT 
+        v.product_id,
+        v.variation_id, 
+        v.quality, 
+        v.active,
+        json_agg(
+          json_build_object(
+            'presentation_id', pp.presentation_id,
+            'presentation', pp.presentation,
+            'price_home', pp.price_home,
+            'price_supermarket', pp.price_supermarket,
+            'price_restaurant', pp.price_restaurant,
+            'price_fruver', pp.price_fruver,
+            'stock', pp.stock
+          )
+        ) AS presentations
+      FROM product_variations v
+      LEFT JOIN product_presentations pp ON v.variation_id = pp.variation_id
+      WHERE v.product_id = ANY($1) AND v.active = true
       GROUP BY v.product_id, v.variation_id, v.quality, v.active;
     `,
     deleteProduct: `

@@ -1,15 +1,23 @@
 import { getConnection } from "../database/connection.js"; // Importación correcta
 import { uploadImage } from "../helpers/uploadImage.js";
 import { queries, bulkQueries } from "../database/queries.interface.js";
-import XLSX from "xlsx"; // Importar la librería para leer Excel
+import { DEFAULT_IMAGES } from "../constants/defaults.js";
 
 export const getProducts = async (req, res) => {
   let client;
   try {
     client = await getConnection();
 
-    // 1. Obtener todos los productos (1 query)
-    const productsResult = await client.query(queries.products.getProducts);
+    // Detectar si es admin (desde JWT o query param)
+    const isAdmin =
+      req.user?.user_type === "admin" || req.query.admin === "true";
+
+    // 1. Obtener productos según el tipo de usuario
+    const productQuery = isAdmin
+      ? queries.products.getProducts // Admin: todos los productos
+      : queries.products.getActiveProducts; // Cliente: solo activos
+
+    const productsResult = await client.query(productQuery);
 
     if (productsResult.rows.length === 0) {
       return res.status(404).json({ message: "No hay productos disponibles" });
@@ -18,11 +26,12 @@ export const getProducts = async (req, res) => {
     // Extraer IDs de productos para la siguiente query
     const productIds = productsResult.rows.map((p) => p.product_id);
 
-    // 2. Obtener todas las variaciones y presentaciones en una sola query (¡Optimización clave!)
-    const variationsResult = await client.query(
-      queries.products.getProductVariations,
-      [productIds] // Usa ANY($1) en la query
-    );
+    // 2. Obtener variaciones según el tipo de usuario
+    const variationQuery = isAdmin
+      ? queries.products.getProductVariations // Admin: todas las variaciones
+      : queries.products.getActiveProductVariations; // Cliente: solo activas
+
+    const variationsResult = await client.query(variationQuery, [productIds]);
 
     // 3. Agrupar variaciones por product_id en un objeto
     const variationsByProductId = variationsResult.rows.reduce(
@@ -416,12 +425,10 @@ export const createProduct = async (req, res) => {
     // as last resort, log and return clear validation error instead of DB 500
     if (!name || (typeof name === "string" && name.trim() === "")) {
       console.warn("[createProduct] Missing required field: name");
-      return res
-        .status(400)
-        .json({
-          message: "El campo `name` es requerido en el formulario",
-          receivedBody: req.body,
-        });
+      return res.status(400).json({
+        message: "El campo `name` es requerido en el formulario",
+        receivedBody: req.body,
+      });
     }
 
     // Si no se envía el estado, lo dejamos activo por defecto

@@ -26,42 +26,20 @@ const swaggerDocument = JSON.parse(
   fs.readFileSync(new URL("../swagger.json", import.meta.url))
 );
 
+import { corsOptions, validateCorsConfig } from "./config/cors.config.js";
+
 // Configuración de la política de Cross-Origin Resource Sharing (CORS).
-// Se define una lista blanca de orígenes para restringir las peticiones a dominios conocidos
-// (producción, desarrollo local y el propio dominio de la API para Swagger UI).
+// La configuración ahora se maneja en un módulo dedicado (config/cors.config.js)
+// con validación estricta, logging detallado y soporte para variables de entorno.
 //
-// Se permiten solicitudes sin `origin` (p. ej., Postman, scripts de servidor) para facilitar las pruebas.
-// `credentials: true` es fundamental para que el frontend pueda enviar cabeceras de `Authorization` (JWT)
-// y mantener la sesión del usuario en las peticiones cross-origin.
-const allowedOrigins = [
-  "https://donkampo.com",
-  "https://www.donkampo.com",
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://localhost:5173",
-  "http://localhost:8080",
-  "http://localhost:8080/api-docs",
-];
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    // En desarrollo, permitir todos los orígenes
-    if (process.env.NODE_ENV !== "production") {
-      callback(null, true);
-      return;
-    }
-
-    // En producción, verificar la lista blanca
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS Error: Origin not allowed"), false);
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
+// Características:
+// - Whitelist configurable vía CORS_ORIGINS en .env
+// - Logging de todos los intentos de acceso (permitidos y bloqueados)
+// - Modo desarrollo con warnings en lugar de bloqueos (opcional)
+// - Validación automática de configuración al iniciar
+//
+// `credentials: true` permite que el frontend envíe headers de `Authorization` (JWT)
+// y cookies en peticiones cross-origin.
 
 // Middlewares globales
 app.use(cookieParser());
@@ -93,16 +71,23 @@ apiRouter.use(customerTypesRoutes);
 apiRouter.use(advertsimentsRoutes);
 app.use("/api", apiRouter);
 
-// Soporte para solicitudes preflight
+// Soporte para solicitudes preflight (OPTIONS)
 app.options("*", cors(corsOptions));
+
+// Validar configuración antes de iniciar el servidor
+validateCorsConfig();
 
 // Inicializar servidor
 const port = process.env.PORT || 8080;
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
-  console.log(`📘 Swagger docs en http://localhost:${port}/api-docs`);
-  console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`\n${"=".repeat(50)}`);
+  console.log(`🚀 Servidor Don Kampo API iniciado exitosamente`);
+  console.log(`${"=".repeat(50)}`);
+  console.log(`📍 URL: http://localhost:${port}`);
+  console.log(`📘 Swagger: http://localhost:${port}/api-docs`);
+  console.log(`🌐 Ambiente: ${process.env.NODE_ENV || "development"}`);
   console.log(`🔧 Trust Proxy: ${app.get("trust proxy")}`);
+  console.log(`${"=".repeat(50)}\n`);
 });
 
 // Manejo de señal para cerrar el servidor

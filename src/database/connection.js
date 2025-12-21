@@ -1,5 +1,5 @@
-import pg from 'pg';
-import { dbSettings } from '../config/config.js'; // Corregido para apuntar a la carpeta correcta
+import pg from "pg";
+import { dbSettings } from "../config/config.js"; // Corregido para apuntar a la carpeta correcta
 
 const { Pool } = pg;
 
@@ -29,17 +29,29 @@ const pool = new Pool({
   // Opciones del pool para mejorar la estabilidad
   max: 20, // Número máximo de clientes en el pool
   idleTimeoutMillis: 30000, // Tiempo que un cliente puede estar inactivo antes de cerrarse
-  connectionTimeoutMillis: 5000, // Aumentado a 5s para evitar timeouts prematuros
+  connectionTimeoutMillis: 10000, // 10s - Aumentado para conexiones remotas lentas
+  statement_timeout: 30000, // 30s - Timeout para queries individuales
 });
 
 // Evento para capturar errores en clientes inactivos del pool
-pool.on('error', (err, client) => {
-  console.error('Error inesperado en un cliente inactivo del pool de PostgreSQL', err);
+pool.on("error", (err, client) => {
+  console.error(
+    "Error inesperado en un cliente inactivo del pool de PostgreSQL",
+    err
+  );
 });
 
 // Función para obtener una conexión del pool de forma segura
 export const getConnection = async () => {
+  // 🔍 DEBUG: Mostrar estado del pool
+  console.log("📊 Pool status:", {
+    total: pool.totalCount,
+    idle: pool.idleCount,
+    waiting: pool.waitingCount,
+  });
+
   const client = await pool.connect();
+  console.log("✅ Cliente obtenido del pool");
   return client;
 };
 
@@ -48,11 +60,14 @@ export const testConnection = async () => {
   let client;
   try {
     client = await getConnection();
-    console.log('✅ Conexión exitosa a PostgreSQL.');
-    const res = await client.query('SELECT NOW()');
-    console.log('🕒 Hora del servidor de la base de datos:', res.rows[0].now);
+    console.log("✅ Conexión exitosa a PostgreSQL.");
+    const res = await client.query("SELECT NOW()");
+    console.log("🕒 Hora del servidor de la base de datos:", res.rows[0].now);
   } catch (error) {
-    console.error('❌ Error fatal al conectar con la base de datos:', error.message);
+    console.error(
+      "❌ Error fatal al conectar con la base de datos:",
+      error.message
+    );
   } finally {
     if (client) client.release(); // Siempre libera el cliente
   }
